@@ -1,0 +1,1 @@
+(function(){try{if(localStorage.getItem("brz_theme")==="dark")document.documentElement.setAttribute("data-theme","dark");}catch(e){}})();

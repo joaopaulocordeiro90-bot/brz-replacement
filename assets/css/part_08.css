@@ -1,0 +1,14 @@
+
+#rep-derivados .r3-table tr.a-sorgo-sep>td,.r3-trade-break>td{text-align:left!important;padding:10px 12px!important;border-top:3px solid var(--bege,#B5963E)!important;border-bottom:1px solid var(--bege,#B5963E)!important;background:linear-gradient(90deg,rgba(181,150,62,.18),rgba(181,150,62,.04))!important;color:var(--navy-ink,#0B1F3A)!important}
+.r3-table .a-sorgo-sep-title{font-weight:850;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+.r3-table .a-sorgo-sep-note{color:#54748D;font-size:10.5px}
+#rep-derivados .r3-trade-break strong{font-weight:850;font-size:11px;letter-spacing:.5px}
+#rep-derivados .r3-trade-break span{margin-left:14px;color:#54748D;font-size:10px}
+#rep-derivados .r3-trade-row>td{background:#F0F7FC!important;border-bottom:1px solid #D6E4F0!important}
+#rep-derivados .r3-trade-row>td:first-child{border-left:3px solid #277C9A!important}
+#rep-derivados .r3-trade-row:hover>td{background:#E1F0F8!important}
+#rep-derivados .r3-trade-row td small{white-space:normal;display:block;max-width:260px;line-height:1.32}
+#rep-derivados .r3-trade-row td:nth-child(1){min-width:270px;white-space:normal}
+#rep-derivados .r3-trade-row .r3-input{min-width:72px}
+.r3-photo 
+.r3-photo .r3-trade-row td{background:#F0F7FC!important}

@@ -1,0 +1,41 @@
+
+#analise .a-card:has(.a-tabbtn) .a-card-t{padding-right:190px}
+#analise .a-tabbtn{position:absolute;top:9px;right:138px;z-index:8;height:28px;min-width:42px;padding:0 9px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--g200,#E5E7EB);border-radius:8px;background:var(--card,#fff);color:#536274;font:800 10px/1 Inter,system-ui,-apple-system,sans-serif;letter-spacing:.45px;cursor:pointer;box-shadow:0 1px 2px rgba(16,38,56,.04);transition:background .15s,color .15s,border-color .15s,box-shadow .15s}
+#analise .a-tabbtn:hover{color:#1A3A5C;border-color:#AAB7C5;box-shadow:0 2px 7px rgba(16,38,56,.12)}
+#analise .a-tabbtn.on{background:#1A3A5C;border-color:#1A3A5C;color:#fff}
+#analise .a-tblsingle{display:block;min-width:0}
+#analise .a-tab-toolbar{display:none}
+#analise .a-tab-headline{display:none}
+#analise .a-tab-headline .left b,#analise .a-tab-headline .right b{color:#10283A}
+#analise .a-tab-headline .right{text-align:right}
+#analise .a-tab-fx{display:grid;grid-template-columns:auto auto auto;column-gap:18px;row-gap:4px;font-size:11px;color:var(--g700);font-variant-numeric:tabular-nums}
+#analise .a-tab-fx b{font-weight:800;color:var(--navy-ink)}
+#analise .a-tab-legend{font-size:10.5px;color:var(--g500);line-height:1.5;text-align:right}
+#analise .a-tab-legend b{color:var(--navy-ink)}
+#analise .a-tab-wrap{overflow-x:auto;overflow-y:visible;border:1px solid var(--g200);border-radius:10px;background:#fff;scrollbar-width:none;-ms-overflow-style:none}
+#analise .a-tab-wrap::-webkit-scrollbar{display:none;width:0;height:0}
+#analise .a-tab-table{min-width:1220px;width:100%;table-layout:auto;border-collapse:separate;border-spacing:0;font-size:14.2px;font-variant-numeric:tabular-nums}
+#analise .a-tab-table thead th{padding:8px 9px 4px;background:#fff;color:#111827;font-size:13px;font-weight:800;text-align:left;vertical-align:bottom;border-bottom:0;white-space:normal;line-height:1.12;overflow-wrap:anywhere}
+#analise .a-tab-table thead tr.a-tab-units th{padding:1px 8px 7px;color:#596579;font-size:11.6px;font-weight:700;border-bottom:2px solid #17212B}
+#analise .a-tab-table thead th.l{text-align:left}
+#analise .a-tab-table tbody td{padding:7px 10px;border-bottom:1px solid #E9EDF2;color:#162235;white-space:nowrap;text-align:left;line-height:1.22;vertical-align:middle}#analise .a-tab-table tbody td:nth-child(7),#analise .a-tab-table tbody td:nth-child(8){white-space:normal}
+#analise .a-tab-table tbody tr:last-child td{border-bottom:0}
+#analise .a-tab-table tbody tr:hover td:not(.a-tab-margin){background:#F8FAFC}
+#analise .a-tab-table td.l{text-align:left}
+#analise .a-tab-table td.num{text-align:left}
+#analise .a-tab-table td.a-tab-cost{font-weight:800;color:#10283A}
+#analise .a-tab-table td.a-tab-paper{font-weight:800;color:#10283A}
+#analise .a-tab-table td.a-tab-margin{background:#8B8D90;color:#fff;font-weight:800;font-size:14.5px;text-align:center;border-bottom-color:#9A9C9F}
+#analise .a-tab-table td.a-tab-margin.pos{background:#8B8D90}
+#analise .a-tab-table td.a-tab-margin.neg{background:#8B8D90}
+#analise .a-tab-table td.a-tab-margin.na{background:#A7A9AC;color:#EEF1F4;text-align:center}
+#analise .a-tab-table .a-tab-delta{display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:42px;font-weight:800}
+#analise .a-tab-table .a-tab-delta.up{color:#DC2626}
+#analise .a-tab-table .a-tab-delta.down{color:#16A34A}
+#analise .a-tab-table .a-tab-delta.flat{color:#6B7280}
+#analise .a-tab-table .a-tab-arrow{font-size:12px;line-height:1;color:currentColor}
+#analise .a-tab-note{display:none}
+#analise .a-tab-table td:nth-child(1),#analise .a-tab-table td:nth-child(2),#analise .a-tab-table td:nth-child(5),#analise .a-tab-table td:nth-child(6),#analise .a-tab-table td:nth-child(7),#analise .a-tab-table td:nth-child(8){text-align:left}
+#analise .a-tab-table td:nth-child(12),#analise .a-tab-table td:nth-child(13),#analise .a-tab-table td:nth-child(14){text-align:center}
+#analise .a-tab-note b{color:var(--navy-ink)}
+@media(max-width:900px){#analise .a-tabbtn{right:112px}#analise .a-card:has(.a-tabbtn) .a-card-t{padding-right:165px}#analise .a-tab-legend{text-align:left}}

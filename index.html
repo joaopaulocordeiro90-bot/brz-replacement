@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<title>BRZ Replacement · Homologação GitHub Pages</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,Arial,sans-serif}*{box-sizing:border-box}
+body{background:#0c1524;color:#e5edf6;min-height:100vh;margin:0;display:grid;place-items:center}
+main{width:min(540px,94vw);background:#142135;border:1px solid #30455b;border-radius:16px;padding:26px;box-shadow:0 18px 60px #0006}
+h1{font-size:22px;letter-spacing:.2px;margin-top:0}h2{font-size:14px;margin-bottom:22px;color:#9db2ca}
+label{font-size:12px;color:#cad7e5;display:block;margin:14px 0 6px}input{width:100%;padding:12px;border:1px solid #41566d;border-radius:6px;background:#091626;color:white;font-size:15px}
+button{padding:12px 16px;font-weight:700;border:0;border-radius:7px;background:#297dd5;color:white;cursor:pointer;width:100%;margin:18px 0 4px}button:disabled{opacity:.45;cursor:default}
+p{font-size:13px;color:#c0cad8;line-height:1.6}.status{padding:13px 12px;margin-top:12px;border:1px solid #33475d;border-radius:8px;background:#0b1829;color:#acd1f7;white-space:pre-wrap;font-size:12px}
+small{font-size:11px;color:#a9b5c4}#app{display:none;width:100vw;height:100vh;border:0}body.loaded{display:block}body.loaded #login{display:none}body.loaded #app{display:block}
+#exitF57{display:none;position:fixed;top:12px;right:15px;z-index:2147483646;max-width:160px;width:auto;white-space:nowrap;padding:10px 14px;margin:0;background:#ab3b35;box-shadow:0 4px 15px #0005}body.loaded #exitF57{display:block}
+</style></head><body>
+<main id="login"><h1>BRZ Replacement</h1><h2>F59 · Homologação GitHub Pages · Somente leitura</h2>
+<p>Homologação F58. A interface está hospedada no GitHub Pages; os históricos só são consultados após autenticação Supabase mesa/admin. As fontes de preços, negócios e fretes só são recuperadas com acesso mesa/admin autorizado. Nenhum negócio será criado ou alterado.</p>
+<form id="authform" autocomplete="off">
+<label for="user">Usuário Supabase (mesa/admin)</label><input id="user" type="email" required disabled autocomplete="username" />
+<label for="pass">Senha</label><input id="pass" type="password" required disabled autocomplete="current-password"/>
+<button id="go" type="submit" disabled>Autenticar e carregar históricos</button></form>
+<div class="status" id="status" aria-live="polite">F58 · verificação de integridade pendente. Login bloqueado até concluir a conferência de todos os arquivos.</div>
+<p><small>Os arquivos da interface são públicos. Históricos e cotações exigem login Supabase e RLS. A versão ainda está em homologação e não foi aprovada para produção. Nenhuma senha ou token é persistido no navegador.</small></p>
+</main><button id="exitF57" type="button" title="Encerrar e limpar sessão" onclick="location.reload()">Sair da sessão</button><iframe id="app" title="BRZ Replacement" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"></iframe>
+<script type="module" src="assets/f58/f58_login_loader.mjs"></script></body></html>
