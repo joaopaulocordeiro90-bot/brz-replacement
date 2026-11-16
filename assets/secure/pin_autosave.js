@@ -8,6 +8,34 @@
  const API='https://irekykmigdfvwozerkfa.supabase.co';
  const KEY='sb_publishable_lqI_p-_21r3gqerHxsHlLQ_2c-XWwzq';
  const EXPECTED=4011;
+ // BRZ Safras-compatible white workspace and 125%-like desktop rendering.
+ // Existing styles contain body{zoom:.8}; restoring 1.0 at browser 100%
+ // matches the previous 125% browser zoom (.8 * 1.25 = 1.0).
+ const ux=document.createElement('style');
+ ux.id='brz-replacement-ux-v2';
+ ux.textContent=[
+  'body{zoom:1!important;min-width:100%!important;max-width:100%!important}',
+  '.app{max-width:100vw!important}',
+  '#inicial,#inicial .homeHero,#inicial .homeGrid,#inicial .homeQuick{background:#fff!important;color:#173249!important}',
+  'body:has(#inicial.active),body:has(#inicial.active) .main,body:has(#inicial.active) #contentGrid{background:#fff!important}',
+  '#inicial .homeHero{padding:30px 32px 19px!important;border-bottom:1px solid #e1e8ef!important}',
+  '#inicial .homeHero h2{font:800 27px/1.18 Inter,Arial,sans-serif!important;color:#173249!important}',
+  '#inicial .homeHero p{font-size:14px!important;color:#607487!important;line-height:1.55!important}',
+  '#inicial .homeGrid{padding:24px 32px 26px!important;gap:17px!important}',
+  '#inicial .homeCard{background:#fff!important;border:1px solid #dce5ed!important;border-radius:9px!important;box-shadow:0 2px 8px rgba(15,44,68,.045)!important;padding:23px!important;min-height:170px!important}',
+  '#inicial .homeCard .eyebrow{font-size:11px!important;color:#60798d!important;letter-spacing:.065em}',
+  '#inicial .homeCard h3{font-size:19px!important;color:#173c5c!important}',
+  '#inicial .homeCard p{font-size:14px!important;line-height:1.53!important;color:#53687a!important}',
+  '#inicial .homeCard .go{font-size:13px!important;color:#0d8f85!important}',
+  '#inicial .homeQuick{padding:0 32px 30px!important}',
+  '#inicial .homeQuickBox{background:#f8fafc!important;border:1px solid #e0e8f0!important;color:#526a7b!important;font-size:13px!important}',
+  '@media(max-width:1100px){#inicial .homeGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}',
+  '@media(max-width:700px){body{zoom:1!important}#inicial .homeGrid{grid-template-columns:1fr!important;padding:14px!important}#inicial .homeHero{padding:22px 16px 15px!important}#inicial .homeQuick{padding:0 14px 25px!important}#inicial .homeCard{min-height:0!important;padding:17px!important}}',
+  '#brz-curve-last-update{display:flex;flex-wrap:wrap;align-items:baseline;gap:7px;padding:9px 13px;background:#f1f8f7;border:1px solid #cfe7e3;border-radius:5px;color:#163f45;font:600 12px Inter,Arial,sans-serif;margin:7px 0 0}',
+  '#brz-curve-last-update small{color:#627986;font-weight:400;font-size:11px}'
+ ].join('\n');
+ document.head.appendChild(ux);
+
  let token=null,refreshToken=null,tokenExpiration=0;
  let connected=false,applying=false,saving=false,dirty=false,blocked=false,timer=null;
  let remote=new Map(),operationIds=new Map();
@@ -201,6 +229,32 @@
    settings:['precosEdits','farmerSelling','r3Hidden','simulacoes']
  });
  let remoteModules=new Map(),roadBaseline=new Map(),moduleBooting=false;
+ let curveUpdatedAt=null,curveSourceDate=null,curveCaptureTime='não informado';
+ function renderCurveLastUpdate(){
+   const head=document.querySelector('#mercado .head');
+   if(!head)return;
+   let box=document.getElementById('brz-curve-last-update');
+   if(!box){box=document.createElement('div');box.id='brz-curve-last-update';head.appendChild(box);}
+   if(!curveUpdatedAt){
+     box.textContent='Curva CBOT/B3 · Sem data de atualização confirmada';
+     return;
+   }
+   const date=new Date(curveUpdatedAt);
+   if(!Number.isFinite(date.getTime())){box.textContent='Curva CBOT/B3 · Data indisponível';return;}
+   const recorded=date.toLocaleString('pt-BR',{
+     timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',
+     year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false
+   });
+   const day=typeof curveSourceDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(curveSourceDate)
+       ?curveSourceDate.split('-').reverse().join('/'):'sem data';
+   box.replaceChildren();
+   const title=document.createElement('strong');
+   title.textContent='Última atualização: '+recorded+' (BRT)';
+   const meta=document.createElement('small');
+   meta.textContent='Referência: '+day+' · Horário da captura CBOT/B3: '+curveCaptureTime;
+   box.append(title,meta);
+ }
+
  function groupSnapshot(name){
    const obj={};
    for(const key of MODULES[name]){
@@ -293,6 +347,20 @@
      // revision takes precedence over earlier chat-supplied quotations.
      let appliedChatCurves=false;
      const savedCurvesRow=rows.find(r=>r.module==='curves');
+     curveUpdatedAt=savedCurvesRow?.updated_at||null;
+     curveSourceDate=null;
+     curveCaptureTime='não informado';
+     for(const latest of deskChatSnapshot?.curves||[]){
+       const stamp=Date.parse(latest?.inserted_at||'');
+       if(!Number.isFinite(stamp))continue;
+       if(!curveUpdatedAt||stamp>Date.parse(curveUpdatedAt)){
+         curveUpdatedAt=latest.inserted_at;
+         curveSourceDate=latest.source_date;
+         curveCaptureTime=latest.payload?.snapshot?.hora||'não informado';
+       }
+     }
+     renderCurveLastUpdate();
+
      for(const item of deskChatSnapshot?.curves||[]){
        const sourceDate=item?.source_date;
        const patch=item?.payload;
@@ -320,7 +388,7 @@
      }
      const persistedRoad=remoteModules.get('road_delta');
      remoteModules.set('road_delta',{revision:persistedRoad?.revision||0,
-       snapshot:stable(roadDiff())});
+       snapshot:persistedRoad?stable(roadDiff()):stable({upserts:[],deletes:[]})});
      if(rows.length||appliedChatCurves){
        if(typeof window.__BRZ_PIN_INVALIDATE_NAV==='function')window.__BRZ_PIN_INVALIDATE_NAV();
        if(typeof invalidateDataCache==='function')invalidateDataCache();
@@ -343,6 +411,12 @@
      if(ack?.module!==name||Number(ack.revision)!==previous.revision+1)
        throw Error('Alteração do módulo '+name+' sem confirmação do servidor');
      remoteModules.set(name,{revision:Number(ack.revision),snapshot:shot});
+     if(name==='curves'){
+       curveUpdatedAt=ack.updated_at||new Date().toISOString();
+       curveSourceDate=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+       curveCaptureTime='não informado';
+       renderCurveLastUpdate();
+     }
    }
  }
 
