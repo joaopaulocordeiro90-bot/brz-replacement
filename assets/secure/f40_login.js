@@ -114,9 +114,23 @@ async function loadPrices(token,onProgress){
  }
  if(pages>=MAX_PAGES||records.length!==EXPECTED||seen.size!==EXPECTED)
     throw Error('Fonte física incompleta: '+records.length+' / '+EXPECTED);
- const ledger=await sha256(canonical.join('\n')+'\n');
- if(ledger!==CANONICAL_LEDGER_SHA)throw Error('F40: ordem ou conteúdo físico divergente da V4FQ');
- return records;
+ // F40 fix: the F34 row_no preserves ingestion order. The final 464
+ // observations were appended after the initial 59,294 records even though
+ // the original V4FQ dataPrecos array is ordered by quote date, then ID.
+ // Restore EXACT original order before comparing the sealed source ledger
+ // and before handing the 59,758 records to the legacy renderer.
+ const ordered=records.map((record,i)=>({record,canonical:canonical[i]}));
+ for(const item of ordered){
+   if(typeof item.record.data!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(item.record.data)||
+      typeof item.record.id!=='string')
+     throw Error('F40: data ou ID de preço físico inválido');
+ }
+ ordered.sort((a,b)=>
+   a.record.data<b.record.data?-1:a.record.data>b.record.data?1:
+   a.record.id<b.record.id?-1:a.record.id>b.record.id?1:0);
+ const ledger=await sha256(ordered.map(item=>item.canonical).join('\n')+'\n');
+ if(ledger!==CANONICAL_LEDGER_SHA)throw Error('F40: conteúdo físico divergente da V4FQ após ordenação original');
+ return ordered.map(item=>item.record);
 }
 
 // F41: all original 4.011 trades are read-only. Never calls F33 mutation RPCs.
