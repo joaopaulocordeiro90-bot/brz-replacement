@@ -31,6 +31,7 @@ jobs:
           node tests/f60_road.test.mjs
           node tests/f61_map.test.mjs
           node tests/f62_pagamentos.test.mjs
+          node tests/f63_16nov.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'
