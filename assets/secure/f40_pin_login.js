@@ -23,6 +23,75 @@ const status=msg=>{ $('status').textContent=msg; };
 window.__BRZF57_READ_ONLY_STAGING=true; // isolate legacy F33 UI; PIN autosave uses its own bridge
 let loading=false,aborted=false;
 let pinRefreshToken=null,pinExpiresIn=3600;
+const SESSION_KEY='brz_replacement_tab_auth_v1';
+const SESSION_MS=60*60*1000;
+let tabSessionUntil=0;
+function forgetTabSession(){
+ try{sessionStorage.removeItem(SESSION_KEY)}catch(e){}
+ tabSessionUntil=0;
+}
+function rememberTabSession(accessToken,refreshToken,expiresIn,keepUntil){
+ if(typeof accessToken!=='string'||accessToken.length<40||
+    typeof refreshToken!=='string'||refreshToken.length<20)return;
+ const now=Date.now(),until=Number(keepUntil)||now+SESSION_MS;
+ if(until<=now)return;
+ tabSessionUntil=until;
+ try{
+  // Credentials are scoped to this browser TAB, not localStorage/cookies.
+  // Never persist the six-digit PIN or any confidential market data.
+  sessionStorage.setItem(SESSION_KEY,JSON.stringify({
+   access_token:accessToken,refresh_token:refreshToken,
+   token_expires_at:now+Math.max(60,Number(expiresIn)||3600)*1000,
+   keep_until:until
+  }));
+ }catch(e){}
+}
+async function restoreTabSession(){
+ let saved=null;
+ try{saved=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}catch(e){}
+ if(!saved||typeof saved.access_token!=='string'||
+    typeof saved.refresh_token!=='string'||!Number.isFinite(saved.keep_until)||
+    saved.keep_until<=Date.now()||saved.keep_until>Date.now()+SESSION_MS+60000){
+  forgetTabSession();return null;
+ }
+ try{
+  let token=saved.access_token,refresh=saved.refresh_token;
+  let seconds=Math.max(0,Math.floor((Number(saved.token_expires_at)-Date.now())/1000));
+  if(seconds<120){
+   const resp=await fetch(API+'/auth/v1/token?grant_type=refresh_token',{
+    method:'POST',headers:{apikey:KEY,'Content-Type':'application/json',
+      Accept:'application/json'},body:JSON.stringify({refresh_token:refresh}),
+    cache:'no-store',redirect:'error',credentials:'omit',referrerPolicy:'no-referrer'});
+   if(!resp.ok)throw Error('Sessão não renovável');
+   const rotated=await resp.json();
+   if(typeof rotated?.access_token!=='string'||typeof rotated?.refresh_token!=='string')
+    throw Error('Sessão inválida');
+   token=rotated.access_token;refresh=rotated.refresh_token;
+   seconds=Number(rotated.expires_in||3600);
+  }
+  const [user,roleRows]=await Promise.all([
+   request('/auth/v1/user',{token}),
+   request('/rest/v1/rpc/brz_api_session',{token})
+  ]);
+  const role=Array.isArray(roleRows)?roleRows[0]?.role:roleRows?.role;
+  if(typeof user?.id!=='string'||!['mesa','admin'].includes(role))
+   throw Error('Sessão não autorizada');
+  pinRefreshToken=refresh;pinExpiresIn=seconds;
+  rememberTabSession(token,refresh,seconds,saved.keep_until);
+  return token;
+ }catch(e){forgetTabSession();return null;}
+}
+// The inner iframe rotates Supabase refresh tokens while the operator works.
+// Keep the parent tab's saved token synchronized to avoid F5 logout.
+window.__BRZ_UPDATE_TAB_TOKEN=function(info){
+ if(!info||typeof info.access_token!=='string'||typeof info.refresh_token!=='string')return;
+ rememberTabSession(info.access_token,info.refresh_token,
+   Number(info.expires_in||3600),tabSessionUntil);
+};
+window.__BRZ_END_TAB_SESSION=()=>{
+ forgetTabSession();
+ location.reload();
+};
 let marketStatsCached=null;
 function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
  throw Error('F58: pacote público ainda não conferido');
@@ -152,6 +221,7 @@ async function signIn(pin){
  if(!Array.isArray(stats)||stats.length!==6||stats.some(r=>!r.ready))
    throw Error('Inventário de mercado indisponível');
  marketStatsCached=stats;
+ rememberTabSession(token,pinRefreshToken,pinExpiresIn,Date.now()+SESSION_MS);
  // Unlike staging F59, operational F33 writes are allowed, so do not
  // demand trade_events=0 on subsequent logins.
  return token;
@@ -269,6 +339,7 @@ async function preflightModules(){
 }
 async function start(ev){
  ev.preventDefault();if(loading)return;
+ const restoring=ev&&ev.restore===true;
  // Every PIN attempt starts a fresh authenticated hydration.
  // A failed prior parallel request must not poison F55 on retry.
  aborted=false;
@@ -279,8 +350,9 @@ async function start(ev){
  try{
   gate();status('F49 · verificando oito módulos locais antes da autenticação…');
   await preflightModules();
-  status('Autenticando sessão mesa/admin…');
-  token=await signIn($('pin').value.trim());
+  status(restoring?'Restaurando sessão segura desta aba…':'Autenticando sessão mesa/admin…');
+  token=restoring?await restoreTabSession():await signIn($('pin').value.trim());
+  if(!token)throw Error('Sessão de uma hora expirada. Informe o PIN para entrar.');
   $('pin').value='';
   status('Verificando metadados e fontes confidenciais em paralelo…');
   // F55 and F56 are independent authenticated read-only sources.
@@ -460,7 +532,15 @@ $('pin').disabled=false;
   gate();status('F49 · verificando a integridade dos oito módulos locais…');
   await preflightModules();
   $('pin').disabled=false;$('go').disabled=false;
-  status('Oito módulos verificados. Aguardando autenticação mesa/admin.');
+  let cached=null;
+  try{cached=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}catch(e){}
+  if(cached&&Number(cached.keep_until)>Date.now()){
+   status('Sessão da aba encontrada. Restaurando automaticamente…');
+   await start({preventDefault(){},restore:true});
+  }else{
+   if(cached)forgetTabSession();
+   status('Oito módulos verificados. Aguardando autenticação mesa/admin.');
+  }
  }catch(e){
   status('BLOQUEADO F49: '+e.message);
   $('go').disabled=true;
