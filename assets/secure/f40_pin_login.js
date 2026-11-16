@@ -3,9 +3,9 @@
 'use strict';
 const API='https://irekykmigdfvwozerkfa.supabase.co';
 const KEY='sb_publishable_lqI_p-_21r3gqerHxsHlLQ_2c-XWwzq';
-const EXPECTED=59758,PAGE_SIZE=250,MAX_PAGES=250;
+const EXPECTED=59758,PAGE_SIZE=4000,MAX_PAGES=20;
 const CANONICAL_LEDGER_SHA='58de80b0093287af20d7abc8362713d2c2db8deb3751083be35cad29a53c2b3d';
-const F41_EXPECTED=4011, F41_PAGE_SIZE=250, F41_MAX_PAGES=20;
+const F41_EXPECTED=4011, F41_PAGE_SIZE=1000, F41_MAX_PAGES=7;
 const F41_FROZEN_LEDGER_SHA='9697b87d6b2db893e5d5b40ca0f25a09a48b733b1ca27134747aa876c81cc890';
 const F41_STATE_CANONICAL_SHA='cc388f2468fd598e87b47a29232f7c3b58c92334f8bcd8829c483dbcb8cd8954';
 const $=id=>document.getElementById(id);
@@ -28,12 +28,19 @@ function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
  if((!localHost&&!ghPages()&&!stageEdge())||window.top!==window||!window.isSecureContext)
  throw Error('F59: origem nao autorizada');}
 async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
+ // Fast read-only JSON envelope RPCs keep authorized RLS and original source fields;
+ // one scalar result avoids the PostgREST 1,000-row cap on SETOF results.
+ const route={
+  '/rest/v1/rpc/brz_api_f34_market_page':'/rest/v1/rpc/brz_pin_fast_market_page',
+  '/rest/v1/rpc/brz_api_f46_road_page':'/rest/v1/rpc/brz_pin_fast_road_page',
+  '/rest/v1/rpc/brz_api_f41_trade_source_page':'/rest/v1/rpc/brz_pin_fast_frozen_trades'
+ }[path];
  const h={'apikey':KEY,'Accept':'application/json'};
  if(token)h.Authorization='Bearer '+token;
  if(body!==null)h['Content-Type']='application/json';
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),45000);
  try{
-  const response=await fetch(API+path,{method,headers:h,
+  const response=await fetch(API+(route||path),{method,headers:h,
       body:body===null?undefined:JSON.stringify(body),credentials:'omit',redirect:'error',
       cache:'no-store',referrerPolicy:'no-referrer',signal:ctrl.signal});
   if(!response.ok){
@@ -53,7 +60,12 @@ async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
     throw Error('Supabase HTTP '+response.status+
       (pgCode==='57014'?' · F34 timeout (tentativas '+(attempt+1)+')':''));
   }
-  return await response.json();
+  const result=await response.json();
+  if(route){
+   if(!result||!Array.isArray(result.rows))throw Error('Página autenticada inválida: '+path);
+   return result.rows;
+  }
+  return result;
  }finally{clearTimeout(timer);}
 }
 async function sha256(text){const buf=new TextEncoder().encode(text);
@@ -105,18 +117,15 @@ async function loadPrices(token,onProgress){
    method:'POST',token,body:{p_domain:'physical',p_after_row_no:cursor,p_limit:PAGE_SIZE,p_from_date:null}});
   if(!Array.isArray(page)||page.length>PAGE_SIZE||page.length===0)break;
   let previous=cursor;
-  // Digest per page is validated against the source record SHA captured in F34.
-  const digests=await Promise.all(page.map(async r=>{
-    if(!r||r.domain!=='physical'||!Number.isSafeInteger(Number(r.row_no))||r.row_no<=0
-       ||typeof r.source_key!=='string'||typeof r.record_json?.record_text!=='string'
-       ||!/^[a-f0-9]{64}$/.test(r.record_json?.record_sha256||''))
-      throw Error('Linha F34 malformada');
-    return sha256(r.record_json.record_text);
-  }));
+  // The final sealed full-source SHA-256 verifies *all* physical records
+  // together. Avoid 59,758 separate WebCrypto digests on the main thread.
   for(let i=0;i<page.length;i++){
    const row=page[i];
-   if(row.row_no<=previous||digests[i]!==row.record_json.record_sha256)
-      throw Error('Ordem ou SHA de registro físico divergente');
+   if(!row||row.domain!=='physical'||!Number.isSafeInteger(Number(row.row_no))
+      ||typeof row.source_key!=='string'||typeof row.record_json?.record_text!=='string'
+      ||!/^[a-f0-9]{64}$/.test(row.record_json?.record_sha256||'')
+      ||row.row_no<=previous)
+      throw Error('Ordem ou registro físico divergente');
    previous=row.row_no;
    let obj;try{obj=JSON.parse(row.record_json.record_text);}catch{throw Error('Registro físico não é JSON');}
    if(!obj||obj.id!==row.source_key||seen.has(obj.id))throw Error('ID físico duplicado/divergente');
