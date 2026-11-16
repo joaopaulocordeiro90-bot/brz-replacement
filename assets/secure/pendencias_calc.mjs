@@ -44,8 +44,14 @@ export function months(d){
  const named=month(d.embarque)||month(d.replacementCenario?.embarquePorto);
  if(named)months.unshift(named);
  if(!months.length){
-  const x=month(d.retirada)||month(d.entrega);
-  if(x)months.push(isCif(d)?x:shift(x));
+  const range=normal(d.retirada||d.entrega||'');
+  if(/novembro\s*\/\s*dezembro\s*2026/.test(range)){
+   for(const x of [{m:11,y:2026},{m:12,y:2026}])months.push(isCif(d)?x:shift(x));
+  }else{
+   const x=month(d.retirada)||month(d.entrega)||
+    (/\b(imediato|spot)\b/i.test(range)?month(d.data):null);
+   if(x)months.push(isCif(d)?x:shift(x));
+  }
  }
  return [...new Map(months.map(m=>[label(m),m])).values()].slice(0,4);
 }
@@ -106,7 +112,7 @@ export function candidates(d,state,ref){
    const b=bid(ref,d,port,m);
    const p={porto:port,mesPorto:label(m),modal:'Rodoviário',freteRodo:road,freteFerro:0,
     despesas:0,cbot,contratoCBOT:cc,fx,contratoDOL:d.vencCambio||fxContract(pay),
-    basis:b?num(b.value):null,freteFonte:roadLookup?.fonteFrete||(geo?'OSRM F60 · km × TKU':row?.iso_week||'Cenário BRZ'),
+    basis:b?num(b.value):null,freteFonte:deliveredPort?'CIF porto: sem frete anterior à praça':(roadLookup?.fonteFrete||(geo?'OSRM · km × TKU':row?.iso_week||(fallback!==null?'Cenário BRZ proxy':'Sem fonte'))),
     rota:(d.origem||o.city)+' → '+dest,proxy:o.proxy||!row,basisData:b?.day||null,
     basisJanela:b?.typ||null,preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
    const calc=calculate(d,p);if(calc)list.push({...p,calc});
@@ -122,7 +128,7 @@ export function candidates(d,state,ref){
    if(restricted&&normal(rail.destino)!==normal(restricted)&&!(restricted==='Itaqui'&&normal(rail.destino)==='sao luis'))continue;
    const hub=String(rail.origem||'').split('·')[0].trim();
    const hubName=normal(hub.split('/')[0]);
-   const roadToHub=(ref.road||[]).filter(r=>
+   const roadToHub=(ref.road||[]).filter(r=>Number(r.iso_week?.slice(0,4))>=2026&&Number(r.iso_week?.slice(-2))>=38&&
       normal(r.origin_text)===normal(o.city)&&
       (normal(r.destination_text)===hubName||normal(r.destination_text)===normal(hub))&&
       num(r.value)!==null).sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)))[0];
