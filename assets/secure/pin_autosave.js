@@ -150,6 +150,7 @@
     const removed=rowsList.filter(r=>r.deleted).map(r=>r.legacy_id);
     state.negocios=alive;
     state.negociosRemovidos=removed;
+    if(typeof window.__BRZ_PIN_INVALIDATE_NAV==='function')window.__BRZ_PIN_INVALIDATE_NAV();
     remote=new Map(rowsList.map(r=>[r.legacy_id,{
       version:Number(r.record_version),
       deleted:r.deleted,
@@ -271,6 +272,7 @@
      remoteModules.set('road_delta',{revision:persistedRoad?.revision||0,
        snapshot:stable(roadDiff())});
      if(rows.length){
+       if(typeof window.__BRZ_PIN_INVALIDATE_NAV==='function')window.__BRZ_PIN_INVALIDATE_NAV();
        if(typeof invalidateDataCache==='function')invalidateDataCache();
        if(typeof clearCalcCaches==='function')clearCalcCaches();
        if(typeof scheduleRenderAll==='function')scheduleRenderAll();
@@ -298,8 +300,9 @@
   if(window.__BRZ_PIN_FAST_NAV)return;
   const baseShow=window.showScreen,baseRender=window.renderScreenSafe;
   if(typeof baseShow!=='function'||typeof baseRender!=='function')return;
-  let navigating=false,seq=0;
+  let navigating=false,seq=0,dataEpoch=0;
   const cached=new Map(),uiEpoch=new Map();
+  window.__BRZ_PIN_INVALIDATE_NAV=()=>{dataEpoch++;cached.clear();};
   const heavy=new Set(['analise','report','corredores','negocios','fretes',
     'mapa','mercado','curva','continuo','portos','indicadores','premios']);
   // Any interaction inside a page invalidates that page's cached rendering.
@@ -313,7 +316,7 @@
    const product=typeof getActiveProduto==='function'?getActiveProduto():'';
    const base=typeof getActiveBase==='function'?getActiveBase():'';
    const version=state?._version||0;
-   return [version,product,base,uiEpoch.get(id)||0].join('|');
+   return [version,dataEpoch,product,base,uiEpoch.get(id)||0].join('|');
   }
   // Keep recently rendered DOM for quick tab switching, but never reuse it
   // following a data mutation, filter interaction, product/base change, or
