@@ -135,7 +135,10 @@ export async function decodeExcelArchive(archive){
 export function mergeBasisSeries(original,entries){
  if(!original||!original.series)throw Error('Séries FOB não carregadas.');
  const result=structuredClone(original);
+ result.meta={...(result.meta||{}),ultimaData:{...(result.meta?.ultimaData||{})}};
  for(const x of entries){
+  const dt=String(x.day).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3');
+  if(dt>(result.meta.ultimaData[x.product]||''))result.meta.ultimaData[x.product]=dt;
   const src=result.series[x.key]||[],i=src.findIndex(pair=>Number(pair[0])===x.day);
   if(i<0)src.push([x.day,x.value]);else src[i]=[x.day,x.value];
   src.sort((a,b)=>Number(a[0])-Number(b[0]));result.series[x.key]=src;
