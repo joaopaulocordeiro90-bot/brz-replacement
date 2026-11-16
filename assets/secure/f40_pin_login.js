@@ -3,7 +3,7 @@
 'use strict';
 const API='https://irekykmigdfvwozerkfa.supabase.co';
 const KEY='sb_publishable_lqI_p-_21r3gqerHxsHlLQ_2c-XWwzq';
-const EXPECTED=59758,PAGE_SIZE=4000,MAX_PAGES=20;
+const EXPECTED=59758,PAGE_SIZE=1500,MAX_PAGES=46;
 const CANONICAL_LEDGER_SHA='58de80b0093287af20d7abc8362713d2c2db8deb3751083be35cad29a53c2b3d';
 const F41_EXPECTED=4011, F41_PAGE_SIZE=1000, F41_MAX_PAGES=7;
 const F41_FROZEN_LEDGER_SHA='9697b87d6b2db893e5d5b40ca0f25a09a48b733b1ca27134747aa876c81cc890';
@@ -28,6 +28,20 @@ function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
  throw Error('F58: pacote público ainda não conferido');
  if((!localHost&&!ghPages()&&!stageEdge())||window.top!==window||!window.isSecureContext)
  throw Error('F59: origem nao autorizada');}
+// Bounded concurrency protects Supabase from memory-heavy simultaneous reads.
+const MAX_HEAVY_READS=3;
+let activeHeavyReads=0;
+const heavyWaiters=[];
+async function heavyReadFetch(url,options,heavy){
+ if(!heavy)return fetch(url,options);
+ if(activeHeavyReads<MAX_HEAVY_READS)activeHeavyReads++;
+ else await new Promise(resolve=>heavyWaiters.push(resolve));
+ try{return await fetch(url,options)}
+ finally{
+  const next=heavyWaiters.shift();
+  if(next)next();else activeHeavyReads--;
+ }
+}
 async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
  if(path==='/rest/v1/rpc/brz_api_f34_market_counts'&&marketStatsCached)
    return marketStatsCached;
@@ -43,9 +57,9 @@ async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
  if(body!==null)h['Content-Type']='application/json';
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),45000);
  try{
-  const response=await fetch(API+(route||path),{method,headers:h,
+  const response=await heavyReadFetch(API+(route||path),{method,headers:h,
       body:body===null?undefined:JSON.stringify(body),credentials:'omit',redirect:'error',
-      cache:'no-store',referrerPolicy:'no-referrer',signal:ctrl.signal});
+      cache:'no-store',referrerPolicy:'no-referrer',signal:ctrl.signal},!!route);
   if(!response.ok){
     // F59C: 57014 is a PostgreSQL statement timeout, not an auth failure.
     // Retry ONLY the F34 read-only market page; never repeat a mutation.
