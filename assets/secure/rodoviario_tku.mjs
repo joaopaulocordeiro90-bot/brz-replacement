@@ -8,7 +8,7 @@ export function installRoadGeo(api){
  let id='',result=null,pin=null,layer=null,requestId=0,activeCtrl=null,activePin=null;
  const approved=()=>{const p=api.getState()?.roadGeoRoutes;return p&&typeof p==='object'&&!Array.isArray(p)?p:{};};
  const key=(tid,origin,dest,date)=>JSON.stringify([String(tid||''),norm(origin),norm(dest),String(date||'').slice(0,10)]);
- const getApproved=(tid,origin,dest,date)=>{const r=approved()[key(tid,origin,dest,date)];return r?.approved===true&&Number.isFinite(+r.km)&&r.km>0?r:null;};
+ const getApproved=(tid,origin,dest,date)=>{const entries=approved();const places=[dest];if(norm(dest)==='sao luis')places.push('Itaqui');if(norm(dest)==='itaqui')places.push('São Luís');for(const p of places){const r=entries[key(tid,origin,p,date)];if(r?.approved===true&&Number.isFinite(+r.km)&&r.km>0)return r;}return null;};
  const deal=()=>api.getTrades().find(d=>String(d.id)===id);
  const routes=d=>{try{return d&&typeof getRotasCorredor==='function'?getRotasCorredor(d).filter(r=>r&&['T','T+R','T+B'].includes(r.modal)&&!r.terminalEconomicoCIF&&!r.cifNaoSomarFreteAntesDaPraca):[];}catch{return[];}};
  const route=()=>routes(deal())[Number($('brzf60-route')?.value)]||null;
