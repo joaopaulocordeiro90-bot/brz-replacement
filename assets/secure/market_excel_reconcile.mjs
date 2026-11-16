@@ -13,7 +13,7 @@ export const normalizeMarketCity=s=>clean(s).normalize('NFD')
 const pnum=v=>v!==null&&v!==undefined&&clean(v)!==''&&Number.isFinite(Number(v))&&Number(v)>0?Number(v):null;
 const key=r=>[r.data,r.produto,normalizeMarketCity(r.origem),r.janelaFisica||'N/D'].join('|');
 const byCity=r=>[r.produto,normalizeMarketCity(r.origem)].join('|');
-const byLane=r=>[r.produto,normalizeMarketCity(r.origem),r.janelaFisica||'N/D'].join('|');
+const byLaneKey=r=>[r.produto,normalizeMarketCity(r.origem),r.janelaFisica||'N/D'].join('|');
 const byWindow=r=>[r.produto,r.janelaFisica||'N/D'].join('|');
 export function physicalPeriod(raw){
  const x=clean(raw).match(/^([A-Za-z]{3})-(\d{2})$/);if(!x)return null;
