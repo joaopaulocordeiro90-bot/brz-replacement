@@ -10,7 +10,7 @@ export const F44_REFERENCE=Object.freeze({
  curvesStable:'38a3a659c4c46a726ac8188ab2a7a0984c39b6baaa99a06463891cc3b34e300e',
  basisStable:'e91ee638b1ec0524246caa304f857edce919b286af5f384dfea8edc2512a59bf'
 });
-const PAGE_SIZE=4000;
+const PAGE_SIZE=1500;
 function stableStringify(o){
  if(o===null||typeof o!=='object')return JSON.stringify(o);
  if(Array.isArray(o))return '['+o.map(stableStringify).join(',')+']';
