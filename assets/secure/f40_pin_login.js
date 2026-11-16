@@ -16,7 +16,7 @@ const localHost=location.protocol==='http:'&&(['127.0.0.1','localhost','[::1]','
 const ghPages=()=>location.protocol==='https:'
  && location.hostname==='joaopaulocordeiro90-bot.github.io'
  && location.port===''
- && (location.pathname==='/brz-replacement/pin.html');
+ && ['/brz-replacement/','/brz-replacement/index.html','/brz-replacement/pin.html'].includes(location.pathname);
 const stageEdge=()=>location.protocol==='https:' && location.hostname==='irekykmigdfvwozerkfa.supabase.co' && (location.pathname==='/functions/v1/brz-replacement-homologacao/' || location.pathname==='/functions/v1/brz-replacement-homologacao/index.html');
 const status=msg=>{ $('status').textContent=msg; };
 // F57: server-side SQL EXECUTE grants also deny F33 mutation/restore.
