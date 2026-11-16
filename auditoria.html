@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>BRZ Replacement | Auditoria F62 — 16/11/2026</title>
+<style>
+:root{color-scheme:light;font-family:Arial,Helvetica,sans-serif;color:#182f44;background:#f5f7fa}
+*{box-sizing:border-box}body{margin:0}.top{background:#14283e;color:white;padding:26px max(20px,calc((100vw - 1160px)/2))}
+.top small{letter-spacing:.1em;color:#9fc2d7;font-weight:700}.top h1{font-size:26px;letter-spacing:-.6px;margin:10px 0 8px}
+.top p{margin:0;color:#d5e1ea;font-size:14px;line-height:1.5}
+main{max-width:1160px;margin:24px auto;padding:0 20px 40px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:white;border:1px solid #e0e7ed;border-radius:8px;padding:20px}.kpi span{display:block;color:#62798b;font-size:12px;line-height:1.5}
+.kpi strong{display:block;font-size:29px;letter-spacing:-.5px;margin:5px 0}
+section{background:white;border:1px solid #e0e7ed;border-radius:8px;padding:22px 24px;margin-top:16px}
+section h2{font-size:17px;margin:0 0 15px}.sub{color:#62798b;font-size:12px;line-height:1.6}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid #e5eaf0;text-align:left;padding:12px 9px}
+th{color:#617a90;font-size:12px;font-weight:700;background:#f9fafb}
+td:last-child{font-weight:600}
+.ok{color:#0c6e55}.pending{color:#936016}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.actions a{display:inline-flex;padding:11px 16px;border:1px solid #bccbd7;border-radius:6px;text-decoration:none;color:#174464;font-size:13px;font-weight:700}
+.actions a.primary{background:#163e5a;color:white;border-color:#163e5a}
+.notice{border-left:3px solid #ac7521;background:#fff9ee;padding:13px 15px;margin-top:14px;color:#624a1e;font-size:13px;line-height:1.6}
+code{font-size:12px;overflow-wrap:anywhere}
+@media(max-width:740px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi strong{font-size:23px}main{padding:0 10px 24px}.top{padding:20px}section{padding:18px 14px}table{font-size:12px}}
+</style></head>
+<body>
+<div class="top"><small>BRZ REPLACEMENT · HOMOLOGAÇÃO</small>
+<h1>Auditoria técnica F62</h1>
+<p>16 de novembro de 2026 · Base V4FQ C35, fechada em 13/11/2026 · Verificações de integridade e conciliação com PostgreSQL</p>
+</div>
+<main>
+<div class="cards">
+<div class="kpi"><span>Negócios canônicos</span><strong>4.011</strong><span>4.011 IDs únicos</span></div>
+<div class="kpi"><span>Preços físicos</span><strong>59.758</strong><span>Conciliação exata com o banco</span></div>
+<div class="kpi"><span>Fretes rodoviários</span><strong>178.201</strong><span>177.687 histórico + 514 semana S46</span></div>
+<div class="kpi"><span>Fontes de mercado no banco</span><strong>267.959</strong><span>Seis domínios · 1.531 atualizações</span></div>
+</div>
+<section><h2>Testes executados</h2>
+<table><thead><tr><th>Controle</th><th>Resultado</th></tr></thead><tbody>
+<tr><td>Checksum SHA-256 do HTML de origem</td><td class="ok">Confere</td></tr>
+<tr><td>IDs dos 4.011 negócios e dos 59.758 preços</td><td class="ok">Sem duplicações</td></tr>
+<tr><td>Índice legado de 2.820 negócios versus base canônica</td><td class="ok">100% presentes</td></tr>
+<tr><td>11 blocos JSON e 26 scripts JavaScript</td><td class="ok">Sintaxe válida</td></tr>
+<tr><td>Frete rodoviário semanal — base + S46</td><td class="ok">Conciliação exata</td></tr>
+<tr><td>Trava de Chicago/câmbio dos 40 negócios de 13/11</td><td class="ok">40/40</td></tr>
+<tr><td>Rolagem soja dezembro (negócios desde 01/11)</td><td class="ok">22/22 em F27</td></tr>
+<tr><td>Marcação milho dezembro (negócios desde 01/11)</td><td class="ok">74/74 em Z26</td></tr>
+<tr><td>Testes de navegador em produção e recuperação IndexedDB</td><td class="pending">Não homologados</td></tr>
+<tr><td>Paridade financeira FOB, CFR, TAB e D-1/D-7/D-30</td><td class="pending">Não homologada</td></tr>
+<tr><td>Persistência compartilhada entre dispositivos</td><td class="pending">Não habilitada</td></tr>
+<tr><td>Backup externo e restauração do banco</td><td class="pending">Não certificados</td></tr>
+</tbody></table>
+<div class="notice"><b>Importante:</b> este documento certifica apenas as verificações estruturais realizadas. A publicação é um snapshot estático, não um ambiente financeiro homologado. Nenhum registro operacional foi alterado no PostgreSQL; permanecem zero eventos no diário F33 e zero execuções de replacement.</div>
+</section>
+<section><h2>Observações preservadas</h2>
+<p class="sub">Dois negócios históricos de embarque indicado em dezembro possuem marcação contratual distinta, justificada nos próprios registros: um milho com referência de retirada/embarque em janeiro e uma soja a fixar na K27. Não houve remarcação automática dessas operações.</p>
+<p class="sub">A versão financeira anterior possuía testes de paridade parcial. Não foi feita uma nova certificação independente da totalidade das rotas e margens nesta auditoria.</p>
+</section>
+<section><h2>Próximo bloqueio técnico</h2>
+<p>Para operar e salvar novos negócios em qualquer dispositivo é necessário um canal de gravação central com autenticação e controle de concorrência. O GitHub Pages, isoladamente, só serve arquivos estáticos; o IndexedDB introduzido na F61 mantém dados no navegador atual.</p>
+<p class="sub">Base F62: snapshot original de 13/11/2026. Manifesto com hashes, contagens, exceções e pendências disponível abaixo.</p>
+<div class="actions">
+<a class="primary" href="./">Abrir plataforma BRZ</a>
+<a href="assets/audit/f62_20261116.json" download>Manifesto F62 (JSON)</a>
+<a href="https://github.com/joaopaulocordeiro90-bot/brz-replacement/commits/main">Histórico GitHub</a>
+</div>
+</section>
+</main></body></html>
