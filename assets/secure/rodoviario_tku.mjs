@@ -131,7 +131,10 @@ export function installRoadGeo(api){
   const wrapped=function(origem,destino,date,corredor,tid){
    const out=old.apply(this,arguments);
    if(out&&out.estimado===false)return out;
-   const a=getApproved(tid,origem,destino,date);
+   let a=getApproved(tid,origem,destino,date);
+   if(!a&&!tid){const matches=api.getTrades().filter(t=>t?.origem===origem&&String(t.data||'')===String(date||'')&&
+     routes(t).some(rt=>dest(rt)===destino));
+    if(matches.length===1)a=getApproved(matches[0].id,origem,destino,date);}
    if(!a)return out;
    let tku=Number(out?.tku)||Number(a.tku)||0;
    if(!tku)tku=.30;
