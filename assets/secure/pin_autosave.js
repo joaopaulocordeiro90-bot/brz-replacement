@@ -187,6 +187,24 @@
       throw Error('Alterações rodoviárias em massa bloqueadas; use a ingestão controlada');
    return {upserts,deletes};
  }
+ // Compare large road freight series in bounded chunks, yielding to browser UI.
+ // Identical result to roadDiff(), without a single long blocking task.
+ async function roadDiffAsync(){
+   const rows=Array.isArray(state.fretesRodo)?state.fretesRodo:[];
+   const seen=new Set(),upserts=[],deletes=[];
+   for(let i=0;i<rows.length;i++){
+     const row=rows[i],id=row?.id;
+     if(typeof id!=='string'||!id||seen.has(id))
+       throw Error('Frete rodoviário sem ID único');
+     seen.add(id);
+     if(roadBaseline.get(id)!==stable(row))upserts.push(row);
+     if((i+1)%3500===0)await new Promise(resolve=>setTimeout(resolve,0));
+   }
+   for(const id of roadBaseline.keys())if(!seen.has(id))deletes.push(id);
+   if(upserts.length+deletes.length>2500)
+      throw Error('Alterações rodoviárias em massa bloqueadas; use a ingestão controlada');
+   return {upserts,deletes};
+ }
  function patchRoad(overlay){
    if(!overlay||!Array.isArray(overlay.upserts)||!Array.isArray(overlay.deletes))
      throw Error('Delta rodoviário remoto incompatível');
@@ -249,7 +267,7 @@
    if(moduleBooting)return;
    for(const name of [...Object.keys(MODULES),'road_delta']){
      const previous=remoteModules.get(name)||{revision:0,snapshot:null};
-     const payload=name==='road_delta'?roadDiff():groupSnapshot(name);
+     const payload=name==='road_delta'?await roadDiffAsync():groupSnapshot(name);
      const shot=stable(payload);
      if(shot===previous.snapshot)continue;
      const result=await req('/rest/v1/rpc/brz_pin_module_save',{
