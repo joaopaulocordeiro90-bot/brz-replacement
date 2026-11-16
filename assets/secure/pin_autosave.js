@@ -296,6 +296,38 @@
    }
  }
 
+
+ // Avoid traversing the entire 59,758-row physical price history on every
+ // chart, filter or tab update. The original reconciliation still executes
+ // when CBOT, BRL/USD, active trading date, rules or state version changes.
+ function installMarketHotPath(){
+   if(window.__BRZ_PIN_FAST_PRICE_SYNC)return;
+   const legacy=window.brzSyncPrecoMarketCurves;
+   if(typeof legacy!=='function')return;
+   let cached=null;
+   function signature(){
+     const source=typeof state!=='undefined'&&state?state:{};
+     const date=typeof brzMarketDate==='function'?brzMarketDate():'';
+     const fxRule=typeof brzRegraParam==='function'
+       ?String(brzRegraParam('cambio.precos','base','embarque')):'';
+     // Market contract dictionaries are small. Hashing their content detects
+     // changes even when an editor mutates a dictionary without calling persist.
+     return JSON.stringify([
+       source._version||0,date,fxRule,
+       source.cbot||null,source.cbotMilho||null,source.dolar||null
+     ]);
+   }
+   window.brzSyncPrecoMarketCurves=function(rows){
+     if(!Array.isArray(rows))return legacy.apply(this,arguments);
+     const sig=signature();
+     if(cached?.rows===rows&&cached.signature===sig)return rows;
+     const result=legacy.apply(this,arguments);
+     cached={rows,signature:sig};
+     return result;
+   };
+   window.__BRZ_PIN_FAST_PRICE_SYNC=true;
+ }
+
  function installFastNavigation(){
   if(window.__BRZ_PIN_FAST_NAV)return;
   const baseShow=window.showScreen,baseRender=window.renderScreenSafe;
@@ -384,6 +416,7 @@
       schedule();
       return result;
     };
+    installMarketHotPath();
     installFastNavigation();
     dirty=false;blocked=false;
     setStatus('Sincronizado · '+data.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
