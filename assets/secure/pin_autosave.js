@@ -45,7 +45,8 @@
  panel.innerHTML='<h3>BRZ · Banco de negócios</h3>'+
   '<p id="brzpin-status">Conectando…</p>'+
   '<p>Negócios, curvas, fretes, prêmios e configurações editáveis são salvos automaticamente no Supabase. Dados históricos originais são preservados.</p>'+
-  '<button id="brzpin-reload" type="button">Recarregar negócios do banco</button>'+
+  '<button id="brzpin-reload" type="button">Recarregar negócios do banco</button>'+ 
+  '<button id="brzpin-export" type="button" style="margin-left:5px">Exportar alterações</button>'+
   '<p id="brzpin-alert" role="status"></p>';
  document.body.appendChild(badge);document.body.appendChild(panel);
  badge.onclick=()=>{panel.hidden=!panel.hidden};
@@ -336,6 +337,31 @@
     if(dirty&&!blocked)schedule();
   }
  }
+
+ $('brzpin-export').onclick=()=>{
+   try{
+     const modules={};
+     for(const name of Object.keys(MODULES))modules[name]=groupSnapshot(name);
+     modules.road_delta=roadDiff();
+     const data={
+       schema:'BRZ_PIN_OPERATIONAL_BACKUP_V1',
+       exportedAt:new Date().toISOString(),
+       note:'Backup de alterações operacionais. Históricos-base preservados no PostgreSQL.',
+       tradeCount:inv().size,trades:[...inv().values()],
+       modules,revision:Object.fromEntries(
+         [...remoteModules.entries()].map(([name,meta])=>[name,meta.revision]))
+     };
+     const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+     const url=URL.createObjectURL(blob);
+     const a=document.createElement('a');
+     a.href=url;a.download='BRZ_Replacement_Alteracoes_'+new Date().toISOString().slice(0,10)+'.json';
+     document.body.appendChild(a);a.click();a.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),5000);
+   }catch(e){
+     $('brzpin-alert').textContent='Não foi possível exportar as alterações: '+e.message;
+   }
+ };
+
  $('brzpin-reload').onclick=async()=>{
   if(dirty||blocked||saving){
     if(!confirm('Existem mudanças locais não sincronizadas. Descartá-las e recarregar os negócios do Supabase?'))return;
