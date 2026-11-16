@@ -260,6 +260,39 @@
      remoteModules.set(name,{revision:Number(ack.revision),snapshot:shot});
    }
  }
+
+ function installFastNavigation(){
+  if(window.__BRZ_PIN_FAST_NAV)return;
+  const baseShow=window.showScreen,baseRender=window.renderScreenSafe;
+  if(typeof baseShow!=='function'||typeof baseRender!=='function')return;
+  let navigating=false,seq=0;
+  // Change visible tab and topbar synchronously, then paint before calculating
+  // heavy freight/analysis/replacement contents; cancel obsolete tab requests.
+  window.renderScreenSafe=function(screenId){
+    if(!navigating)return baseRender.apply(this,arguments);
+    const step=++seq;
+    const pane=document.getElementById(screenId);
+    if(pane)pane.setAttribute('aria-busy','true');
+    requestAnimationFrame(()=>setTimeout(()=>{
+      if(step!==seq||!pane?.classList.contains('active')){
+        pane?.removeAttribute('aria-busy');return;
+      }
+      const began=performance.now();
+      try{baseRender.call(window,screenId)}
+      finally{
+        pane.removeAttribute('aria-busy');
+        window.__BRZ_LAST_TAB_RENDER_MS=Math.round(performance.now()-began);
+      }
+    },0));
+  };
+  window.showScreen=function(screenId){
+    navigating=true;
+    try{return baseShow.call(this,screenId)}
+    finally{navigating=false}
+  };
+  window.__BRZ_PIN_FAST_NAV=true;
+ }
+
  async function connect(arg){
   if(connected||applying)throw Error('Conexão já iniciada');
   const supplied=arg&&typeof arg==='object'?arg:{access_token:arg};
@@ -286,6 +319,7 @@
       schedule();
       return result;
     };
+    installFastNavigation();
     dirty=false;blocked=false;
     setStatus('Sincronizado · '+data.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
     return Object.freeze({ready:true,records:data.length,autosave:true});
