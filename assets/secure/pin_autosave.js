@@ -226,10 +226,14 @@
      remoteModules=new Map();
      const roadRows=Array.isArray(state.fretesRodo)?state.fretesRodo:[];
      roadBaseline=new Map();
-     for(const record of roadRows){
+     // Build the 178k-row comparison baseline in chunks so the browser
+     // continues painting the PIN progress screen instead of freezing.
+     for(let i=0;i<roadRows.length;i++){
+       const record=roadRows[i];
        if(typeof record?.id!=='string'||roadBaseline.has(record.id))
          throw Error('Histórico rodoviário com ID inválido');
        roadBaseline.set(record.id,stable(record));
+       if((i+1)%2500===0)await new Promise(resolve=>setTimeout(resolve,0));
      }
      for(const record of rows){
        if(!record||!['curves','ocean','rail','premiums','settings','road_delta','basis'].includes(record.module)
@@ -380,7 +384,7 @@
   dirty=true;
   clearTimeout(timer);
   setStatus('Alterações pendentes…','working');
-  timer=setTimeout(()=>save().catch(error=>{blocked=true;setStatus('Gravação bloqueada','error');$('brzpin-alert').textContent=error.message;}),700);
+  timer=setTimeout(()=>save().catch(error=>{blocked=true;setStatus('Gravação bloqueada','error');$('brzpin-alert').textContent=error.message;}),950);
  }
  async function save(){
   if(saving||!connected||blocked||!dirty)return;
