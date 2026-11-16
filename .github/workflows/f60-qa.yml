@@ -35,6 +35,7 @@ jobs:
           node tests/f63_16nov.test.mjs
           node tests/f64_market_excel.test.mjs
           node tests/f65_history.test.mjs
+          node tests/f66_prices_reconciliation.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'
