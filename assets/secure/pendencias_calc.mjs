@@ -44,8 +44,14 @@ export function months(d){
  const named=month(d.embarque)||month(d.replacementCenario?.embarquePorto);
  if(named)months.unshift(named);
  if(!months.length){
-  const x=month(d.retirada)||month(d.entrega);
-  if(x)months.push(isCif(d)?x:shift(x));
+  const range=normal(d.retirada||d.entrega||'');
+  if(/novembro\s*\/\s*dezembro\s*2026/.test(range)){
+   for(const x of [{m:11,y:2026},{m:12,y:2026}])months.push(isCif(d)?x:shift(x));
+  }else{
+   const x=month(d.retirada)||month(d.entrega)||
+    (/\b(imediato|spot)\b/i.test(range)?month(d.data):null);
+   if(x)months.push(isCif(d)?x:shift(x));
+  }
  }
  return [...new Map(months.map(m=>[label(m),m])).values()].slice(0,4);
 }
@@ -81,27 +87,32 @@ function bid(ref,d,port,m){
 export function candidates(d,state,ref){
  if(!commodity(d))return [];
  const o=origin(d),mths=months(d),sc=d.replacementCenario||{},list=[];
- const ports=['Santos','Paranaguá','Itaqui','Barcarena','Rio Grande'];
- const pay=month(d.pagamentoRegra)||mths[0];
+ const ports=['Santos','Paranaguá','Itaqui','Barcarena','Rio Grande','São Francisco do Sul'];
+ const portRule=normal(String(d.portoReferencia||sc.porto||''));
+ const restricted=ports.find(p=>portRule.includes(normal(p)))||null;
+ const pstr=normal(d.pagamentoRegra||'');
+ const pay=month(d.pagamentoRegra)||((/72\s*h|sobre rodas|apos cada (?:retirada|entrega)/.test(pstr))?(month(d.retirada)||month(d.data)):null)||mths[0];
  for(const m of mths){
   const cc=cbotContract(d,m);
   const cbot=num((commodity(d)==='Soja'?state.cbot:state.cbotMilho)?.[cc])??num(d.cbot);
   const fx=fxValue(state,pay)??num(d.cambio);
   for(const port of ports){
+   if(restricted&&port!==restricted)continue;
    const dest=port==='Itaqui'?'São Luís':port;
    const opts=(ref?.road||[]).filter(x=>normal(x.origin_text)===normal(o.city)&&normal(x.destination_text)===normal(dest)&&num(x.value)!==null)
     .sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)));
-   const row=opts[0],otherPort=normal(sc.porto||'');
+   const row=opts.find(x=>!x.iso_week||Number(x.iso_week.slice(0,4))>=2026&&Number(x.iso_week.slice(-2))>=38)||null,otherPort=normal(sc.porto||'');
    const fallback=otherPort.includes(normal(port))?num(sc.freteRodoviarioBRZ_RSt):null;
    const geo=window.BRZRoadGeo?.getApproved?.(d.id,d.origem,dest,d.data);
    let roadLookup=null;try{if(typeof window.findRodoFreight==='function')
       roadLookup=window.findRodoFreight(d.origem,dest,d.data,d.corredor,d.id);}catch{}
-   const road=num(roadLookup?.valor)??(row?num(row.value):(geo?num(geo.freteRodoIndicativo):fallback));
+   const deliveredPort=isCif(d)&&['Rio Grande','São Francisco do Sul'].some(p=>normal(d.origem).startsWith(normal(p))&&port===p);
+   const road=deliveredPort?0:(num(roadLookup?.valor)??(row?num(row.value):(geo?num(geo.freteRodoIndicativo):fallback)));
    if(road===null)continue;
    const b=bid(ref,d,port,m);
    const p={porto:port,mesPorto:label(m),modal:'Rodoviário',freteRodo:road,freteFerro:0,
     despesas:0,cbot,contratoCBOT:cc,fx,contratoDOL:d.vencCambio||fxContract(pay),
-    basis:b?num(b.value):null,freteFonte:roadLookup?.fonteFrete||(geo?'OSRM F60 · km × TKU':row?.iso_week||'Cenário BRZ'),
+    basis:b?num(b.value):null,freteFonte:deliveredPort?'CIF porto: sem frete anterior à praça':(roadLookup?.fonteFrete||(geo?'OSRM · km × TKU':row?.iso_week||(fallback!==null?'Cenário BRZ proxy':'Sem fonte'))),
     rota:(d.origem||o.city)+' → '+dest,proxy:o.proxy||!row,basisData:b?.day||null,
     basisJanela:b?.typ||null,preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
    const calc=calculate(d,p);if(calc)list.push({...p,calc});
@@ -114,9 +125,10 @@ export function candidates(d,state,ref){
      normal(x)===normal(rail.destino)))continue;
    const railPrice=num(rail.meses[['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m.m-1]]);
    if(railPrice===null||railPrice<0)continue;
+   if(restricted&&normal(rail.destino)!==normal(restricted)&&!(restricted==='Itaqui'&&normal(rail.destino)==='sao luis'))continue;
    const hub=String(rail.origem||'').split('·')[0].trim();
    const hubName=normal(hub.split('/')[0]);
-   const roadToHub=(ref.road||[]).filter(r=>
+   const roadToHub=(ref.road||[]).filter(r=>Number(r.iso_week?.slice(0,4))>=2026&&Number(r.iso_week?.slice(-2))>=38&&
       normal(r.origin_text)===normal(o.city)&&
       (normal(r.destination_text)===hubName||normal(r.destination_text)===normal(hub))&&
       num(r.value)!==null).sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)))[0];
