@@ -66,7 +66,7 @@ export function installPendencias(api){
  const outOfScope=()=>api.getTrades().filter(d=>d&&d.status==='FECHADO'&&commodity(d)===null&&(d.replacementPendente===true||(d.replacementCenario&&!d.replacementCalculo&&!d.replacementResolvidoEm)));
  const done=()=>api.getTrades().filter(d=>commodity(d)!==null&&d?.replacementCalculo?.indicativo&&d.replacementResolvidoEm)
   .sort((a,b)=>String(b.replacementResolvidoEm).localeCompare(String(a.replacementResolvidoEm))).slice(0,25);
- function count(){const x=document.getElementById('brzp-count');if(x)x.textContent='('+pending().length+')';}
+ function count(){const x=document.getElementById('brzp-count');if(x)x.textContent='('+pending().length+' grãos / '+outOfScope().length+' informativos)';}
  async function ensureRefs(){
   if(refs)return refs;
   try{refs=await api.getReferences();}catch(err){console.warn('Referências BRZ:',err?.message);refs={basis:[],road:[],rail:[]};}
