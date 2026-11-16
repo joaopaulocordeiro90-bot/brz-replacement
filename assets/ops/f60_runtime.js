@@ -59,12 +59,13 @@
   const panel = document.createElement('section');
   panel.id = 'brzf60-panel'; panel.hidden = true; panel.setAttribute('aria-label','Diagnóstico operacional BRZ');
   panel.innerHTML = '<h3>BRZ · Diagnóstico operacional</h3>' +
-    '<p class="brzf60-note">Esta versão usa dados de 13/11/2026. Edições ficam neste navegador e <b>não são sincronizadas entre dispositivos</b>. Faça backup antes de editar.</p>' +
+    '<p class="brzf60-note">Consulta local · snapshot 13/11/2026. <b>Sem sincronização entre dispositivos.</b> O repositório GitHub Pages é público, portanto não protege dados comerciais do HTML. Faça backup antes de editar.</p>' +
     '<p id="brzf60-overview">Verificando…</p><div id="brzf60-details"></div>' +
     '<div><button class="primary" id="brzf60-backup">Baixar backup JSON</button>' +
     '<button id="brzf60-html">Baixar HTML com alterações</button>' +
     '<button id="brzf60-report">Relatório diagnóstico</button>' +
-    '<button id="brzf62-audit">Auditoria técnica F62</button></div>' +
+    '<button id="brzf62-audit">Auditoria técnica F62</button>' +
+    '<button id="brzf63-finance">Financeiro F63</button></div>' +
     '<p>Restaurar backup JSON desta <b>mesma versão</b>:</p>' +
     '<input id="brzf60-import" type="file" accept="application/json,.json" aria-label="Selecionar backup JSON" />' +
     '<p id="brzf60-message" role="status"></p>';
@@ -104,6 +105,9 @@
   };
   $('brzf62-audit').onclick = function () {
     window.open('https://joaopaulocordeiro90-bot.github.io/brz-replacement/auditoria.html', '_blank', 'noopener');
+  };
+  $('brzf63-finance').onclick = function () {
+    window.open('https://joaopaulocordeiro90-bot.github.io/brz-replacement/financeiro.html', '_blank', 'noopener');
   };
   $('brzf60-import').onchange = async function (ev) {
     const input = ev.target, file = input.files && input.files[0];
