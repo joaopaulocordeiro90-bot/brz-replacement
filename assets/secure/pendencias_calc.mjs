@@ -14,7 +14,7 @@ export function month(x){
 }
 export const label=m=>m&&m.m>=1&&m.m<=12?mons[m.m-1]+'-'+String(m.y).slice(-2):'';
 export const shift=(m,n=1)=>{if(!m)return null;const d=new Date(Date.UTC(m.y,m.m-1+n,1));return{m:d.getUTCMonth()+1,y:d.getUTCFullYear()};};
-export const commodity=d=>normal(d.produto).includes('soja')?'Soja':normal(d.produto).includes('sorgo')?'Sorgo':'Milho';
+export const commodity=d=>{const p=normal(d?.produto||'').trim();if(/farelo|casca|oleo|trigo|derivado/.test(p))return null;return p.includes('sorgo')?'Sorgo':p.startsWith('soja')?'Soja':p.startsWith('milho')?'Milho':null;};
 export const isCif=d=>normal(d.modalidadeComercial)==='cif'||/^\s*cif\b/i.test(d.localEntrega||'');
 export function cbotContract(d,m){
  if(!m)return '';
@@ -50,6 +50,7 @@ export function months(d){
  return [...new Map(months.map(m=>[label(m),m])).values()].slice(0,4);
 }
 export function calculate(d,p){
+ if(!commodity(d))return null;
  const price=num(p.preco??d.preco),fx=num(p.fx),cbot=num(p.cbot);
  const rod=num(p.freteRodo),fer=num(p.freteFerro??0),extra=num(p.despesas??0);
  if([price,fx,cbot,rod,fer,extra].some(v=>v===null||v<0)||!price||!fx||!cbot)return null;
@@ -78,6 +79,7 @@ function bid(ref,d,port,m){
  return list[0]||null;
 }
 export function candidates(d,state,ref){
+ if(!commodity(d))return [];
  const o=origin(d),mths=months(d),sc=d.replacementCenario||{},list=[];
  const ports=['Santos','Paranaguá','Itaqui','Barcarena','Rio Grande'];
  const pay=month(d.pagamentoRegra)||mths[0];
@@ -91,12 +93,13 @@ export function candidates(d,state,ref){
     .sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)));
    const row=opts[0],otherPort=normal(sc.porto||'');
    const fallback=otherPort.includes(normal(port))?num(sc.freteRodoviarioBRZ_RSt):null;
-   const road=row?num(row.value):fallback;
+   const geo=window.BRZRoadGeo?.getApproved?.(d.id,d.origem,dest,d.data);
+   const road=row?num(row.value):(geo?num(geo.freteRodoIndicativo):fallback);
    if(road===null)continue;
    const b=bid(ref,d,port,m);
    const p={porto:port,mesPorto:label(m),modal:'Rodoviário',freteRodo:road,freteFerro:0,
     despesas:0,cbot,contratoCBOT:cc,fx,contratoDOL:d.vencCambio||fxContract(pay),
-    basis:b?num(b.value):null,freteFonte:row?.iso_week||'Cenário BRZ',
+    basis:b?num(b.value):null,freteFonte:row?.iso_week||(geo?'OSRM F60 · km × TKU':'Cenário BRZ'),
     rota:o.city+' → '+dest,proxy:o.proxy||!row,basisData:b?.day||null,
     basisJanela:b?.typ||null,preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
    const calc=calculate(d,p);if(calc)list.push({...p,calc});
