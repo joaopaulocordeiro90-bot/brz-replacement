@@ -76,14 +76,15 @@ export function projectExcel(pack){
    rawBasis++;
   }
  }
- const derivatives=[],seenDeriv=new Set();
+ const derivatives=[];let seqCma=0;
  for(const [day,rows] of Object.entries(days['Derivados CMA']||{})){
   if(!ISO.test(day)||!Array.isArray(rows)||day>pack.as_of)throw Error('Data CMA inválida.');
   for(const r of rows){
    if(!Array.isArray(r)||r.length!==3||!['Soymeal','Soyoil'].includes(r[2]))throw Error('CMA inválido');
-   const val=acceptedValue(r[1],'CMA'),key=[day,r[0],r[2]].join('|');
-   if(seenDeriv.has(key))throw Error('CMA duplicado em '+key);
-   seenDeriv.add(key);derivatives.push({d:day,o:r[0],v:[val],p:r[2]});rawDeriv++;
+   const val=acceptedValue(r[1],'CMA');
+   // CMA may have multiple distinct quotations for one city/product/day.
+   // Preserve each source observation and its order, never collapse by location.
+   derivatives.push({d:day,o:r[0],v:[val],p:r[2],_brzExcelF64:true,_brzExcelSeq:++seqCma});rawDeriv++;
   }
  }
  const ocean=[],seenOcean=new Set();
@@ -142,13 +143,10 @@ export function mergeBasisSeries(original,entries){
 }
 export function mergeCMA(original,entries){
  if(!original||!Array.isArray(original.rows))throw Error('CMA não carregado.');
- const rows=original.rows.slice(),map=new Map(rows.map((r,i)=>[[r.d,r.o,r.p].join('|'),i]));
- for(const x of entries){
-  const key=[x.d,x.o,x.p].join('|');
-  if(map.has(key))rows[map.get(key)]=x;
-  else{map.set(key,rows.length);rows.push(x);}
- }
- return {...original,rows};
+ // Only remove a previous instance of THIS Excel import; never delete
+ // historic CMA observations with the same city/product/day.
+ const rows=original.rows.filter(x=>x?._brzExcelF64!==true);
+ return {...original,rows:[...rows,...entries]};
 }
 export function mergePrices(original,entries){
  if(!Array.isArray(original))throw Error('Preço físico não carregado.');
