@@ -88,28 +88,45 @@
   }
   return await response.json();
  }
+ let frozenBaseline=null;
  async function rows(){
-  const all=[],ids=new Set();let cursor=null;
-  for(let i=0;i<200;i++){
-   const page=await req('/rest/v1/rpc/brz_api_f33_trade_page',
-    {p_limit:100,p_after_legacy_id:cursor,p_include_deleted:true});
-   if(!Array.isArray(page)||page.length>100)throw Error('Página de negócios inválida');
-   for(const r of page){
-     if(!r||typeof r.legacy_id!=='string'||ids.has(r.legacy_id)||
-        !Number.isSafeInteger(Number(r.record_version))||
-        typeof r.deleted!=='boolean'||
-        (!r.deleted&&(!r.record_json||r.record_json.id!==r.legacy_id)))
-       throw Error('Negócio remoto inconsistente');
-     ids.add(r.legacy_id);
-     all.push(r);
-   }
-   if(page.length<100)break;
-   const next=page.at(-1).legacy_id;
-   if(cursor!==null&&next<=cursor)throw Error('Cursor remoto parado');
-   cursor=next;
+  // Source 4,011 trades were loaded and SHA-verified by F41 before this
+  // bridge starts. Fetch only versioned F33 changes, not 41 redundant pages.
+  if(!frozenBaseline){
+    const baseline=Array.isArray(state.negocios)?state.negocios:null;
+    if(!baseline||baseline.length!==EXPECTED)throw Error('Histórico canônico não carregado');
+    frozenBaseline=JSON.parse(JSON.stringify(baseline));
   }
-  if(all.length<EXPECTED||ids.size!==all.length)throw Error('Histórico incompleto');
-  return all;
+  const response=await req('/rest/v1/rpc/brz_pin_fast_trade_deltas',{});
+  if(!response||!Array.isArray(response.rows)||response.rows.length>10000)
+    throw Error('Diário de negócios inválido');
+  const byId=new Map();
+  for(const record of frozenBaseline){
+    if(!record||typeof record.id!=='string'||byId.has(record.id))
+      throw Error('ID original de negócio duplicado');
+    byId.set(record.id,{legacy_id:record.id,record_version:0,
+      deleted:false,record_json:record});
+  }
+  const changed=new Set();
+  for(const event of response.rows){
+    if(!event||typeof event.legacy_id!=='string'||!event.legacy_id
+       ||changed.has(event.legacy_id)||
+       !Number.isSafeInteger(Number(event.version))||event.version<1
+       ||!['CREATE','UPDATE','DELETE','RESTORE'].includes(event.action))
+      throw Error('Evento de alteração inválido');
+    changed.add(event.legacy_id);
+    if(event.action!=='DELETE'&&(!event.record_json
+       ||event.record_json.id!==event.legacy_id))
+      throw Error('Negócio alterado incompatível');
+    if(!byId.has(event.legacy_id)&&event.action!=='CREATE')
+      throw Error('Evento sem negócio original');
+    byId.set(event.legacy_id,{
+      legacy_id:event.legacy_id,record_version:event.version,
+      deleted:event.action==='DELETE',record_json:event.record_json
+    });
+  }
+  if(byId.size<EXPECTED)throw Error('Base de negócios incompleta');
+  return [...byId.values()];
  }
  function apply(rowsList){
   applying=true;
