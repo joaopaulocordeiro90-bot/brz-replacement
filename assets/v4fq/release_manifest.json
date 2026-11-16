@@ -1,0 +1,47 @@
+{
+  "schema": "BRZ_V4FQ_SNAPSHOT_FAST_20261115",
+  "source": "BRZ_Replacement_V4FQ_F35_HOMOLOGACAO.html",
+  "snapshotDate": "2026-11-13",
+  "sourceSha256": "d39ecfc34d3f95f6f4e463d59de49c76609c86db09994728dc349a5eca482085",
+  "compressedSha256": "4ce6b739557f8ea44421f87c9711845744fb3ebb824a5973ed1e4cdcfdc23395",
+  "compressedBytes": 4433600,
+  "decompressedBytes": 59875040,
+  "shards": [
+    {
+      "path": "assets/v4fq/snapshot_00.bin",
+      "gitBlobSha": "f32ef714c7c2b8b6d6a74d97b3c54df3426f8f64"
+    },
+    {
+      "path": "assets/v4fq/snapshot_01.bin",
+      "gitBlobSha": "04fb8199d33547def3064e42ab0aa6ac6d157f4f"
+    },
+    {
+      "path": "assets/v4fq/snapshot_02.bin",
+      "gitBlobSha": "4fb1ff64e4d0f02bd184abae0aeef57e8d537a4b"
+    },
+    {
+      "path": "assets/v4fq/snapshot_03.bin",
+      "gitBlobSha": "1b162bd8fe0add845828bdf4d90e92235dd44aaa"
+    },
+    {
+      "path": "assets/v4fq/snapshot_04.bin",
+      "gitBlobSha": "fb4f822cd24c70d22b09059ae3620faae5adfa0a"
+    },
+    {
+      "path": "assets/v4fq/snapshot_05.bin",
+      "gitBlobSha": "07c1e527099c9de01f78d886c5db789fbc30d2e9"
+    },
+    {
+      "path": "assets/v4fq/snapshot_06.bin",
+      "gitBlobSha": "81c1bb10887b73c1651d4d58baf6feff7b07b1c9"
+    },
+    {
+      "path": "assets/v4fq/snapshot_07.bin",
+      "gitBlobSha": "9203d2b90c1a35d342bda261e7633b2c4cffe00b"
+    }
+  ],
+  "kind": "static-snapshot",
+  "postgresRealtime": false,
+  "requiresLogin": false,
+  "financialBackendWriteEnabled": false
+}
