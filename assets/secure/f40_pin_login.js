@@ -248,53 +248,53 @@ async function start(ev){
   window.__BRZF44_META=protected55.f44_meta;
   window.__BRZF46_PRIVATE_META=protected55.f46_meta;
   window.__BRZF55_VERIFIED=true;
-  status('Autenticado · verificando os 4.011 negócios históricos originais…');
-  const frozenTrades=await loadFrozenTrades(token,(n,p)=>{
-    if(p===1||p%4===0)status('Lendo negócios V4FQ via PostgreSQL: '+n.toLocaleString('pt-BR')+' / 4.011 · '+p+' páginas');
-  });
-  status('Histórico V4FQ conciliado. Reconstituindo seleção legada de 2.820 negócios…');
-  const privateOrder=await request('/rest/v1/rpc/brz_api_f42_deal_order',{
-    method:'POST',token,body:{}});
-  if(typeof window.__BRZF42_HYDRATE!=='function')
-    throw Error('F42: hidratador da seleção indisponível');
-  const orderedDeals=await window.__BRZF42_HYDRATE(privateOrder,frozenTrades,sha256);
-  status('Seleção conciliada. Autenticando 14.235 cotações de derivados CMA SPOT…');
-  const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs');
-  const derivativesResult=await hydrateF43Derivatives({request,token,sha256,
-    onProgress:(n,p)=>{if(p===1||p%8===0)status('Lendo derivados CMA via PostgreSQL: '+n.toLocaleString('pt-BR')+' / 14.235 · '+p+' páginas');},
-    isAborted:()=>aborted});
-  status('Derivados conciliados. Autenticando curvas CBOT/DOL e histórico FOB…');
-  const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs');
-  const resultF44=await hydrateF44Market({request,token,sha256,
-    manifest:window.__BRZF44_META,
-    onProgress:(domain,n,expected)=>{
-      if(n===250||n%4000<250||n===expected)
-        status('F44 · '+domain+': '+n.toLocaleString('pt-BR')+' / '+expected.toLocaleString('pt-BR')+' pontos verificados');
-    },
-    isAborted:()=>aborted});
-  status('Tarifas ferroviárias da V4FQ · autenticando 39 rotas e verificando SHA-256…');
-  const {hydrateF45Rail}=await import('../f45/f45_rail_source_gate.mjs');
-  const rail=await hydrateF45Rail({request,token,sha256});
-  status('F46 · autenticando 178.201 fretes rodoviários, incluindo S46/2026…');
-  const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs');
-  const road=await hydrateF46Road({request,token,sha256,
-    manifest:window.__BRZF46_PRIVATE_META,
-    onProgress:(n,expected,p)=>{
-      if(p===1||p%20===0||n===expected)
-        status('F46 · histórico rodoviário: '+n.toLocaleString('pt-BR')+' / '+expected.toLocaleString('pt-BR')+' · '+p+' páginas');
-    },isAborted:()=>aborted});
-  status('F47 · autenticando os 38 registros de prêmios FOB históricos…');
-  const {hydrateF47Premiums}=await import('../f47/f47_premiums_gate.mjs');
-  const premiums=await hydrateF47Premiums({request,token,sha256});
-  status('F48 · hidratando histórico de auditoria, estado e regras via PostgreSQL…');
-  const {hydrateF48Legacy}=await import('../f48/f48_source_gate.mjs');
-  const restored=await hydrateF48Legacy({request,token,sha256,
-   onProgress:(s,n,total)=>{if(n===1||n===total)status('F48 · '+s+': '+n+'/'+total+' fragmentos');},
-   isAborted:()=>aborted});
-  status('F48 · três fontes históricas verificadas. Verificando 59.758 preços físicos…');
-  const rows=await loadPrices(token,(n,p)=>{
-    if(p===1||p%8===0)status('Carregando preços físicos via PostgreSQL: '+n.toLocaleString('pt-BR')+' / 59.758 · '+p+' páginas');
-  });
+  // These authenticated sources are independent once the confidential
+  // manifests are available. Fetch concurrently instead of 8 serial phases.
+  status('Carregando dados da mesa em paralelo · histórico protegido…');
+  const tradeWork=(async()=>{
+    const frozenTrades=await loadFrozenTrades(token,()=>{});
+    const privateOrder=await request('/rest/v1/rpc/brz_api_f42_deal_order',{
+      method:'POST',token,body:{}});
+    if(typeof window.__BRZF42_HYDRATE!=='function')
+      throw Error('F42: hidratador da seleção indisponível');
+    const orderedDeals=await window.__BRZF42_HYDRATE(privateOrder,frozenTrades,sha256);
+    return {frozenTrades,orderedDeals};
+  })();
+  const derivativesWork=(async()=>{
+    const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs');
+    return hydrateF43Derivatives({request,token,sha256,isAborted:()=>aborted});
+  })();
+  const marketWork=(async()=>{
+    const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs');
+    return hydrateF44Market({request,token,sha256,
+      manifest:window.__BRZF44_META,isAborted:()=>aborted});
+  })();
+  const railWork=(async()=>{
+    const {hydrateF45Rail}=await import('../f45/f45_rail_source_gate.mjs');
+    return hydrateF45Rail({request,token,sha256});
+  })();
+  const roadWork=(async()=>{
+    const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs');
+    return hydrateF46Road({request,token,sha256,
+      manifest:window.__BRZF46_PRIVATE_META,isAborted:()=>aborted});
+  })();
+  const premiumWork=(async()=>{
+    const {hydrateF47Premiums}=await import('../f47/f47_premiums_gate.mjs');
+    return hydrateF47Premiums({request,token,sha256});
+  })();
+  const sourceWork=(async()=>{
+    const {hydrateF48Legacy}=await import('../f48/f48_source_gate.mjs');
+    return hydrateF48Legacy({request,token,sha256,isAborted:()=>aborted});
+  })();
+  const priceWork=loadPrices(token,()=>{});
+  let tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows;
+  try{
+    [tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows]=
+      await Promise.all([tradeWork,derivativesWork,marketWork,railWork,roadWork,
+        premiumWork,sourceWork,priceWork]);
+  }catch(e){aborted=true;throw e}
+  const {frozenTrades,orderedDeals}=tradeBundle;
+  status('Históricos e fretes conciliados. Abrindo a interface…');
   // Do not persist data to localStorage, IndexedDB, sessionStorage, URL, cache or disk.
   window.__BRZF48_SOURCES=restored.sources;
   window.__BRZF48_READY=true;
