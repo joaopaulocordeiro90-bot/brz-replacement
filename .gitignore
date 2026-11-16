@@ -1,0 +1,26 @@
+# BRZ Replacement — never publish confidential trade snapshots or exports
+# Canonical operational data belongs in Supabase, not in public GitHub Pages.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.dump
+*.bak
+*.backup
+*.sqlite
+*.sqlite3
+private/
+backups/
+exports/
+raw_data/
+assets/v4fq/snapshot_*.bin
+assets/v4fq/snapshot_*.json
+assets/v4fq/*.sql
+*service-role*.json
+*service_role*.json
+*operational-backup*.json
+BRZ_Replacement_Alteracoes_*.json
+BRZ_Importacao_*.json
