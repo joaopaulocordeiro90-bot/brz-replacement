@@ -317,19 +317,19 @@
     },
     "index.html": {
       "bytes": 5078,
-      "sha256": "a865f160122363fe8b66053cf80da5c605bea07e92996709fa0677fc66e4178f"
+      "sha256": "117b9da148fdb9b670821efefc91bd73cd13c22adb04ebafbf011fcda0c3b7c4"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
       "sha256": "cd2c9aca5fd5f4a815a4bfc94ca5a83e428e1cc616739e124d0117b1f53f04ab"
     },
     "assets/secure/pendencias_calc.mjs": {
-      "bytes": 8909,
-      "sha256": "1345de5fe5466529d08c374c5e6c748c851291c11313ac7eaa8624a6051a03a4"
+      "bytes": 10062,
+      "sha256": "322cdb31b6fac956d9a8bfe63d51c0c5c07cc3db91c322f031fde4b141224f94"
     },
     "assets/secure/negocios_pendencias.mjs": {
-      "bytes": 23881,
-      "sha256": "1653bfca9ca94e1fe04fc7daccdcc02cda5634cff9a08db358ce3e3d57032815"
+      "bytes": 25910,
+      "sha256": "21f7fa21c0e8a3b0701fbbec2889980ab49ad822a401a53b0904bdbcc93118fb"
     },
     "assets/secure/rodoviario_tku.mjs": {
       "bytes": 12878,
@@ -341,15 +341,15 @@
     },
     "assets/secure/pin_autosave.js": {
       "bytes": 57348,
-      "sha256": "4e912a385b74e5f2684a2f8af01b954e297997d9320b1bd45924c6f6a847078a"
+      "sha256": "be52c6c9500f08f51e12cceaa07de6be870641698b0b5837004ea258950db46e"
     },
     "assets/secure/f40_pin_login.js": {
       "bytes": 38656,
-      "sha256": "441e71491ff14a03f7477e37a2d2914566ab8e304860b42a09bcf1e510f1f95d"
+      "sha256": "ec4692124cb337fc3df23426d7db25d8cfc8bfd9f7e16b6265136c53a40c10f0"
     },
     "assets/secure/pin_boot.mjs": {
       "bytes": 7013,
-      "sha256": "8f048f75fb8b1569530f9536fefc74d528f4b27bc8ef5aeb7c3e8d9617cf8ef6"
+      "sha256": "80dde9c2732e291832267dc9c46c574ecd592f1ca8496f21facfea484d7dd796"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
