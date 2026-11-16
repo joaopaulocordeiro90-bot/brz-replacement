@@ -793,7 +793,7 @@
  async function initPendingWorkspace(){
   if(window.BRZPendencias)return;
   try{
-   const module=await import('./negocios_pendencias.mjs?v=20261116pend01');
+   const module=await import('./negocios_pendencias.mjs?v=20261116pend02');
    module.installPendencias({
     getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
     getState:()=>state,
