@@ -371,7 +371,9 @@ async function start(ev){
 }
 $('authform').addEventListener('submit',start);
 // F49: do not solicit user credentials before all local ES modules exist.
-$('go').disabled=true;$('pin').disabled=true;
+$('go').disabled=true;
+// PIN remains editable while module readiness is checked.
+$('pin').disabled=false;
 (async()=>{
  try{
   gate();status('F49 · verificando a integridade dos oito módulos locais…');
@@ -380,7 +382,7 @@ $('go').disabled=true;$('pin').disabled=true;
   status('Oito módulos verificados. Aguardando autenticação mesa/admin.');
  }catch(e){
   status('BLOQUEADO F49: '+e.message);
-  $('go').disabled=true;$('pin').disabled=true;
+  $('go').disabled=true;
  }
 })();
 // Explicit lightweight probe for offline test harness; read-only, no credentials exposed.
