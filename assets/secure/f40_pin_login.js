@@ -42,6 +42,32 @@ async function heavyReadFetch(url,options,heavy){
   if(next)next();else activeHeavyReads--;
  }
 }
+// If a large authenticated read exceeds the DB statement timeout, split that
+// page into smaller, cursor-contiguous queries; no business writes or fallbacks
+// to public data. Keeps the caller's expected page length and source ordering.
+async function splitReadPage(path,body,token){
+ const kind=path.includes('f34_market_page')?'market':
+   path.includes('f46_road_page')?'road':'trades';
+ const width=kind==='road'?750:250;
+ const out=[];let cursor={...body};
+ while(out.length<Number(body.p_limit)){
+  const size=Math.min(width,Number(body.p_limit)-out.length);
+  const page=await request(path,{method:'POST',token,body:{...cursor,p_limit:size},attempt:0});
+  if(!Array.isArray(page)||page.length>size)throw Error('Página de recuperação inválida');
+  if(page.length){
+   out.push(...page);
+   const tail=page.at(-1);
+   if(kind==='market')cursor.p_after_row_no=tail.row_no;
+   else if(kind==='road'){
+     cursor.p_after_origin=tail.origin_text;
+     cursor.p_after_destination=tail.destination_text;
+     cursor.p_after_week=tail.iso_week;
+   }else cursor.p_after_id=tail.original_index;
+  }
+  if(page.length<size)break;
+ }
+ return out;
+}
 async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
  if(path==='/rest/v1/rpc/brz_api_f34_market_counts'&&marketStatsCached)
    return marketStatsCached;
@@ -64,8 +90,12 @@ async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
     // F59C: 57014 is a PostgreSQL statement timeout, not an auth failure.
     // Retry ONLY the F34 read-only market page; never repeat a mutation.
     let pgCode=null;
-    if(response.status===500&&path==='/rest/v1/rpc/brz_api_f34_market_page'){
+    if(response.status===500&&route){
       try{pgCode=(await response.json())?.code||null;}catch{}
+    }
+    if(route&&body&&Number(body.p_limit)>250&&attempt===0&&
+      ((response.status===500&&pgCode==='57014')||[502,503,504].includes(response.status))){
+      return splitReadPage(path,body,token);
     }
     const transient=[429,502,503,504].includes(response.status)||
       (response.status===500&&pgCode==='57014'&&
