@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {candidates,months,calculate} from '../assets/secure/pendencias_calc.mjs';
+globalThis.window={};
 const state={cbot:{F27:1225,H27:1230.5,H28:1193.25},cbotMilho:{Z26:444.75,H27:455.25,N27:469.25},dolar:{Dez26:5.73,Jan27:5.76,Mar27:5.83,Abr27:5.87,Out27:6.11}};
 const refs={as_of:'2026-11-16',road:[],basis:[],rail:[]};
 const d={id:'nf990101_01',data:'2026-11-16',produto:'Milho',origem:'Santa Fé de Goiás/GO',
