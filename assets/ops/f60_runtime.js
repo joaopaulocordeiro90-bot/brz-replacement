@@ -63,7 +63,8 @@
     '<p id="brzf60-overview">Verificando…</p><div id="brzf60-details"></div>' +
     '<div><button class="primary" id="brzf60-backup">Baixar backup JSON</button>' +
     '<button id="brzf60-html">Baixar HTML com alterações</button>' +
-    '<button id="brzf60-report">Relatório diagnóstico</button></div>' +
+    '<button id="brzf60-report">Relatório diagnóstico</button>' +
+    '<button id="brzf62-audit">Auditoria técnica F62</button></div>' +
     '<p>Restaurar backup JSON desta <b>mesma versão</b>:</p>' +
     '<input id="brzf60-import" type="file" accept="application/json,.json" aria-label="Selecionar backup JSON" />' +
     '<p id="brzf60-message" role="status"></p>';
@@ -100,6 +101,9 @@
     const a = document.createElement('a'); a.href=url; a.download='BRZ_F60_DIAGNOSTICO.json';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+  };
+  $('brzf62-audit').onclick = function () {
+    window.open('https://joaopaulocordeiro90-bot.github.io/brz-replacement/auditoria.html', '_blank', 'noopener');
   };
   $('brzf60-import').onchange = async function (ev) {
     const input = ev.target, file = input.files && input.files[0];
