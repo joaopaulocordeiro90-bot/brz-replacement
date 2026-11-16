@@ -384,7 +384,7 @@
    '#sistema .brzsys-head h2{margin:0 0 6px;font-size:23px}',
    '#sistema .brzsys-head p{margin:0;font-size:13px;color:var(--g500,#657b8f);line-height:1.5}',
    '#sistema .brzsys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;margin:14px 0}',
-   '#sistema .brzsys-card{min-width:0;border:1px solid var(--g200,#dbe3eb);background:var(--panel,#fff);border-radius:8px;padding:16px;box-shadow:none}',
+   '#sistema .brzsys-card{min-width:0;border:1px solid var(--g200,#dbe3eb);background:var(--card,#fff);border-radius:8px;padding:16px;box-shadow:none}',
    '#sistema .brzsys-card h3{font-size:13px;margin:0 0 11px;color:var(--g600,#52677c);font-weight:700}',
    '#sistema .brzsys-card > button{position:static!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:auto!important;min-height:36px;max-width:100%;width:auto;margin:0 0 6px;box-shadow:none!important;display:inline-block}',
    '#sistema .brzsys-card > .brzsys-panel{position:static!important;inset:auto!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;z-index:auto!important;max-width:100%!important;width:100%!important;max-height:min(65vh,580px)!important;overflow:auto!important;margin:10px 0 0!important;box-shadow:none!important;box-sizing:border-box!important}',
@@ -437,23 +437,27 @@
    {id:'brzf37-open',panel:'brzf37-panel',name:'F37 · Pré-publicação',legacy:true},
    {id:'brzf37b-open',panel:'brzf37b-panel',name:'F37B · Integridade',legacy:true}
   ];
-  const mounted=new Set();
+  const cards=new Map();
   function collect(){
    for(const spec of controls){
     const launch=document.getElementById(spec.id);
-    if(!launch||mounted.has(spec.id))continue;
     const panel=document.getElementById(spec.panel);
-    const card=document.createElement('div');
-    card.className='brzsys-card';
-    const title=document.createElement('h3');
-    title.textContent=spec.name;card.appendChild(title);
-    if(spec.id==='brzf33-launch'&&launch.style.display==='none')
+    let card=cards.get(spec.id);
+    if(!launch&&!card)continue;
+    if(!card){
+     card=document.createElement('div');
+     card.className='brzsys-card';
+     const title=document.createElement('h3');
+     title.textContent=spec.name;card.appendChild(title);
+     (spec.legacy?oldGrid:currentGrid).appendChild(card);
+     cards.set(spec.id,card);
+    }
+    if(launch&&launch.parentNode!==card)card.appendChild(launch);
+    if(panel&&panel.parentNode!==card){
+     panel.classList.add('brzsys-panel');card.appendChild(panel);
+    }
+    if(spec.id==='brzf33-launch'&&launch?.style.display==='none')
       card.dataset.legacyHidden='true';
-    // Reparent the same button and panel to preserve listeners and live state.
-    card.appendChild(launch);
-    if(panel){panel.classList.add('brzsys-panel');card.appendChild(panel);}
-    (spec.legacy?oldGrid:currentGrid).appendChild(card);
-    mounted.add(spec.id);
    }
    legacy.hidden=oldGrid.children.length===0;
   }
