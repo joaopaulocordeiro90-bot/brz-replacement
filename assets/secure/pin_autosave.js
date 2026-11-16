@@ -102,7 +102,7 @@
   }
   return await response.json();
  }
- let frozenBaseline=null;
+ let frozenBaseline=null,deskChatSnapshot=null;
  async function rows(){
   // Source 4,011 trades were loaded and SHA-verified by F41 before this
   // bridge starts. Fetch only versioned F33 changes, not 41 redundant pages.
@@ -111,7 +111,15 @@
     if(!baseline||baseline.length!==EXPECTED)throw Error('Histórico canônico não carregado');
     frozenBaseline=JSON.parse(JSON.stringify(baseline));
   }
-  const response=await req('/rest/v1/rpc/brz_pin_fast_trade_deltas',{});
+  // The private chat intake is readable only after the desk/admin PIN login.
+  // Original frozen 4,011 and F33 journal remain untouched.
+  const [response,desk]=await Promise.all([
+    req('/rest/v1/rpc/brz_pin_fast_trade_deltas',{}),
+    req('/rest/v1/rpc/brz_pin_desk_chat_snapshot',{})
+  ]);
+  if(!desk||!Array.isArray(desk.trades)||!Array.isArray(desk.curves))
+    throw Error('Recebimento autenticado da mesa inválido');
+  deskChatSnapshot=desk;
   if(!response||!Array.isArray(response.rows)||response.rows.length>10000)
     throw Error('Diário de negócios inválido');
   const byId=new Map();
@@ -120,6 +128,16 @@
       throw Error('ID original de negócio duplicado');
     byId.set(record.id,{legacy_id:record.id,record_version:0,
       deleted:false,record_json:record});
+  }
+  for(const intake of desk.trades){
+    if(!intake||typeof intake.legacy_id!=='string'||
+       !intake.record_json||intake.record_json.id!==intake.legacy_id||
+       byId.has(intake.legacy_id))
+      throw Error('Negócio de chat duplicado/inválido');
+    byId.set(intake.legacy_id,{
+      legacy_id:intake.legacy_id,record_version:0,
+      deleted:false,record_json:intake.record_json
+    });
   }
   const changed=new Set();
   for(const event of response.rows){
@@ -266,6 +284,31 @@
          }
        }
      }
+     // New dated market quotations are applied after source snapshots.
+     // If a desk user subsequently edited the curves module, its newer
+     // revision takes precedence over earlier chat-supplied quotations.
+     let appliedChatCurves=false;
+     const savedCurvesRow=rows.find(r=>r.module==='curves');
+     for(const item of deskChatSnapshot?.curves||[]){
+       const sourceDate=item?.source_date;
+       const patch=item?.payload;
+       if(typeof sourceDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(sourceDate)||
+          !patch||typeof patch!=='object'||!patch.snapshot)
+         throw Error('Captura de mercado do chat inválida');
+       if(savedCurvesRow &&
+          Date.parse(savedCurvesRow.updated_at)>=Date.parse(item.inserted_at))
+          continue;
+       for(const key of ['cbot','cbotMilho','cbotOleo','cbotFarelo','dolar']){
+         if(!patch[key]||typeof patch[key]!=='object')throw Error('Curva incompleta: '+key);
+         state[key]={...(state[key]||{}),...patch[key]};
+       }
+       const intraday={...(state.curvasIntraday||{})};
+       const previous=Array.isArray(intraday[sourceDate])?intraday[sourceDate]:[];
+       const indexed=previous.some(x=>x?.snap===patch.snapshot.snap);
+       intraday[sourceDate]=indexed?previous:[...previous,patch.snapshot];
+       state.curvasIntraday=intraday;
+       appliedChatCurves=true;
+     }
      for(const name of Object.keys(MODULES)){
        const saved=remoteModules.get(name);
        const snap=stable(groupSnapshot(name));
@@ -274,7 +317,7 @@
      const persistedRoad=remoteModules.get('road_delta');
      remoteModules.set('road_delta',{revision:persistedRoad?.revision||0,
        snapshot:stable(roadDiff())});
-     if(rows.length){
+     if(rows.length||appliedChatCurves){
        if(typeof window.__BRZ_PIN_INVALIDATE_NAV==='function')window.__BRZ_PIN_INVALIDATE_NAV();
        if(typeof invalidateDataCache==='function')invalidateDataCache();
        if(typeof clearCalcCaches==='function')clearCalcCaches();
