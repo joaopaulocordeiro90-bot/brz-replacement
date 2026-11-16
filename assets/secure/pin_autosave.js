@@ -83,6 +83,10 @@
     throw Error('Renovação de sessão inválida');
   token=data.access_token;refreshToken=data.refresh_token;
   tokenExpiration=Date.now()+Number(data.expires_in||3000)*1000;
+  try{window.parent?.__BRZ_UPDATE_TAB_TOKEN?.({
+    access_token:token,refresh_token:refreshToken,
+    expires_in:Number(data.expires_in||3000)
+  });}catch(e){/* Parent may be unavailable in non-PIN harness */}
  }
  async function req(path,body,method='POST'){
   if(!connected&&!applying)throw Error('Banco não conectado');
