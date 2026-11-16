@@ -32,7 +32,7 @@ function forgetTabSession(){
 }
 function rememberTabSession(accessToken,refreshToken,expiresIn,keepUntil){
  if(typeof accessToken!=='string'||accessToken.length<40||
-    typeof refreshToken!=='string'||refreshToken.length<20)return;
+    typeof refreshToken!=='string'||refreshToken.length<1)return;
  const now=Date.now(),until=Number(keepUntil)||now+SESSION_MS;
  if(until<=now)return;
  tabSessionUntil=until;
