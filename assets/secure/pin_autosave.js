@@ -271,13 +271,16 @@
      if(typeof id!=='string'||!id||seen.has(id))
        throw Error('Frete rodoviário sem ID único');
      seen.add(id);
-     if(roadBaseline.get(id)!==stable(row))upserts.push(row);
+     if(roadBaseline.get(id)!==JSON.stringify(row))upserts.push(row);
    }
    for(const id of roadBaseline.keys())if(!seen.has(id))deletes.push(id);
    if(upserts.length+deletes.length>2500)
       throw Error('Alterações rodoviárias em massa bloqueadas; use a ingestão controlada');
    return {upserts,deletes};
  }
+ // Native JSON.stringify preserves the original parsed record's key order;
+ // unlike stable() it avoids sorting keys for each of 178k freight records.
+ // Both baseline and checks use the same serializer so edits remain detected.
  // Compare large road freight series in bounded chunks, yielding to browser UI.
  // Identical result to roadDiff(), without a single long blocking task.
  async function roadDiffAsync(){
@@ -288,7 +291,7 @@
      if(typeof id!=='string'||!id||seen.has(id))
        throw Error('Frete rodoviário sem ID único');
      seen.add(id);
-     if(roadBaseline.get(id)!==stable(row))upserts.push(row);
+     if(roadBaseline.get(id)!==JSON.stringify(row))upserts.push(row);
      if((i+1)%3500===0)await new Promise(resolve=>setTimeout(resolve,0));
    }
    for(const id of roadBaseline.keys())if(!seen.has(id))deletes.push(id);
@@ -323,7 +326,7 @@
        const record=roadRows[i];
        if(typeof record?.id!=='string'||roadBaseline.has(record.id))
          throw Error('Histórico rodoviário com ID inválido');
-       roadBaseline.set(record.id,stable(record));
+       roadBaseline.set(record.id,JSON.stringify(record));
        if((i+1)%2500===0)await new Promise(resolve=>setTimeout(resolve,0));
      }
      for(const record of rows){
