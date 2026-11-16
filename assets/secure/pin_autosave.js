@@ -330,6 +330,11 @@
   state.marketExcelRawPhysical=patch.physicalRaw;
   state.marketExcelAsOf=patch.as_of;
   state.marketExcelSHA256=patch.sourceSha;
+  // The Excel overlay is read-only market data, never an editable ocean module.
+  // Rebase local comparison snapshot to avoid accidentally posting source data
+  // as a user's manual change during the next autosave.
+  const oceanModule=remoteModules.get('ocean');
+  if(oceanModule)remoteModules.set('ocean',{...oceanModule,snapshot:stable(groupSnapshot('ocean'))});
   state._version=(Number(state._version)||0)+1;
   excelBasisReferences=mod.basisReferences(patch.basis);
   excelMarketStatus=patch.counts;
