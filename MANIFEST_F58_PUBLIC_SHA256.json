@@ -322,6 +322,14 @@
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
       "sha256": "cd2c9aca5fd5f4a815a4bfc94ca5a83e428e1cc616739e124d0117b1f53f04ab"
+    },
+    "assets/secure/pendencias_calc.mjs": {
+      "bytes": 8118,
+      "sha256": "e047156be3aba9084d1ff52403f1008339ac5294af66a17535846920ca8f1738"
+    },
+    "assets/secure/negocios_pendencias.mjs": {
+      "bytes": 17722,
+      "sha256": "a49c5ca827d2920d777ace2c79603a097b542e0c4639a60110d0e600166b4341"
     }
   }
 }
