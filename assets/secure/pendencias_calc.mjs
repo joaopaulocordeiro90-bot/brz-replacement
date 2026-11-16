@@ -94,13 +94,15 @@ export function candidates(d,state,ref){
    const row=opts[0],otherPort=normal(sc.porto||'');
    const fallback=otherPort.includes(normal(port))?num(sc.freteRodoviarioBRZ_RSt):null;
    const geo=window.BRZRoadGeo?.getApproved?.(d.id,d.origem,dest,d.data);
-   const road=row?num(row.value):(geo?num(geo.freteRodoIndicativo):fallback);
+   let roadLookup=null;try{if(typeof window.findRodoFreight==='function')
+      roadLookup=window.findRodoFreight(d.origem,dest,d.data,d.corredor,d.id);}catch{}
+   const road=num(roadLookup?.valor)??(row?num(row.value):(geo?num(geo.freteRodoIndicativo):fallback));
    if(road===null)continue;
    const b=bid(ref,d,port,m);
    const p={porto:port,mesPorto:label(m),modal:'Rodoviário',freteRodo:road,freteFerro:0,
     despesas:0,cbot,contratoCBOT:cc,fx,contratoDOL:d.vencCambio||fxContract(pay),
-    basis:b?num(b.value):null,freteFonte:row?.iso_week||(geo?'OSRM F60 · km × TKU':'Cenário BRZ'),
-    rota:o.city+' → '+dest,proxy:o.proxy||!row,basisData:b?.day||null,
+    basis:b?num(b.value):null,freteFonte:roadLookup?.fonteFrete||(geo?'OSRM F60 · km × TKU':row?.iso_week||'Cenário BRZ'),
+    rota:(d.origem||o.city)+' → '+dest,proxy:o.proxy||!row,basisData:b?.day||null,
     basisJanela:b?.typ||null,preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
    const calc=calculate(d,p);if(calc)list.push({...p,calc});
   }
@@ -119,15 +121,18 @@ export function candidates(d,state,ref){
       (normal(r.destination_text)===hubName||normal(r.destination_text)===normal(hub))&&
       num(r.value)!==null).sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)))[0];
    const sameTerminal=normal(o.city)===normal(hub)&&!o.proxy;
-   if(!roadToHub&&!sameTerminal)continue;
+   let roadHubLookup=null;try{if(typeof window.findRodoFreight==='function')
+      roadHubLookup=window.findRodoFreight(d.origem,hub,d.data,d.corredor,d.id);}catch{}
+   const roadLeg=sameTerminal?0:(num(roadHubLookup?.valor)??(roadToHub?num(roadToHub.value):null));
+   if(roadLeg===null)continue;
    const port=normal(rail.destino)==='sao luis'?'Itaqui':rail.destino;
    const basis=bid(ref,d,port,m);
    const p={porto:port,mesPorto:label(m),modal:'Rodoviário + Ferroviário',
-     freteRodo:sameTerminal?0:num(roadToHub.value),
+     freteRodo:roadLeg,
      freteFerro:railPrice,despesas:0,cbot,contratoCBOT:cc,fx,
      contratoDOL:d.vencCambio||fxContract(pay),basis:basis?num(basis.value):null,
-     freteFonte:(roadToHub?.iso_week||'Terminal')+' + '+(rail.fonte||'Tabela ferroviária'),
-     rota:o.city+' → '+hub+' → '+port,proxy:o.proxy,
+     freteFonte:(roadHubLookup?.fonteFrete||roadToHub?.iso_week||'Terminal')+' + '+(rail.fonte||'Tabela ferroviária'),
+     rota:(d.origem||o.city)+' → '+hub+' → '+port,proxy:o.proxy,
      basisData:basis?.day||null,basisJanela:basis?.typ||null,
      preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
    const calc=calculate(d,p);if(calc)list.push({...p,calc});
