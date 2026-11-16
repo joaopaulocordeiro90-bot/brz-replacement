@@ -54,15 +54,20 @@ export function calculate(d,p){
  const rod=num(p.freteRodo),fer=num(p.freteFerro??0),extra=num(p.despesas??0);
  if([price,fx,cbot,rod,fer,extra].some(v=>v===null||v<0)||!price||!fx||!cbot)return null;
  const bpt=commodity(d)==='Soja'?36.74371:39.36825;
+ const due=num(p.due);
+ if(due!==null&&due<0)return null;
+ const dueApplied=due===null?0:due;
  const freight=rod+fer+extra;
- const totalBRLt=price*1000/60+freight;
+ // DUE, when explicitly quantified, is an additional physical cost R$/sc.
+ // Unknown DUE is never invented: the indicative result flags it as N/D.
+ const totalBRLt=(price+dueApplied)*1000/60+freight;
  const costUSDt=totalBRLt/fx;
  const replacementBasis_cbu=costUSDt*100/bpt-cbot;
  const basis=num(p.basis);
  const marginUSDt=basis===null?null:((cbot+basis)*bpt/100-costUSDt);
  return {totalBRLt,costUSDt,freight,replacementBasis_cbu,replacementFOB_cbu:cbot+replacementBasis_cbu,
   marginUSDt,marketFOB_USDt:basis===null?null:(cbot+basis)*bpt/100,buPerTon:bpt,
-  basisAvailable:basis!==null,indicativo:true,executado:false,proxySorgo:commodity(d)==='Sorgo'};
+  basisAvailable:basis!==null,dueKnown:due!==null,dueAppliedRSsc:dueApplied,indicativo:true,executado:false,proxySorgo:commodity(d)==='Sorgo'};
 }
 function bid(ref,d,port,m){
  const prod=commodity(d);if(prod==='Sorgo'||!m)return null;
