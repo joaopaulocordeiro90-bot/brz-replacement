@@ -306,7 +306,7 @@ async function start(ev){
   window.__BRZF41_TRADES_READY=true;
   window.__BRZF40_PHYSICAL_ROWS=rows;
   window.__BRZF40_PHYSICAL_READY=true;
-  $('user').value='';
+  $('pin').value='';
   status('Fonte autenticada verificada: 59.758 registros. Inicializando motor legado preservado…');
   const iframe=$('app');
   iframe.addEventListener('load',async()=>{
@@ -380,7 +380,7 @@ $('go').disabled=true;$('pin').disabled=true;
   status('Oito módulos verificados. Aguardando autenticação mesa/admin.');
  }catch(e){
   status('BLOQUEADO F49: '+e.message);
-  $('go').disabled=true;$('user').disabled=true;$('pass').disabled=true;
+  $('go').disabled=true;$('pin').disabled=true;
  }
 })();
 // Explicit lightweight probe for offline test harness; read-only, no credentials exposed.
