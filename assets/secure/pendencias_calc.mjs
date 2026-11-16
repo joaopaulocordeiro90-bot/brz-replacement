@@ -96,6 +96,34 @@ export function candidates(d,state,ref){
     basisJanela:b?.typ||null,preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
    const calc=calculate(d,p);if(calc)list.push({...p,calc});
   }
+  // Multi-modal alternatives must have BOTH an actual road quote to the
+  // rail terminal and an indicated rail rate for the same shipping month.
+  // Never treat CIF at a nearby city as CIF at a railway terminal.
+  for(const rail of ref?.rail||[]){
+   if(!rail||!rail.meses||!['Santos','Paranaguá','Itaqui','São Luís'].some(x=>
+     normal(x)===normal(rail.destino)))continue;
+   const railPrice=num(rail.meses[['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m.m-1]]);
+   if(railPrice===null||railPrice<0)continue;
+   const hub=String(rail.origem||'').split('·')[0].trim();
+   const hubName=normal(hub.split('/')[0]);
+   const roadToHub=(ref.road||[]).filter(r=>
+      normal(r.origin_text)===normal(o.city)&&
+      (normal(r.destination_text)===hubName||normal(r.destination_text)===normal(hub))&&
+      num(r.value)!==null).sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)))[0];
+   const sameTerminal=normal(o.city)===normal(hub)&&!o.proxy;
+   if(!roadToHub&&!sameTerminal)continue;
+   const port=normal(rail.destino)==='sao luis'?'Itaqui':rail.destino;
+   const basis=bid(ref,d,port,m);
+   const p={porto:port,mesPorto:label(m),modal:'Rodoviário + Ferroviário',
+     freteRodo:sameTerminal?0:num(roadToHub.value),
+     freteFerro:railPrice,despesas:0,cbot,contratoCBOT:cc,fx,
+     contratoDOL:d.vencCambio||fxContract(pay),basis:basis?num(basis.value):null,
+     freteFonte:(roadToHub?.iso_week||'Terminal')+' + '+(rail.fonte||'Tabela ferroviária'),
+     rota:o.city+' → '+hub+' → '+port,proxy:o.proxy,
+     basisData:basis?.day||null,basisJanela:basis?.typ||null,
+     preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
+   const calc=calculate(d,p);if(calc)list.push({...p,calc});
+  }
  }
  list.sort((a,b)=>(b.calc.marginUSDt??-999999)-(a.calc.marginUSDt??-999999)||
   a.calc.costUSDt-b.calc.costUSDt);
