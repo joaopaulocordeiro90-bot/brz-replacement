@@ -25,10 +25,10 @@ let loading=false,aborted=false;
 let pinRefreshToken=null,pinExpiresIn=3600;
 const SESSION_KEY='brz_replacement_tab_auth_v1';
 const SESSION_MS=60*60*1000;
-let tabSessionUntil=0;
+let tabSessionUntil=0,activeUserId=null;
 function forgetTabSession(){
  try{sessionStorage.removeItem(SESSION_KEY)}catch(e){}
- tabSessionUntil=0;
+ tabSessionUntil=0;activeUserId=null;
 }
 function rememberTabSession(accessToken,refreshToken,expiresIn,keepUntil){
  if(typeof accessToken!=='string'||accessToken.length<40||
@@ -80,6 +80,7 @@ async function restoreTabSession(){
   const role=Array.isArray(roleRows)?roleRows[0]?.role:roleRows?.role;
   if(typeof user?.id!=='string'||!['mesa','admin'].includes(role))
    throw Error('Sessão não autorizada');
+  activeUserId=user.id;
   pinRefreshToken=refresh;pinExpiresIn=seconds;
   rememberTabSession(token,refresh,seconds,saved.keep_until);
   return token;
@@ -103,7 +104,10 @@ window.__BRZ_UPDATE_TAB_TOKEN=function(info){
 };
 window.__BRZ_END_TAB_SESSION=()=>{
  forgetTabSession();
- location.reload();
+ import('./tab_cache.mjs?v=20261116tabcache01')
+   .then(mod=>mod.clearHydrationCache())
+   .catch(()=>{})
+   .finally(()=>location.reload());
 };
 let marketStatsCached=null;
 function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
@@ -325,6 +329,7 @@ async function signIn(pin){
  if(!Array.isArray(stats)||stats.length!==6||stats.some(r=>!r.ready))
    throw Error('Inventário de mercado indisponível');
  marketStatsCached=stats;
+ activeUserId=user.id;
  rememberTabSession(token,pinRefreshToken,pinExpiresIn,Date.now()+SESSION_MS);
  // Unlike staging F59, operational F33 writes are allowed, so do not
  // demand trade_events=0 on subsequent logins.
@@ -491,6 +496,43 @@ async function start(ev){
   // These authenticated sources are independent once the confidential
   // manifests are available. Fetch concurrently instead of 8 serial phases.
   status('Carregando dados da mesa em paralelo · histórico protegido…');
+  // The first authenticated entry still verifies every remote source SHA.
+  // On F5, reuse ONLY the previously verified immutable snapshots, encrypted
+  // at rest and bound to this PIN tab session for at most one hour.
+  let diskCache=null,cacheContext=null,cachedPayload=null,cacheAfterOpen=null;
+  try{
+    diskCache=await import('./tab_cache.mjs?v=20261116tabcache01');
+    let stats=marketStatsCached;
+    if(!stats){
+      stats=await request('/rest/v1/rpc/brz_api_f34_market_counts',{token});
+      if(!Array.isArray(stats)||stats.length!==6||stats.some(x=>x.ready!==true))
+        throw Error('Inventário F34 não conciliado');
+      marketStatsCached=stats;
+    }
+    if(activeUserId&&tabSessionUntil>Date.now()){
+      const fingerprint=await sha256(stableStringify({
+        version:'BRZ_SOURCE_FINGERPRINT_20261116_V1',
+        deployedScript:document.querySelector('script[src*="f40_pin_login.js"]')?.src||'',
+        marketStats:stats,marketMeta:protected55.f44_meta,
+        roadMeta:protected55.f46_meta,
+        tradesSha:F41_STATE_CANONICAL_SHA,
+        tradeLedger:F41_FROZEN_LEDGER_SHA,priceLedger:CANONICAL_LEDGER_SHA,
+        privateMetadataSha:'5564509b56fc57f5719e37fc3d47a98af6dc4b4438d042d9cc330610960b8819'
+      }));
+      cacheContext={userId:activeUserId,fingerprint,expiresAt:tabSessionUntil};
+      status('Verificando históricos protegidos no cache desta sessão…');
+      cachedPayload=await diskCache.readHydrationCache(cacheContext);
+    }
+  }catch(e){
+    console.warn('BRZ: cache de sessão indisponível; carregamento normal',e?.message);
+  }
+  let tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows;
+  if(cachedPayload){
+    ({tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows}=cachedPayload);
+    window.__BRZ_SOURCE_CACHE='HIT';
+    status('Históricos já validados recuperados. Sincronizando alterações recentes…');
+  }else{
+    window.__BRZ_SOURCE_CACHE='MISS';
   const tradeWork=(async()=>{
     const frozenTrades=await loadFrozenTrades(token,()=>{});
     const privateOrder=await request('/rest/v1/rpc/brz_api_f42_deal_order',{
@@ -538,11 +580,16 @@ async function start(ev){
     const reason=settled[failed].reason;
     throw Error(names[failed]+': '+(reason?.message||String(reason)));
   }
-  const [tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows]=
-    settled.map(item=>item.value);
+    [tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows]=
+      settled.map(item=>item.value);
+    if(diskCache&&cacheContext){
+      cacheAfterOpen={tradeBundle,derivativesResult,resultF44,rail,road,
+        premiums,restored,rows};
+    }
+  }
   const {frozenTrades,orderedDeals}=tradeBundle;
   status('Históricos e fretes conciliados. Abrindo a interface…');
-  // Do not persist data to localStorage, IndexedDB, sessionStorage, URL, cache or disk.
+  // Only the immutable, SHA-validated source bundles may be cached AES-GCM encrypted for this tab. Mutable overlays and credentials are never written to IDB.
   window.__BRZF48_SOURCES=restored.sources;
   window.__BRZF48_READY=true;
   window.__BRZF47_PREMIUM_ROWS=premiums.records;
@@ -596,6 +643,17 @@ async function start(ev){
       window.__BRZ_SESSION_LOAD_MS=Math.round(performance.now()-loginBegan);
       console.info('BRZ: PIN e cargas autenticadas',window.__BRZ_SESSION_LOAD_MS,'ms');
       document.body.classList.add('loaded');
+      // First entry: write validated immutable source snapshots in the
+      // background, after the working platform is visible. Never store live
+      // overlay edits, PINs, JWTs, or refresh tokens in browser disk cache.
+      if(cacheAfterOpen&&diskCache&&cacheContext){
+        setTimeout(()=>{
+          diskCache.writeHydrationCache(cacheContext,cacheAfterOpen)
+            .then(ok=>{window.__BRZ_CACHE_READY=ok;})
+            .catch(()=>{window.__BRZ_CACHE_READY=false;});
+        },250);
+      }
+
       document.documentElement.classList.remove('brz-restoring','brz-resume-failed');
     }catch(e){
       token=null;window.__BRZF57_BRIDGE_VERIFIED=false;
