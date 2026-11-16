@@ -1,5 +1,5 @@
 /* BRZ Replacement — Negócios > Pendências, authenticated F33 save */
-import {num,normal,month,label,commodity,isCif,candidates,calculate,cbotContract,fxContract,fxValue} from './pendencias_calc.mjs?v=20261116pend01';
+import {num,normal,month,label,commodity,isCif,candidates,calculate,cbotContract,fxContract,fxValue} from './pendencias_calc.mjs?v=20261116pend02';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(x,d=2)=>num(x)===null?'N/D':num(x).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const ELEMENTS=['origem','incoterm','porto','mesPorto','modal','retirada','pagamento','preco','freteRodo','freteFerro','despesas','cbot','contratoCBOT','fx','contratoDOL','basis','due','obs'];
