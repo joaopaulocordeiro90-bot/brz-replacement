@@ -22,6 +22,7 @@ jobs:
           node --check assets/secure/negocios_pendencias.mjs
           node --check assets/secure/pendencias_calc.mjs
           node --check assets/secure/f61_map_patch.js
+          node --check assets/secure/pagamento_confirmacoes.mjs
           node --check assets/secure/pin_autosave.js
           node --check assets/secure/f40_pin_login.js
           node --check assets/secure/pin_boot.mjs
@@ -29,6 +30,7 @@ jobs:
         run: |
           node tests/f60_road.test.mjs
           node tests/f61_map.test.mjs
+          node tests/f62_pagamentos.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'
