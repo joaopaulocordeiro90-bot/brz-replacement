@@ -38,6 +38,7 @@
       exportJsonAvailable:typeof downloadBackup === 'function',
       exportHtmlAvailable:typeof downloadHtmlSnapshot === 'function',
       browserStorageAvailable:storageAvailable, browserStatePreviouslySaved:persisted,
+      indexedDbStatus:storageMode, indexedDbLastSave:lastSave,
       savedBuild:storedBuild, storageError:storageError,
       status:stateUsable && !missing.length && storageAvailable ? 'ESTRUTURA_LOCAL_OK' : 'REVISAR',
       financeCertified:false, crossDeviceSync:false, backendWriteEnabled:false,
@@ -79,6 +80,8 @@
       'Ausências de módulos: ' + (a.missingModules.join(', ') || 'nenhuma') + '\n' +
       'Backup JSON/HTML: ' + (a.exportJsonAvailable && a.exportHtmlAvailable ? 'disponíveis' : 'verificar') + '\n' +
       'Estado local existente: ' + (a.browserStatePreviouslySaved ? 'sim' : 'não') + '\n' +
+      'Backup local: ' + a.indexedDbStatus + '\n' +
+      'Última gravação local: ' + (a.indexedDbLastSave || 'não registrada') + '\n' +
       'Banco e sincronização entre dispositivos: NÃO habilitados';
   }
   trigger.onclick = function () { panel.hidden = !panel.hidden; if (!panel.hidden) render(); };
@@ -123,14 +126,103 @@
       const slim = Object.assign({}, value);
       delete slim.fretesRodo; delete slim.fretesFerro; delete slim.precos;
       const serialized = JSON.stringify(slim);
-      localStorage.setItem(STORAGE_KEY, serialized);
-      if (localStorage.getItem(STORAGE_KEY) !== serialized)
-        throw Error('Não foi possível confirmar o estado gravado.');
+      let localSaved=false;
+      try{localStorage.setItem(STORAGE_KEY,serialized);
+        localSaved=localStorage.getItem(STORAGE_KEY)===serialized;}catch(e){}
+      if (dbConnection) await writeDb(slim);
+      else if(!localSaved)throw Error('Nenhum armazenamento confirmou a restauração.');
       $('brzf60-message').textContent = 'Backup restaurado. Recarregando a plataforma…';
       window.location.reload();
     } catch(e) {
       $('brzf60-message').textContent = 'Restauração bloqueada: ' + (e && e.message || e);
     } finally { input.value = ''; }
   };
+
+  // F61: armazenamento local robusto para superar a cota de 5 MiB do localStorage.
+  // O mecanismo nao envia dados ao GitHub ou a outros navegadores.
+  const dbName = 'BRZ_REPLACEMENT_BROWSER_STATE';
+  const dbStore = 'snapshots';
+  const dbKey = 'V4FQ_F60';
+  let dbConnection = null, localReady = false, pendingEarlyEdit = false;
+  let lastSave = null, lastStorageError = '', debounce = null, storageMode = 'iniciando';
+  function openDb(){
+    return new Promise(function(resolve,reject){
+      if(!window.indexedDB){reject(Error('IndexedDB indisponível'));return;}
+      const req = indexedDB.open(dbName,1);
+      req.onupgradeneeded = function(){if(!req.result.objectStoreNames.contains(dbStore)) req.result.createObjectStore(dbStore);};
+      req.onsuccess = function(){resolve(req.result);};
+      req.onerror = function(){reject(req.error || Error('Falha IndexedDB'));};
+    });
+  }
+  function readDb(){
+    return new Promise(function(resolve,reject){
+      const tx = dbConnection.transaction(dbStore,'readonly');
+      const req = tx.objectStore(dbStore).get(dbKey);
+      req.onsuccess = function(){resolve(req.result || null);};
+      req.onerror = function(){reject(req.error || Error('Leitura interrompida'));};
+    });
+  }
+  function slimState(source){
+    const slim = Object.assign({},source);
+    delete slim.fretesRodo; delete slim.fretesFerro; delete slim.precos;
+    return slim;
+  }
+  function writeDb(source){
+    return new Promise(function(resolve,reject){
+      if(!dbConnection){reject(Error('IndexedDB indisponível'));return;}
+      let packed;
+      try{packed = JSON.stringify(slimState(source));}catch(err){reject(err);return;}
+      const tx = dbConnection.transaction(dbStore,'readwrite');
+      tx.objectStore(dbStore).put({build:brzFileBuildId(),savedAt:new Date().toISOString(),content:packed},dbKey);
+      tx.oncomplete = function(){lastSave=new Date().toISOString();storageMode='IndexedDB salvo';lastStorageError='';resolve(lastSave);};
+      tx.onerror = function(){lastStorageError=String(tx.error || 'Gravação interrompida');storageMode='FALHA AO SALVAR';reject(tx.error || Error(lastStorageError));};
+      tx.onabort = function(){lastStorageError=String(tx.error || 'Gravação abortada');storageMode='FALHA AO SALVAR';reject(tx.error || Error(lastStorageError));};
+    });
+  }
+  function scheduleDbSave(){
+    if(!localReady){pendingEarlyEdit=true;return;}
+    clearTimeout(debounce);
+    storageMode='Salvando alterações locais…';
+    debounce=setTimeout(function(){
+      writeDb(state).catch(function(e){console.error('BRZ F61: armazenamento não confirmado',e);});
+    },200);
+  }
+  if(typeof persist==='function'){
+    const originalPersistF61=persist;
+    persist=function(){const result=originalPersistF61.apply(this,arguments);scheduleDbSave();return result;};
+  }
+  async function initIdb(){
+    try{
+      dbConnection=await openDb();
+      const previous=await readDb();
+      if(previous && previous.build===brzFileBuildId() && !pendingEarlyEdit){
+        const stored=JSON.parse(previous.content);
+        if(!stored || !Array.isArray(stored.negocios) || stored.negocios.length<BASELINE)
+          throw Error('Snapshot salvo incompleto');
+        const ids=new Set(stored.negocios.map(d=>String(d&&d.id||'')));
+        if(ids.size!==stored.negocios.length || ids.has(''))throw Error('IDs do snapshot salvo inconsistentes');
+        const current=state;
+        const next=Object.assign({},current,stored);
+        next.negocios=stored.negocios.slice();
+        const keyset=new Set(next.negocios.map(d=>String(d.id)));
+        for(const d of current.negocios){if(!keyset.has(String(d.id))){next.negocios.push(d);keyset.add(String(d.id));}}
+        next.fretesRodo=current.fretesRodo;next.fretesFerro=current.fretesFerro;next.precos=[];
+        state=next;
+        try{if(typeof invalidateDataCache==='function')invalidateDataCache();}catch(e){}
+        try{if(typeof clearCalcCaches==='function')clearCalcCaches();}catch(e){}
+        if(typeof renderAll==='function')renderAll();
+        lastSave=previous.savedAt||null;
+      }
+      localReady=true;
+      storageMode='IndexedDB disponível';
+      scheduleDbSave();
+    }catch(e){
+      lastStorageError=String(e&&e.message||e);
+      storageMode='IndexedDB indisponível: use backup JSON';
+      localReady=true;
+      console.warn('BRZ F61',e);
+    }
+  }
+  initIdb();
   window.BRZF60 = Object.freeze({version:VERSION, status:getStatus, refresh:render});
 })();
