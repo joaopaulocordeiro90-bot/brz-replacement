@@ -328,12 +328,12 @@
       "sha256": "1345de5fe5466529d08c374c5e6c748c851291c11313ac7eaa8624a6051a03a4"
     },
     "assets/secure/negocios_pendencias.mjs": {
-      "bytes": 23401,
-      "sha256": "e1cdb11a6cdf67b155b50ca8ddb3527c4e722226768c8e2e746b264aead8bb05"
+      "bytes": 23447,
+      "sha256": "dae3875d4cee757f2e857c7c74208d7fe2a84d8df49690dfd8dfe932339d9434"
     },
     "assets/secure/rodoviario_tku.mjs": {
-      "bytes": 12705,
-      "sha256": "59864593012d02c781de867a17207a0070500892ab30c759f37b92ea8674342a"
+      "bytes": 12878,
+      "sha256": "872702c2064fd84a85cb6d2eaa0734e0adb2625dc43e2a367e728fa7279b996e"
     }
   }
 }
