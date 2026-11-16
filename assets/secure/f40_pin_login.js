@@ -22,6 +22,7 @@ const status=msg=>{ $('status').textContent=msg; };
 // F57: server-side SQL EXECUTE grants also deny F33 mutation/restore.
 window.__BRZF57_READ_ONLY_STAGING=true; // isolate legacy F33 UI; PIN autosave uses its own bridge
 let loading=false,aborted=false;
+let pinRefreshToken=null,pinExpiresIn=3600;
 function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
  throw Error('F58: pacote público ainda não conferido');
  if((!localHost&&!ghPages()&&!stageEdge())||window.top!==window||!window.isSecureContext)
@@ -77,6 +78,8 @@ async function signIn(pin){
  }
  const token=info.access_token;
  if(typeof token!=='string'||token.length<40)throw Error('Sessão não recebida');
+ pinRefreshToken=info.refresh_token;
+ pinExpiresIn=Number(info.expires_in||3600);
  const user=await request('/auth/v1/user',{token});
  if(typeof user?.id!=='string'||!user.id)throw Error('Usuário da sessão não identificado');
  const roleRows=await request('/rest/v1/rpc/brz_api_session',{token});
@@ -330,7 +333,7 @@ async function start(ev){
       });
       if(typeof iframe.contentWindow?.BRZPinAutoSave?.connect!=='function')
         throw Error('Sincronização de negócios não inicializada');
-      const ready=await iframe.contentWindow.BRZPinAutoSave.connect(token);
+      const ready=await iframe.contentWindow.BRZPinAutoSave.connect({access_token:token,refresh_token:pinRefreshToken,expires_in:pinExpiresIn});
       if(ready?.ready!==true)throw Error('Banco não confirmou a conexão');
       token=null;
       window.__BRZ_PIN_OPERATIONAL=true;
