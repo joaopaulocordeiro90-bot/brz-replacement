@@ -22,8 +22,6 @@ summary{color:#a6c6db;cursor:pointer;font:600 12px Arial;line-height:1.4}
 #setupStatus{font-size:12px;line-height:1.5;min-height:15px}
 #app{display:none;width:100vw;height:100vh;border:0;background:#fff}
 body.loaded{display:block}body.loaded main{display:none}body.loaded #app{display:block}
-#exitF57{display:none;position:fixed;z-index:2147483009;top:10px;right:13px;max-width:108px;white-space:nowrap;background:#a93634;color:white;font-size:12px;padding:10px 12px;margin:0}
-body.loaded #exitF57{display:block}
 @media(max-width:500px){main{padding:25px 20px}}
 </style></head>
 <body>
@@ -53,7 +51,7 @@ body.loaded #exitF57{display:block}
 <p id="setupStatus" role="status"></p>
 </form></details>
 </main>
-<button type="button" id="exitF57" onclick="location.reload()">Sair</button>
+
 <iframe id="app" title="BRZ Replacement" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"></iframe>
 <script type="module" src="assets/secure/pin_boot.mjs?v=20261116directsync01"></script>
 </body></html>
