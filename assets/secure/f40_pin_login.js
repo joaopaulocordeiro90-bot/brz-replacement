@@ -23,11 +23,14 @@ const status=msg=>{ $('status').textContent=msg; };
 window.__BRZF57_READ_ONLY_STAGING=true; // isolate legacy F33 UI; PIN autosave uses its own bridge
 let loading=false,aborted=false;
 let pinRefreshToken=null,pinExpiresIn=3600;
+let marketStatsCached=null;
 function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
  throw Error('F58: pacote público ainda não conferido');
  if((!localHost&&!ghPages()&&!stageEdge())||window.top!==window||!window.isSecureContext)
  throw Error('F59: origem nao autorizada');}
 async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
+ if(path==='/rest/v1/rpc/brz_api_f34_market_counts'&&marketStatsCached)
+   return marketStatsCached;
  // Fast read-only JSON envelope RPCs keep authorized RLS and original source fields;
  // one scalar result avoids the PostgREST 1,000-row cap on SETOF results.
  const route={
@@ -100,6 +103,7 @@ async function signIn(pin){
  const stats=await request('/rest/v1/rpc/brz_api_f34_market_counts',{token});
  if(!Array.isArray(stats)||stats.length!==6||stats.some(r=>!r.ready))
    throw Error('Inventário de mercado indisponível');
+ marketStatsCached=stats;
  // Unlike staging F59, operational F33 writes are allowed, so do not
  // demand trade_events=0 on subsequent logins.
  return token;
