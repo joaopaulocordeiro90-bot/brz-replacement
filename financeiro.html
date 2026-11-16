@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>BRZ | Homologação financeira F63</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#193044;background:#f4f6f9}*{box-sizing:border-box}
+body{margin:0}header{background:#14293f;color:#f5fbff;padding:28px max(18px,calc((100vw - 1120px)/2))}
+header small{color:#90b9d2;font-weight:700;letter-spacing:.1em}header h1{font-size:27px;margin:10px 0}header p{margin:0;color:#c5d6e3;font-size:13px}
+main{max-width:1120px;margin:20px auto;padding:0 16px 30px}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi,section{background:#fff;border:1px solid #dfe7ed;border-radius:7px;padding:18px}
+.kpi span{font-size:12px;color:#63778b;display:block}.kpi b{font-size:28px;display:block;padding:5px 0}
+section{margin-top:14px;padding:20px 24px}section h2{font-size:17px;margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;background:#f7f9fc;color:#66798b;font-size:12px}
+td,th{border-bottom:1px solid #e4eaf0;padding:12px 9px;vertical-align:top}
+.good{color:#067459;font-weight:700}.warn{color:#996119;font-weight:700}
+.note{line-height:1.6;font-size:13px;color:#53697a}.important{border-left:3px solid #b16b19;background:#fff6e9;padding:12px 14px;font-size:13px;line-height:1.55}
+.actions{display:flex;flex-wrap:wrap;gap:9px}.actions a{display:inline-flex;padding:11px 14px;text-decoration:none;background:#f8fafb;border:1px solid #cbd6df;color:#19415e;border-radius:5px;font-size:13px;font-weight:700}
+.actions a:first-child{color:white;background:#19415e;border-color:#19415e}
+code{font-size:11px;overflow-wrap:anywhere}
+@media(max-width:700px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}header{padding:23px 17px}section{padding:16px}}
+</style></head>
+<body><header><small>BRZ REPLACEMENT · HOMOLOGAÇÃO</small>
+<h1>F63 · Paridade financeira e segurança</h1>
+<p>16/11/2026 · Origem: BRZ Replacement V4FQ (13/11) · Verificação somente leitura</p></header>
+<main>
+<div class="summary">
+<div class="kpi"><span>V4FQ · negócios portuários</span><b>204</b><span>178 soja · 16 milho · 10 sorgo</span></div>
+<div class="kpi"><span>Base histórica conciliada</span><b>201</b><span>Hash SQL = hash Python</span></div>
+<div class="kpi"><span>Novos versus referência F20</span><b>3</b><span>11 e 12/11/2026</span></div>
+<div class="kpi"><span>Lacunas marítimas milho</span><b>117</b><span>Referências ausentes no snapshot F20</span></div>
+</div>
+<section><h2>Resultados financeiros</h2>
+<table><thead><tr><th>Controle</th><th>Resultado</th><th>Interpretação</th></tr></thead><tbody>
+<tr><td>FOB portuário, basis e margem — 201 negócios históricos</td><td class="good">Hash idêntico</td><td>Recalculo SQL e Python contra a referência financeira homologada.</td></tr>
+<tr><td>Ampliação para versão V4FQ — 204 negócios</td><td class="good">Recalculado</td><td>Inclui três negócios posteriores ao recorte da referência F20.</td></tr>
+<tr><td>Fobbing por porto, fator bushel e conversão de preço</td><td class="good">Aplicados</td><td>Mesmo conjunto de parâmetros do cálculo portuário de referência.</td></tr>
+<tr><td>Frete rodoviário / ferroviário / barcaça / marítimo e CFR</td><td class="warn">Em aberto</td><td>A amostra não testa custos logísticos por corredor e mês.</td></tr>
+<tr><td>D-1, D-7 e D-30</td><td class="warn">Fontes presentes; cálculos não homologados</td><td>Disponibilidade de registros não garante matching dos contratos e portos.</td></tr>
+<tr><td>Gravação centralizada / restauração PostgreSQL</td><td class="warn">Em aberto</td><td>Zero novos eventos F33 e zero execuções financeiras registradas.</td></tr>
+</tbody></table>
+<p class="note">Base F20: 3.911 negócios históricos. Versão V4FQ: 4.011. A paridade reproduz a fórmula portuária elegível, não os 4.011 replacements por todas as rotas.</p>
+</section>
+<section><h2>Cobertura temporal observada</h2>
+<table><thead><tr><th>Base</th><th>13/11</th><th>12/11</th><th>06/11</th><th>14/10</th></tr></thead><tbody>
+<tr><td>Físico</td><td>155</td><td>155</td><td>159</td><td>160</td></tr>
+<tr><td>CBOT/Câmbio</td><td>50</td><td>51</td><td>51</td><td>24</td></tr>
+<tr><td>Marítimo</td><td>192</td><td>179</td><td>179</td><td>175</td></tr>
+</tbody></table>
+<p class="note">Contagem de observações em quatro datas civis de comparação. Não certifica a escolha da referência D-1/D-7/D-30 para cada mês-porto, commodity e negócio.</p>
+</section>
+<section><h2>Condição para uso operacional</h2>
+<div class="important"><b>Acesso e sigilo:</b> o repositório e o GitHub Pages desta versão são públicos e o HTML distribuído contém dados de operações e contrapartes. Não existe controle de acesso aos arquivos estáticos. A senha visual, se adicionada, não restringiria a leitura do histórico. Antes da produção, a base comercial precisa ser entregue por um serviço autenticado, com política de acesso e recuperação testada.</div>
+<p class="note">Os dados originais não foram alterados, e não houve habilitação de escrita remota. A próxima homologação precisa testar por rota: origem, frete, mês porto, CBOT, câmbio, basis e replacement CFR. Nenhuma referência faltante deve ser preenchida por suposição.</p>
+</section>
+<section><h2>Documentação e reprodutibilidade</h2>
+<div class="actions">
+<a href="./?v=f63">Abrir BRZ Replacement</a>
+<a href="assets/audit/f63_financial_20261116.json">Manifesto F63 (JSON)</a>
+<a href="tools/audit_f63_port.py">Teste Python F63</a>
+<a href="auditoria.html">Auditoria estrutural F62</a>
+</div>
+<p class="note">Status final: <strong>paridade portuária parcial aprovada; homologação financeira geral e segurança de acesso pendentes.</strong></p>
+</section>
+</main></body></html>
