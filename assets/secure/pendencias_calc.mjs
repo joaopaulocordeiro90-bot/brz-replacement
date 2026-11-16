@@ -1,0 +1,103 @@
+/* BRZ Replacement: indicative FOB replacement calculator, independent of UI. */
+const mons=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+export const num=x=>x===null||x===undefined||x===''?null:(Number.isFinite(Number(String(x).replace(',','.')))?Number(String(x).replace(',','.')):null);
+export const normal=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+export function month(x){
+ const s=String(x||'');
+ let m=s.match(/\b\d{1,2}\/(\d{1,2})\/(20\d\d)\b/);
+ if(m)return {m:Number(m[1]),y:Number(m[2])};
+ m=s.match(/\b(20\d\d)[-\/](\d{1,2})\b/);if(m)return {m:Number(m[2]),y:Number(m[1])};
+ m=s.match(/\b(\d{1,2})\/(20\d\d)\b/);if(m&&Number(m[1])<=12)return {m:Number(m[1]),y:Number(m[2])};
+ m=s.match(/\b(jan|feb|fev|mar|apr|abr|may|mai|jun|jul|aug|ago|sep|set|oct|out|nov|dec|dez)[a-z]*[-\/ ]*(20)?(\d\d)\b/i);
+ if(m){const i=['jan','feb','fev','mar','apr','abr','may','mai','jun','jul','aug','ago','sep','set','oct','out','nov','dec','dez'].indexOf(m[1].toLowerCase().slice(0,3));const a=[1,2,2,3,4,4,5,5,6,7,8,8,9,9,10,10,11,12,12];return i>=0?{m:a[i],y:2000+Number(m[3])}:null;}
+ return null;
+}
+export const label=m=>m&&m.m>=1&&m.m<=12?mons[m.m-1]+'-'+String(m.y).slice(-2):'';
+export const shift=(m,n=1)=>{if(!m)return null;const d=new Date(Date.UTC(m.y,m.m-1+n,1));return{m:d.getUTCMonth()+1,y:d.getUTCFullYear()};};
+export const commodity=d=>normal(d.produto).includes('soja')?'Soja':normal(d.produto).includes('sorgo')?'Sorgo':'Milho';
+export const isCif=d=>normal(d.modalidadeComercial)==='cif'||/^\s*cif\b/i.test(d.localEntrega||'');
+export function cbotContract(d,m){
+ if(!m)return '';
+ const kind=commodity(d),codes=kind==='Soja'?['F','H','H','K','K','N','N','Q','U','X','X','F']:['H','H','H','K','K','N','N','U','U','Z','Z','Z'];
+ return codes[m.m-1]+String(m.y+(kind==='Soja'&&m.m===12?1:0)).slice(-2);
+}
+export function fxContract(m){
+ const a=shift(m);return a?'DOL'+['F','G','H','J','K','M','N','Q','U','V','X','Z'][a.m-1]+String(a.y).slice(-2):'';
+}
+export function fxValue(state,m){
+ const a=shift(m);return a?num(state?.dolar?.[mons[a.m-1]+String(a.y).slice(-2)]):null;
+}
+export function origin(d){
+ const s=normal((d.origem||'')+' '+(d.localEntrega||''));
+ if(s.includes('montividiu'))return {city:'Rio Verde/GO',proxy:true};
+ if(s.includes('jatai'))return {city:'Jataí/GO',proxy:false};
+ if(s.includes('laguna carapa'))return {city:'Amambaí/MS',proxy:true};
+ if(s.includes('luizmangues')||s.includes('porto nacional'))return {city:'Porto Nacional/TO',proxy:s.includes('luizmangues')};
+ if(s.includes('rio verde'))return {city:'Rio Verde/GO',proxy:false};
+ const m=String(d.origem||'').match(/([\p{L}\s]+)\s*[-\/]\s*([A-Z]{2})/u);
+ return {city:m?m[1].trim()+'/'+m[2]:'',proxy:false};
+}
+export function months(d){
+ const months=[];
+ const list=d.replacementCenario?.embarquePortoCenarios;
+ if(Array.isArray(list))for(const s of list){const x=month(s);if(x)months.push(x);}
+ const named=month(d.embarque)||month(d.replacementCenario?.embarquePorto);
+ if(named)months.unshift(named);
+ if(!months.length){
+  const x=month(d.retirada)||month(d.entrega);
+  if(x)months.push(isCif(d)?x:shift(x));
+ }
+ return [...new Map(months.map(m=>[label(m),m])).values()].slice(0,4);
+}
+export function calculate(d,p){
+ const price=num(p.preco??d.preco),fx=num(p.fx),cbot=num(p.cbot);
+ const rod=num(p.freteRodo),fer=num(p.freteFerro??0),extra=num(p.despesas??0);
+ if([price,fx,cbot,rod,fer,extra].some(v=>v===null||v<0)||!price||!fx||!cbot)return null;
+ const bpt=commodity(d)==='Soja'?36.74371:39.36825;
+ const freight=rod+fer+extra;
+ const totalBRLt=price*1000/60+freight;
+ const costUSDt=totalBRLt/fx;
+ const replacementBasis_cbu=costUSDt*100/bpt-cbot;
+ const basis=num(p.basis);
+ const marginUSDt=basis===null?null:((cbot+basis)*bpt/100-costUSDt);
+ return {totalBRLt,costUSDt,freight,replacementBasis_cbu,replacementFOB_cbu:cbot+replacementBasis_cbu,
+  marginUSDt,marketFOB_USDt:basis===null?null:(cbot+basis)*bpt/100,buPerTon:bpt,
+  basisAvailable:basis!==null,indicativo:true,executado:false,proxySorgo:commodity(d)==='Sorgo'};
+}
+function bid(ref,d,port,m){
+ const prod=commodity(d);if(prod==='Sorgo'||!m)return null;
+ const target=String(m.m).padStart(2,'0')+'-'+m.y;
+ const list=(ref?.basis||[]).filter(x=>x.product===(prod==='Soja'?'Soybean':'Corn')&&
+  normal(x.port)===normal(port)&&x.shipment===target&&num(x.value)!==null);
+ list.sort((a,b)=>['F','FH','LH'].indexOf(a.typ)-['F','FH','LH'].indexOf(b.typ)||b.day-a.day);
+ return list[0]||null;
+}
+export function candidates(d,state,ref){
+ const o=origin(d),mths=months(d),sc=d.replacementCenario||{},list=[];
+ const ports=['Santos','Paranaguá','Itaqui','Barcarena','Rio Grande'];
+ const pay=month(d.pagamentoRegra)||mths[0];
+ for(const m of mths){
+  const cc=cbotContract(d,m);
+  const cbot=num((commodity(d)==='Soja'?state.cbot:state.cbotMilho)?.[cc])??num(d.cbot);
+  const fx=fxValue(state,pay)??num(d.cambio);
+  for(const port of ports){
+   const dest=port==='Itaqui'?'São Luís':port;
+   const opts=(ref?.road||[]).filter(x=>normal(x.origin_text)===normal(o.city)&&normal(x.destination_text)===normal(dest)&&num(x.value)!==null)
+    .sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)));
+   const row=opts[0],otherPort=normal(sc.porto||'');
+   const fallback=otherPort.includes(normal(port))?num(sc.freteRodoviarioBRZ_RSt):null;
+   const road=row?num(row.value):fallback;
+   if(road===null)continue;
+   const b=bid(ref,d,port,m);
+   const p={porto:port,mesPorto:label(m),modal:'Rodoviário',freteRodo:road,freteFerro:0,
+    despesas:0,cbot,contratoCBOT:cc,fx,contratoDOL:d.vencCambio||fxContract(pay),
+    basis:b?num(b.value):null,freteFonte:row?.iso_week||'Cenário BRZ',
+    rota:o.city+' → '+dest,proxy:o.proxy||!row,basisData:b?.day||null,
+    basisJanela:b?.typ||null,preco:num(d.preco),incoterm:isCif(d)?'CIF':'FOB'};
+   const calc=calculate(d,p);if(calc)list.push({...p,calc});
+  }
+ }
+ list.sort((a,b)=>(b.calc.marginUSDt??-999999)-(a.calc.marginUSDt??-999999)||
+  a.calc.costUSDt-b.calc.costUSDt);
+ return list;
+}
