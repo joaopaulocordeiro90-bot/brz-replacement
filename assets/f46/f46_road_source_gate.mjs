@@ -9,7 +9,7 @@ export const F46_ROAD_REFERENCE=Object.freeze({
  dataSha:'d735141703d008a8466187c7f9010880d2409c83a1dd41f27ca3328bc9506357',
  fullSha:'ec7b1f86c7ba918595e94ff4d6d5637bf5c7d58cca4b402e5000d57711c4fa10'
 });
-const PAGE_SIZE=8000;
+const PAGE_SIZE=4000;
 const tuple=(r)=>[r.origin_text,r.destination_text,r.iso_week];
 const asPrice=(v)=>{
  if(typeof v==='number' && Number.isFinite(v) && v>=0) return v;
