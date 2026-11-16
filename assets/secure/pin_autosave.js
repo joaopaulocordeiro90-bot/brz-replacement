@@ -292,7 +292,7 @@
       'oceanFreightCornMonthly','oceanFreightAnoAnterior','oceanFreightRotasExcel','barcaca'],
    rail:['fretesFerro'],
    premiums:['premiosMilho'],
-   settings:['precosEdits','farmerSelling','r3Hidden','simulacoes']
+   settings:['precosEdits','farmerSelling','r3Hidden','simulacoes','roadGeoRoutes']
  });
  let remoteModules=new Map(),roadBaseline=new Map(),moduleBooting=false;
  let curveUpdatedAt=null,curveSourceDate=null,curveCaptureTime='não informado';
@@ -790,10 +790,60 @@
   window.BRZPendencias?.refresh();
   return ack;
  }
+ // F60: persist road-only OSRM route approvals in the existing versioned
+ // Supabase 'settings' module. No changes to trades, rail, source freights or curves.
+ async function saveRoadGeoRoute(input){
+   if(!connected||applying||saving||blocked||dirty||moduleBooting)
+     throw Error('Conclua primeiro a sincronização pendente do banco.');
+   if(!input||typeof input!=='object'||Array.isArray(input)||input.approved!==true||
+       typeof input.id!=='string'||!/^nf\\d{6}_\\d{2,4}$/.test(input.id)||
+       typeof input.routeKey!=='string'||input.routeKey.length>600||
+       typeof input.destination!=='string'||!input.destination||input.destination.length>120||
+       typeof input.origin!=='string'||!input.origin||input.origin.length>450||
+       !Number.isFinite(Number(input.km))||Number(input.km)<1||Number(input.km)>6500||
+       !Number.isFinite(Number(input.tku))||Number(input.tku)<=0||Number(input.tku)>5||
+       !Number.isFinite(Number(input.freteRodoIndicativo))||Number(input.freteRodoIndicativo)<=0)
+     throw Error('Rota rodoviária inválida: nenhuma informação foi gravada.');
+   const trade=state.negocios?.find(x=>x.id===input.id);
+   if(!trade||trade.origem!==input.origin||String(trade.data||'')!==String(input.date||''))
+     throw Error('O negócio mudou: recalcule a rota antes de gravar.');
+   const keyExpected=JSON.stringify([input.id,
+     input.origin.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim(),
+     input.destination.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim(),
+     String(input.date||'').slice(0,10)]);
+   if(input.routeKey!==keyExpected)throw Error('Chave da rota divergente.');
+   const entries=state.roadGeoRoutes&&typeof state.roadGeoRoutes==='object'&&!Array.isArray(state.roadGeoRoutes)
+     ?state.roadGeoRoutes:{};
+   if(Object.keys(entries).length>2000)throw Error('Limite de rotas atingido. Faça auditoria da base.');
+   const clean=Object.fromEntries(['id','routeKey','origin','destination','date','port','modal',
+     'kmRouted','kmAccess','km','kmTotal','tku','freteRodoIndicativo','originPrecision','originMode','checkedAt','approved','savedAt',
+     'source','originLat','originLon','destinationLat','destinationLon'].map(k=>[k,input[k]??null]));
+   const previous=remoteModules.get('settings')||{revision:0,snapshot:null};
+   const old=state.roadGeoRoutes;
+   const next={...entries,[input.routeKey]:clean};
+   state.roadGeoRoutes=next;
+   const payload=groupSnapshot('settings');
+   try{
+     const result=await req('/rest/v1/rpc/brz_pin_module_save',{
+       p_module:'settings',p_payload:payload,p_expected_revision:previous.revision});
+     const ack=Array.isArray(result)?result[0]:result;
+     if(ack?.module!=='settings'||Number(ack.revision)!==previous.revision+1)
+       throw Error('Persistência de rota sem confirmação do Supabase.');
+     remoteModules.set('settings',{revision:Number(ack.revision),snapshot:stable(payload)});
+     if(typeof clearCalcCaches==='function')clearCalcCaches();
+     if(typeof invalidateDataCache==='function')invalidateDataCache();
+     window.BRZPendencias?.refresh();
+     setStatus('Rota rodoviária sincronizada · '+input.id);
+     return Object.freeze({saved:true,revision:Number(ack.revision),id:input.id});
+   }catch(error){
+     state.roadGeoRoutes=old;
+     throw error;
+   }
+ }
  async function initPendingWorkspace(){
   if(window.BRZPendencias)return;
   try{
-   const module=await import('./negocios_pendencias.mjs?v=20261116pend03');
+   const module=await import('./negocios_pendencias.mjs?v=20261116f60');
    module.installPendencias({
     getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
     getState:()=>state,
@@ -1060,6 +1110,6 @@
  });
  window.BRZPinAutoSave=Object.freeze({
    connect,status:()=>({connected,dirty,saving,blocked,records:remote.size}),
-   save:()=>save()
+   save:()=>save(),saveRoadGeoRoute
  });
 })();

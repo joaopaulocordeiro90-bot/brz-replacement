@@ -316,20 +316,24 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "bytes": 3252,
-      "sha256": "94c624708c0bf8d9d5b85fa7216f7afe4261acaefe1bcda85c2d63d4982492b4"
+      "bytes": 5078,
+      "sha256": "8ddcbc68019ff5b4b07828314632a1f39cd4035695318e7a34290f01410e44f2"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
       "sha256": "cd2c9aca5fd5f4a815a4bfc94ca5a83e428e1cc616739e124d0117b1f53f04ab"
     },
     "assets/secure/pendencias_calc.mjs": {
-      "bytes": 8118,
-      "sha256": "e047156be3aba9084d1ff52403f1008339ac5294af66a17535846920ca8f1738"
+      "bytes": 8909,
+      "sha256": "1345de5fe5466529d08c374c5e6c748c851291c11313ac7eaa8624a6051a03a4"
     },
     "assets/secure/negocios_pendencias.mjs": {
-      "bytes": 19383,
-      "sha256": "4d3c609d357ba4a26544e3880f885c69175580c480425e2b132853cc3b1f2686"
+      "bytes": 23881,
+      "sha256": "1653bfca9ca94e1fe04fc7daccdcc02cda5634cff9a08db358ce3e3d57032815"
+    },
+    "assets/secure/rodoviario_tku.mjs": {
+      "bytes": 12878,
+      "sha256": "872702c2064fd84a85cb6d2eaa0734e0adb2625dc43e2a367e728fa7279b996e"
     }
   }
 }

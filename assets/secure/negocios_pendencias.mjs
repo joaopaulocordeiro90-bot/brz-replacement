@@ -1,5 +1,6 @@
 /* BRZ Replacement — Negócios > Pendências, authenticated F33 save */
-import {num,normal,month,label,commodity,isCif,candidates,calculate,cbotContract,fxContract,fxValue} from './pendencias_calc.mjs?v=20261116pend02';
+import {num,normal,month,label,commodity,isCif,candidates,calculate,cbotContract,fxContract,fxValue} from './pendencias_calc.mjs?v=20261116f60';
+import {installRoadGeo} from './rodoviario_tku.mjs?v=20261116f60';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(x,d=2)=>num(x)===null?'N/D':num(x).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const ELEMENTS=['origem','incoterm','porto','mesPorto','modal','retirada','pagamento','preco','freteRodo','freteFerro','despesas','cbot','contratoCBOT','fx','contratoDOL','basis','due','obs'];
@@ -60,15 +61,40 @@ export function installPendencias(api){
   const summary=document.createElement('summary');summary.textContent='Outros produtos ▾  ·  expandir / recolher';
   details.appendChild(summary);others.before(details);details.appendChild(others);details.open=false;
  }
- const pending=()=>api.getTrades().filter(d=>d&&d.status==='FECHADO'&&(
+ const pending=()=>api.getTrades().filter(d=>d&&d.status==='FECHADO'&&commodity(d)!==null&&(
      d.replacementPendente===true||(d.replacementCenario&&!d.replacementCalculo&&!d.replacementResolvidoEm)));
- const done=()=>api.getTrades().filter(d=>d?.replacementCalculo?.indicativo&&d.replacementResolvidoEm)
+ const outOfScope=()=>api.getTrades().filter(d=>d&&d.status==='FECHADO'&&commodity(d)===null&&(d.replacementPendente===true||(d.replacementCenario&&!d.replacementCalculo&&!d.replacementResolvidoEm)));
+ const done=()=>api.getTrades().filter(d=>commodity(d)!==null&&d?.replacementCalculo?.indicativo&&d.replacementResolvidoEm)
   .sort((a,b)=>String(b.replacementResolvidoEm).localeCompare(String(a.replacementResolvidoEm))).slice(0,25);
- function count(){const x=document.getElementById('brzp-count');if(x)x.textContent='('+pending().length+')';}
+ function count(){const x=document.getElementById('brzp-count');if(x)x.textContent='('+pending().length+' grãos / '+outOfScope().length+' informativos)';}
  async function ensureRefs(){
   if(refs)return refs;
   try{refs=await api.getReferences();}catch(err){console.warn('Referências BRZ:',err?.message);refs={basis:[],road:[],rail:[]};}
   return refs;
+ }
+ function createSaved(d,p,out){
+  const numeric=num(p.preco);
+   const now=new Date().toISOString();
+   const saved={
+    origem:p.origem,modalidadeComercial:p.incoterm,
+    retirada:p.retirada,pagamentoRegra:p.pagamento,
+    preco:numeric,embarque:p.mesPorto,
+    vencCBOT:p.contratoCBOT,cbot:p.cbot,vencCambio:p.contratoDOL,
+    cambio:p.fx,cambioIndicativo:true,cbotIndicativo:true,cambioFechamento:null,
+    premio:p.basis,premioNaoFixado:p.basis===null,
+    portoReferencia:p.porto,
+    replacementIndicativo:true,replacementPendente:false,
+    replacementStatus:'CALCULADO_INDICATIVO',replacementResolvidoEm:now,
+    replacementCenario:{...(d.replacementCenario||{}),tipo:'CENARIO_INDICATIVO',
+     porto:p.porto,embarquePorto:p.mesPorto,modal:p.modal,
+     freteRodoviarioBRZ_RSt:p.freteRodo,freteFerroviarioBRZ_RSt:p.freteFerro,
+     outrosCustosBRZ_RSt:p.despesas,basisFOBBid_cbu:p.basis,
+     cbot_cbu:p.cbot,cambioBRLUSD:p.fx,margemExecutada:false,
+     freteFonte:'BRZ indicativo / configurado em Negócios → Pendências'},
+    replacementCalculo:{...out,parametros:p,dataCalculo:now,indicativo:true,executado:false}
+   };
+
+  return saved;
  }
  function openEditor(d){
   editing=d.id;
@@ -200,30 +226,65 @@ export function installPendencias(api){
    if(p.due!==null&&p.due<0){message.textContent='DUE não pode ser negativo.';return;}
    const out=calculate({...d,preco:numeric},p);
    if(!out){message.textContent='CBOT, dólar, preço e frete precisam ser numéricos e válidos.';return;}
-   const now=new Date().toISOString();
-   const saved={
-    origem:p.origem,modalidadeComercial:p.incoterm,
-    retirada:p.retirada,pagamentoRegra:p.pagamento,
-    preco:numeric,embarque:p.mesPorto,
-    vencCBOT:p.contratoCBOT,cbot:p.cbot,vencCambio:p.contratoDOL,
-    cambio:p.fx,cambioIndicativo:true,cbotIndicativo:true,cambioFechamento:null,
-    premio:p.basis,premioNaoFixado:p.basis===null,
-    portoReferencia:p.porto,
-    replacementIndicativo:true,replacementPendente:false,
-    replacementStatus:'CALCULADO_INDICATIVO',replacementResolvidoEm:now,
-    replacementCenario:{...(d.replacementCenario||{}),tipo:'CENARIO_INDICATIVO',
-     porto:p.porto,embarquePorto:p.mesPorto,modal:p.modal,
-     freteRodoviarioBRZ_RSt:p.freteRodo,freteFerroviarioBRZ_RSt:p.freteFerro,
-     outrosCustosBRZ_RSt:p.despesas,basisFOBBid_cbu:p.basis,
-     cbot_cbu:p.cbot,cambioBRLUSD:p.fx,margemExecutada:false,
-     freteFonte:'BRZ indicativo / configurado em Negócios → Pendências'},
-    replacementCalculo:{...out,parametros:p,dataCalculo:now,indicativo:true,executado:false}
-   };
+   const saved=createSaved(d,p,out);
    const button=ui.querySelector('[data-save]');button.disabled=true;
    message.textContent='Gravando com controle de versão…';
    try{await api.saveTrade(d.id,saved);editing=null;refresh();}
    catch(err){message.textContent='Gravação não confirmada: '+err.message;button.disabled=false;}
   };
+ }
+ let processing=false;
+ function autoCandidate(d){
+  if(!d||isCif(d)||!/^fob\b/i.test(String(d.modalidadeComercial||''))||!(num(d.preco)>0))return null;
+  if(String(d.retirada||'').includes('INCONSISTENTE')||String(d.embarque||'').includes('PENDENTE'))return null;
+  let routes=[];try{if(typeof getRotasCorredor==='function')routes=getRotasCorredor(d)||[];}catch{}
+  if(!routes.length)return null;
+  const options=candidates(d,api.getState(),refs);
+  const authorized=options.filter(p=>p.calc&&num(p.freteRodo)!==null&&num(p.fx)>0&&num(p.cbot)>0&&
+   routes.some(rt=>{
+    if(rt.porto!==p.porto)return false;
+    const valid=(rt.modal==='T'&&p.modal==='Rodoviário')||
+       (rt.modal==='T+R'&&p.modal==='Rodoviário + Ferroviário'&&
+         p.rota.includes(String(rt.transbordo||'__no_rail_term__')));
+    if(!valid)return false;
+    if(p.modal==='Rodoviário + Ferroviário'&&p.freteRodo===0)return true;
+    const leg=rt.modal==='T'?rt.porto:rt.transbordo;
+    if(window.BRZRoadGeo?.getApproved?.(d.id,d.origem,leg,d.data))return true;
+    try{const quote=window.findRodoFreight?.(d.origem,leg,d.data,d.corredor,d.id);
+      return quote?.estimado===false&&num(quote.valor)>0;}catch{return false;}
+   }));
+  if(!authorized.length)return null;
+  const explicit=d.portoReferencia||d.replacementCenario?.porto||null;
+  const choices=explicit?authorized.filter(c=>c.porto===explicit):authorized;
+  if(!choices.length)return null;
+  const top=choices[0],p={
+   origem:d.origem,incoterm:'FOB',porto:top.porto,mesPorto:top.mesPorto,
+   modal:top.modal,retirada:d.retirada,pagamento:d.pagamentoRegra||'',
+   preco:num(d.preco),freteRodo:top.freteRodo,freteFerro:top.freteFerro,
+   despesas:top.despesas??0,cbot:top.cbot,contratoCBOT:top.contratoCBOT,
+   fx:top.fx,contratoDOL:top.contratoDOL,basis:top.basis,due:null,
+   obs:'Replacement indicativo automático F60; DUE não quantificado quando ausente.'
+  };
+  const out=calculate(d,p);
+  return out?{d,p,out,route:top.rota}:null;
+ }
+ async function autoSaveEligible(){
+  if(processing)return;
+  await ensureRefs();
+  const eligible=pending().map(autoCandidate).filter(Boolean);
+  const note=document.getElementById('brzp-batch-message');
+  if(!eligible.length){if(note)note.textContent='Nenhum negócio FOB com referências completas e corredor validado para cálculo automático. Os demais permanecem pendentes.';return;}
+  if(!confirm('Salvar '+eligible.length+' replacement(s) INDICATIVO(S) no Supabase? Negócios CIF, referências faltantes e outros produtos serão preservados.'))return;
+  processing=true;let ok=0;const errors=[];
+  const btn=document.getElementById('brzp-batch');if(btn)btn.disabled=true;
+  for(const item of eligible){
+   try{await api.saveTrade(item.d.id,createSaved(item.d,item.p,item.out));ok++;}
+   catch(err){errors.push(item.d.id+': '+String(err?.message||err).slice(0,130));}
+  }
+  processing=false;refresh();
+  const status=document.getElementById('brzp-batch-message');
+  if(status)status.textContent='Gravados e confirmados: '+ok+'/'+eligible.length+
+    ' indicativos no Supabase. '+(errors.length?'Falhas sem baixa: '+errors.join(' · '):'Sem falhas de gravação.');
  }
  function refresh(){
   if(!document.getElementById('brzp-content'))return;
@@ -232,9 +293,10 @@ export function installPendencias(api){
   const rows=pending().filter(d=>!query||normal([d.id,d.vendedor,d.comprador,d.origem,d.produto].join(' ')).includes(normal(query)));
   const completed=done();
   workspace.innerHTML='<div class="brzp-top"><div><b>Pendências do replacement</b>'+
-   '<div class="brzp-note">Pré-preenchimento por CBOT, dólar, frete e basis da plataforma. Salvar registra a conta diretamente no banco.</div></div>'+
+   '<div class="brzp-note">Motor de grãos: soja, milho e sorgo. Fretes rodoviários por OSRM; ferroviário inalterado. Salvar registra conta no banco.</div></div>'+
    '<input id="brzp-search" placeholder="Buscar negócio, praça ou comprador" value="'+esc(query)+'"></div>'+
-   '<div class="brzp-note">'+rows.length+' pendência(s) · '+completed.length+' cálculo(s) salvo(s) recentemente</div>'+
+   '<div class="brzp-note">'+rows.length+' pendência(s) de grãos · '+outOfScope().length+' registro(s) de outros produtos fora deste motor · '+completed.length+' cálculo(s) salvo(s)</div>'+
+   '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px"><button type="button" class="brzp-btn brzp-action" id="brzp-batch">Calcular e salvar elegíveis</button><span class="brzp-note" id="brzp-batch-message">Somente FOB com preço, referência CBOT/DOL e rota permitida. CIF e ausência de preço não são inferidos.</span></div>'+
    '<div id="brzp-list"></div>'+
    (completed.length?'<details style="margin-top:20px"><summary style="cursor:pointer;font-size:13px;font-weight:700">Contas concluídas ('+
      completed.length+')</summary><div id="brzp-done"></div></details>':'');
@@ -244,7 +306,7 @@ export function installPendencias(api){
    card.className='brzp-card';card.dataset.id=d.id;
    const preview=top?.calc;
    card.innerHTML='<div class="brzp-head"><div class="brzp-title">'+esc(d.vendedor)+' → '+esc(d.comprador)+'</div>'+
-    '<button class="brzp-btn" type="button" data-edit>Definir parâmetros</button></div>'+
+    '<div style="display:flex;gap:7px"><button class="brzp-btn" type="button" data-road>Mapa · km rodoviários</button><button class="brzp-btn" type="button" data-edit>Definir parâmetros</button></div></div>'+
     '<div class="brzp-sub">'+esc(d.id)+' · '+esc(d.produto)+' · '+fmt(d.volume,0)+' t · R$ '+
     fmt(d.preco,2)+'/sc · '+esc(d.modalidadeComercial||'FOB')+' · '+
     esc(d.origem||d.localEntrega)+' · '+esc(d.retirada)+'</div>'+
@@ -261,6 +323,7 @@ export function installPendencias(api){
      'Sem rota completa automaticamente. Abra os campos para definir a referência.')+
      '</div>';
    card.querySelector('[data-edit]').onclick=()=>openEditor(d);
+   card.querySelector('[data-road]').onclick=()=>window.BRZRoadGeo?.selectFromPending(d.id);
    host.appendChild(card);
    if(editing===d.id)openEditor(d);
   }
@@ -275,6 +338,7 @@ export function installPendencias(api){
    el.querySelector('[data-edit]').onclick=()=>openEditor(d);
    completedList.appendChild(el);
   }
+  workspace.querySelector('#brzp-batch').onclick=autoSaveEligible;
   workspace.querySelector('#brzp-search').oninput=e=>{query=e.target.value;editing=null;refresh();};
  }
  tabs.onclick=e=>{
@@ -288,5 +352,6 @@ export function installPendencias(api){
  const exported=Object.freeze({refresh,open:()=>tabs.querySelector('[data-tab="pendencias"]').click(),
   status:()=>({pendencias:pending().length,referencias:refs?{fretes:refs.road?.length,basis:refs.basis?.length}:null})});
  window.BRZPendencias=exported;
+ try{installRoadGeo({getTrades:api.getTrades,getState:api.getState,refresh});}catch(e){console.warn('F60 mapa rodoviário:',e?.message);}
  return exported;
 }

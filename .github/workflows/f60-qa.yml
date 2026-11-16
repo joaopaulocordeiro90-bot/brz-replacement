@@ -1,0 +1,45 @@
+name: BRZ F60 - QA rodoviário
+on:
+  push:
+    branches:
+      - feature/f60-roteirizacao-rodo-pendencias
+  pull_request:
+    branches:
+      - main
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verificar sintaxe dos módulos
+        run: |
+          node --check assets/secure/rodoviario_tku.mjs
+          node --check assets/secure/negocios_pendencias.mjs
+          node --check assets/secure/pendencias_calc.mjs
+          node --check assets/secure/pin_autosave.js
+          node --check assets/secure/f40_pin_login.js
+          node --check assets/secure/pin_boot.mjs
+      - name: Testar cenários de grãos, TKU e ferrovia
+        run: node tests/f60_road.test.mjs
+      - name: Auditar manifesto estático com SHA-256
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const m=JSON.parse(readFileSync('MANIFEST_F58_PUBLIC_SHA256.json','utf8'));
+          let count=0;
+          for(const [path,record] of Object.entries(m.files)){
+            const bytes=readFileSync(path);
+            const sha=createHash('sha256').update(bytes).digest('hex');
+            if(bytes.length!==record.bytes||sha!==record.sha256)
+              throw Error('Manifesto divergente: '+path);
+            count++;
+          }
+          if(count<80)throw Error('Manifesto incompleto');
+          console.log('Integridade aprovada em '+count+' arquivos.');
+          NODE
