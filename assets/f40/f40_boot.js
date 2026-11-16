@@ -36,9 +36,23 @@ async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
   const response=await fetch(API+path,{method,headers:h,
       body:body===null?undefined:JSON.stringify(body),credentials:'omit',redirect:'error',
       cache:'no-store',referrerPolicy:'no-referrer',signal:ctrl.signal});
-  if(!response.ok){if([429,502,503,504].includes(response.status)&&attempt<3){
-      await new Promise(ok=>setTimeout(ok,500*(2**attempt)));return request(path,{method,body,token,attempt:attempt+1});
-    } throw Error('Supabase HTTP '+response.status);}
+  if(!response.ok){
+    // F59C: 57014 is a PostgreSQL statement timeout, not an auth failure.
+    // Retry ONLY the F34 read-only market page; never repeat a mutation.
+    let pgCode=null;
+    if(response.status===500&&path==='/rest/v1/rpc/brz_api_f34_market_page'){
+      try{pgCode=(await response.json())?.code||null;}catch{}
+    }
+    const transient=[429,502,503,504].includes(response.status)||
+      (response.status===500&&pgCode==='57014'&&
+       path==='/rest/v1/rpc/brz_api_f34_market_page');
+    if(transient&&attempt<3){
+      await new Promise(ok=>setTimeout(ok,750*(2**attempt)));
+      return request(path,{method,body,token,attempt:attempt+1});
+    }
+    throw Error('Supabase HTTP '+response.status+
+      (pgCode==='57014'?' · F34 timeout (tentativas '+(attempt+1)+')':''));
+  }
   return await response.json();
  }finally{clearTimeout(timer);}
 }
