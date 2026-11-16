@@ -13,6 +13,7 @@ export const normalizeMarketCity=s=>clean(s).normalize('NFD')
 const pnum=v=>v!==null&&v!==undefined&&clean(v)!==''&&Number.isFinite(Number(v))&&Number(v)>0?Number(v):null;
 const key=r=>[r.data,r.produto,normalizeMarketCity(r.origem),r.janelaFisica||'N/D'].join('|');
 const byCity=r=>[r.produto,normalizeMarketCity(r.origem)].join('|');
+const byLaneKey=r=>[r.produto,normalizeMarketCity(r.origem),r.janelaFisica||'N/D'].join('|');
 const byWindow=r=>[r.produto,r.janelaFisica||'N/D'].join('|');
 export function physicalPeriod(raw){
  const x=clean(raw).match(/^([A-Za-z]{3})-(\d{2})$/);if(!x)return null;
@@ -33,12 +34,15 @@ function latest(rows,day){return (rows||[]).filter(x=>sameOrEarlier(x,day)).at(-
 function defaultSeason(prod,window){
  const m=physicalPeriod(window);if(!m)return {safra:null,safraKey:null,disponivel:null};
  if(prod==='Soja'){
-  const start=m.month>=9?m.year:m.year-1,end=start+1;
+  // The Brazilian soybean crop year ends in the physical delivery year:
+  // NOV/26 is old crop 25/26; JAN/27 is new crop 26/27.
+  const start=m.year-1,end=m.year;
   return {safra:'Soja '+String(start).slice(-2)+'/'+String(end).slice(-2),
    safraKey:String(start).slice(-2)+'_'+String(end).slice(-2),disponivel:m.month<1};
  }
  if(prod==='Milho'){
-  const safrinha=m.month>=5&&m.month<=10;
+  // July onward is safrinha of the same calendar year, including December.
+  const safrinha=m.month>=6;
   return safrinha?
    {safra:'Milho Safrinha '+m.year,safraKey:'safrinha_'+m.year,disponivel:false}:
    {safra:'Milho '+String(m.year-1).slice(-2)+'/'+String(m.year).slice(-2),
@@ -50,19 +54,18 @@ function isMarketTemplate(row){return row&&row.produto&&row.data&&row.origem&&pn
 export function reconcileMarketPrices(historical,imported,curveCapture,resolvers={},manualEdits={}){
  if(!Array.isArray(historical)||!Array.isArray(imported))throw Error('F66: histórico físico indisponível.');
  const originals=historical.filter(isMarketTemplate);
- const byExact=new Map(),byPlaceProd=new Map(),byPlace=new Map(),byProdWindow=new Map(),
+ const byExact=new Map(),byLane=new Map(),byPlaceProd=new Map(),byProdWindow=new Map(),
   historicalCBOT=new Map(),historicalFX=new Map();
  const push=(map,k,r)=>{if(!map.has(k))map.set(k,[]);map.get(k).push(r);};
  for(const h of originals){
-  push(byExact,key(h),h);push(byPlaceProd,byCity(h),h);
-  push(byPlace,normalizeMarketCity(h.origem),h);
+  push(byExact,key(h),h);push(byLane,byLaneKey(h),h);push(byPlaceProd,byCity(h),h);
   push(byProdWindow,byWindow(h),h);
   if(pnum(h.cbot)!==null&&h.vencCBOT)
    historicalCBOT.set([h.data,h.produto,h.vencCBOT].join('|'),pnum(h.cbot));
   if(pnum(h.cambio)!==null&&h.vencCambio)
    historicalFX.set([h.data,h.vencCambio].join('|'),pnum(h.cambio));
  }
- for(const m of [byExact,byPlaceProd,byPlace,byProdWindow]){
+ for(const m of [byExact,byLane,byPlaceProd,byProdWindow]){
   for(const rows of m.values())rows.sort((a,b)=>a.data.localeCompare(b.data)||String(a.id||'').localeCompare(String(b.id||'')));
  }
  const live=curveCapture?.curves||{},liveDate=clean(curveCapture?.source_date);
@@ -76,17 +79,21 @@ export function reconcileMarketPrices(historical,imported,curveCapture,resolvers
   const exact=latest(byExact.get(key(r)),d);
   // Same city and same product are fixed commercial lanes. Do not substitute
   // a route from another municipality when the lane has no history.
+  const laneRef=latest(byLane.get([prod,loc,p||'N/D'].join('|')),d);
   const placeProd=latest(byPlaceProd.get([prod,loc].join('|')),d);
-  const placeAny=latest(byPlace.get(loc),d);
   const periodReference=latest(byProdWindow.get([prod,p||'N/D'].join('|')),d);
   const sameDay=exact?.data===d?exact:null;
-  const routeRef=exact||placeProd||placeAny;
-  const seasonRef=exact||periodReference;
+  // Never borrow the road corridor from another commodity, even in the same city.
+  // The established city/product/physical-window lane outranks a generic city template.
+  const routeRef=sameDay||laneRef||placeProd;
+  const seasonRef=sameDay||laneRef||periodReference;
   const season=seasonRef?.safra&&seasonRef?.safraKey?
    {safra:seasonRef.safra,safraKey:seasonRef.safraKey,disponivel:seasonRef.disponivel}:
    defaultSeason(prod,p);
-  const shipment=sameDay?.embarque||(exact?.embarque)||r.embarque||shiftPhysical(p);
-  const originalCBOT=sameDay?.vencCBOT||null;
+  // The daily sheet's default next-month shipment is only a fallback.
+  // Preserve same-month and other approved lanes from the prior physical series.
+  const shipment=sameDay?.embarque||laneRef?.embarque||r.embarque||shiftPhysical(p);
+  const originalCBOT=sameDay?.vencCBOT||laneRef?.vencCBOT||null;
   const viaRules=typeof resolvers.cbotContract==='function'&&shipment?
    resolvers.cbotContract(prod,shipment,d):null;
   const cbotContract=viaRules||originalCBOT||
@@ -94,6 +101,7 @@ export function reconcileMarketPrices(historical,imported,curveCapture,resolvers
   const viaDol=typeof resolvers.dolContract==='function'&&shipment?
    resolvers.dolContract(shipment):null;
   const fxContract=viaDol||sameDay?.vencCambio||
+   (laneRef?.embarque===shipment?laneRef?.vencCambio:null)||
    (periodReference?.embarque===shipment?periodReference?.vencCambio:null);
   let cbot=null,fx=null,sourceCbot='',sourceFX='';
   if(d===liveDate){
@@ -116,7 +124,7 @@ export function reconcileMarketPrices(historical,imported,curveCapture,resolvers
    corredor:routeRef?.corredor||null,
    disponivel:season.disponivel??(p?false:null),
    origem:routeRef?.origem||r.origem,
-   retirada:sameDay?.retirada||physicalEnd(p),
+   retirada:sameDay?.retirada||laneRef?.retirada||physicalEnd(p),
    embarque:shipment||null,janelaFisica:p||'N/D',
    preco:r.preco,precoLado:'mid',volume:0,
    cbot:cbot,cambio:fx,vencCBOT:cbotContract||null,
