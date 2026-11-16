@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+const script=readFileSync(new URL('../assets/secure/f61_map_patch.js',import.meta.url),'utf8');
+const saved=[];
+function TileLayer(){this.events={};}
+TileLayer.prototype.initialize=function(url,opts){this.url=url;this.options=opts;return this;};
+TileLayer.prototype.on=function(ev,fn){this.events[ev]=fn;return this;};
+TileLayer.prototype.setUrl=function(u){this.url=u;};
+const dom={readyState:'loading',addEventListener:(event,fn)=>{if(event==='DOMContentLoaded')dom.ready=fn;},getElementById:()=>null};
+const ctx={window:{L:{TileLayer}},document:dom,console:{warn(){},error(){}},setTimeout(){},Object};
+runInNewContext(script,ctx);
+assert.ok(ctx.window.__BRZ_F61_MAP_PATCH__,'F61 installer loaded');
+const osm=new TileLayer();
+osm.initialize('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:11});
+assert.match(osm.url,/server\.arcgisonline\.com\/ArcGIS\/rest\/services\/World_Street_Map/);
+assert.match(osm.options.attribution,/Esri/);
+assert.equal(ctx.window.__BRZ_F61_MAP_PATCH__.status().esriTileOverrides,1);
+const other=new TileLayer();other.initialize('https://example.org/{z}/{x}/{y}.png',{maxZoom:11});
+assert.match(other.url,/example\.org/,'Other tile sources stay untouched');
+for(let i=0;i<4;i++)osm.events.tileerror();
+assert.match(osm.url,/World_Imagery/,'Fallback if Esri Streets is unavailable');
+dom.ready();
+const pin=readFileSync(new URL('../assets/secure/pin_autosave.js',import.meta.url),'utf8');
+assert.ok(pin.includes(String.raw`/^nf\\d{6}_\\d{2,4}$/`)==false,'No double-escaped ID validator');
+assert.ok(pin.includes(String.raw`/^nf\d{6}_\d{2,4}$/`),'Valid trade IDs are accepted');
+assert.ok(pin.includes(String.raw`/[\u0300-\u036f]/g`),'Road key removes Unicode accents');
+console.log('BRZ F61: Esri replacement, fallback, PIN validation and unicode route keys OK');
