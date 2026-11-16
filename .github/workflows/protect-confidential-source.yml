@@ -1,0 +1,40 @@
+name: Prevent confidential artifacts in public BRZ Pages
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  protect-public-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject sensitive files from the current public source tree
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import fnmatch
+          import subprocess
+          import sys
+          paths = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          blocked = [
+              '.env', '.env.*', '*.pem', '*.key', '*.p12', '*.pfx',
+              '*.dump', '*.backup', '*.sqlite', '*.sqlite3',
+              'private/*', 'backups/*', 'exports/*', 'raw_data/*',
+              'assets/v4fq/snapshot_*.bin', 'assets/v4fq/snapshot_*.json',
+              'assets/v4fq/*.sql', '*service-role*.json',
+              '*service_role*.json', 'BRZ_Replacement_Alteracoes_*.json',
+              'BRZ_Importacao_*.json'
+          ]
+          found = [path for path in paths if path and any(
+              fnmatch.fnmatch(path, rule) for rule in blocked)]
+          if found:
+              print('BLOCKED: confidential artifacts in public repository:')
+              for path in found:
+                  print(' -', path)
+              print('Keep operational data and backups in private Supabase storage.')
+              sys.exit(1)
+          print('OK: no tracked sensitive export/snapshot file names.')
+          PY
