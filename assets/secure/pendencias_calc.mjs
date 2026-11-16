@@ -81,22 +81,27 @@ function bid(ref,d,port,m){
 export function candidates(d,state,ref){
  if(!commodity(d))return [];
  const o=origin(d),mths=months(d),sc=d.replacementCenario||{},list=[];
- const ports=['Santos','Paranaguá','Itaqui','Barcarena','Rio Grande'];
- const pay=month(d.pagamentoRegra)||mths[0];
+ const ports=['Santos','Paranaguá','Itaqui','Barcarena','Rio Grande','São Francisco do Sul'];
+ const portRule=normal(String(d.portoReferencia||sc.porto||''));
+ const restricted=ports.find(p=>portRule.includes(normal(p)))||null;
+ const pstr=normal(d.pagamentoRegra||'');
+ const pay=month(d.pagamentoRegra)||((/72\s*h|sobre rodas|apos cada (?:retirada|entrega)/.test(pstr))?(month(d.retirada)||month(d.data)):null)||mths[0];
  for(const m of mths){
   const cc=cbotContract(d,m);
   const cbot=num((commodity(d)==='Soja'?state.cbot:state.cbotMilho)?.[cc])??num(d.cbot);
   const fx=fxValue(state,pay)??num(d.cambio);
   for(const port of ports){
+   if(restricted&&port!==restricted)continue;
    const dest=port==='Itaqui'?'São Luís':port;
    const opts=(ref?.road||[]).filter(x=>normal(x.origin_text)===normal(o.city)&&normal(x.destination_text)===normal(dest)&&num(x.value)!==null)
     .sort((a,b)=>String(b.iso_week).localeCompare(String(a.iso_week)));
-   const row=opts[0],otherPort=normal(sc.porto||'');
+   const row=opts.find(x=>!x.iso_week||Number(x.iso_week.slice(0,4))>=2026&&Number(x.iso_week.slice(-2))>=38)||null,otherPort=normal(sc.porto||'');
    const fallback=otherPort.includes(normal(port))?num(sc.freteRodoviarioBRZ_RSt):null;
    const geo=window.BRZRoadGeo?.getApproved?.(d.id,d.origem,dest,d.data);
    let roadLookup=null;try{if(typeof window.findRodoFreight==='function')
       roadLookup=window.findRodoFreight(d.origem,dest,d.data,d.corredor,d.id);}catch{}
-   const road=num(roadLookup?.valor)??(row?num(row.value):(geo?num(geo.freteRodoIndicativo):fallback));
+   const deliveredPort=isCif(d)&&['Rio Grande','São Francisco do Sul'].some(p=>normal(d.origem).startsWith(normal(p))&&port===p);
+   const road=deliveredPort?0:(num(roadLookup?.valor)??(row?num(row.value):(geo?num(geo.freteRodoIndicativo):fallback)));
    if(road===null)continue;
    const b=bid(ref,d,port,m);
    const p={porto:port,mesPorto:label(m),modal:'Rodoviário',freteRodo:road,freteFerro:0,
@@ -114,6 +119,7 @@ export function candidates(d,state,ref){
      normal(x)===normal(rail.destino)))continue;
    const railPrice=num(rail.meses[['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m.m-1]]);
    if(railPrice===null||railPrice<0)continue;
+   if(restricted&&normal(rail.destino)!==normal(restricted)&&!(restricted==='Itaqui'&&normal(rail.destino)==='sao luis'))continue;
    const hub=String(rail.origem||'').split('·')[0].trim();
    const hubName=normal(hub.split('/')[0]);
    const roadToHub=(ref.road||[]).filter(r=>
