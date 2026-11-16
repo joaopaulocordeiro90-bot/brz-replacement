@@ -36,7 +36,7 @@ h1 { font-size:27px; margin:0 0 8px; letter-spacing:-.6px }
   <div class="progress" role="progressbar" aria-label="Carregamento" aria-valuemin="0" aria-valuemax="100" id="prog"><div class="bar" id="bar"></div></div>
   <p id="status">Abrindo a versão de consulta…</p>
   <button id="retry" type="button">Tentar novamente</button>
-  <div class="caption">Snapshot V4FQ · 13/11/2026 · Diagnóstico F61<br>Interface original com históricos locais · não depende de login ou consulta ao banco para abrir</div>
+  <div class="caption">Snapshot V4FQ · 13/11/2026 · Auditoria F62<br>Interface original com históricos locais · não depende de login ou consulta ao banco para abrir</div>
  </div>
 </main>
 <iframe id="app" title="BRZ Replacement" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
@@ -91,7 +91,7 @@ h1 { font-size:27px; margin:0 0 8px; letter-spacing:-.6px }
      // F60 e isolado do motor financeiro; falha do diagnostico nao bloqueia a plataforma.
      try{
        const ops=frame.contentDocument.createElement('script');
-       ops.src=new URL('assets/ops/f60_runtime.js?v=20261116f61b',location.href).href;
+       ops.src=new URL('assets/ops/f60_runtime.js?v=20261116f62',location.href).href;
        ops.async=true;
        ops.onerror=()=>console.warn('BRZ F60: diagnostico indisponivel, operacao legada preservada');
        frame.contentDocument.body.appendChild(ops);
