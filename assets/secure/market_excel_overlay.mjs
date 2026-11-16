@@ -37,7 +37,7 @@ export function projectExcel(pack){
   if(!ISO.test(day)||!Array.isArray(rows)||day>pack.as_of)throw Error('Data física inválida.');
   for(const r of rows){
    if(!Array.isArray(r)||r.length!==5||!ptProd[r[0]]||
-       !['Bid','Offer'].includes(r[2])||!month(r[4]))throw Error('Registro físico inválido.');
+       !['Bid','Offer'].includes(r[2])||(r[4]!==null&&r[4]!==''&&!month(r[4])))throw Error('Registro físico inválido.');
    const price=acceptedValue(r[3],'físico '+day);
    const key=JSON.stringify([day,r[0],r[1],r[4]]),v=map.get(key)||{date:day,product:r[0],city:clean(r[1]),shipment:r[4]};
    if(Object.prototype.hasOwnProperty.call(v,r[2]))throw Error('Bid/offer duplicado para '+key);
@@ -54,8 +54,9 @@ export function projectExcel(pack){
   // preserve both bid and offer, and never multiply by 16.667.
   physical.push({id,data:x.date,produto:ptProd[x.product],origem:x.city,
    preco:(x.Bid+x.Offer)/2,precoLado:'mid',
-   bid:x.Bid,offer:x.Offer,janelaFisica:x.shipment,
-   embarque:shiftShipment(x.shipment,1),embarqueIndicativo:true,
+   bid:x.Bid,offer:x.Offer,janelaFisica:x.shipment||'N/D',
+   embarque:x.shipment?shiftShipment(x.shipment,1):null,embarqueIndicativo:!!x.shipment,
+   janelaFisicaPendente:!x.shipment,
    precoMoeda:'BRL',unidadePreco:'R$/sc',unidadeCabecalhoOriginal:'BRL/ton',
    fonteBase:'Preços',fontePlanilha:pack.source_file||'Excel 16/11/2026',
    fonteRef:'BRZ_XLSX_F64',importacaoSHA256:pack.file_sha256,
@@ -67,7 +68,7 @@ export function projectExcel(pack){
   if(!ISO.test(day)||!Array.isArray(rows)||day>pack.as_of)throw Error('Data FOB inválida');
   for(const r of rows){
    if(!Array.isArray(r)||r.length!==8||!['bid','offer'].includes(r[6])||
-       !/^\d{2}-20\d{2}$/.test(r[4]))throw Error('Basis inválido.');
+       !/^(?:\d{2}|\d{2}\|\d{2})-20\d{2}$/.test(r[4]))throw Error('Basis inválido.');
    const key=[r[1],r[0],r[3],r[4],r[6]].join('|'),
     dayNum=Number(day.replaceAll('-','')),value=Number(r[7]);
    if(!Number.isFinite(value)||seenBasis.has(key+'|'+day))throw Error('Duplicidade ou basis inválido');
