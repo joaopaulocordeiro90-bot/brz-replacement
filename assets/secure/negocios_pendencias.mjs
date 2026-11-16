@@ -240,11 +240,13 @@ export function installPendencias(api){
   }
   const completedList=workspace.querySelector('#brzp-done');
   if(completedList)for(const d of completed){
-   const el=document.createElement('div');el.className='brzp-card';
-   el.innerHTML='<div class="brzp-title">'+esc(d.vendedor)+' → '+esc(d.comprador)+'</div>'+
+   const el=document.createElement('div');el.className='brzp-card';el.dataset.id=d.id;
+   el.innerHTML='<div class="brzp-head"><div class="brzp-title">'+esc(d.vendedor)+' → '+esc(d.comprador)+'</div>'+
+    '<button type="button" class="brzp-btn" data-edit>Revisar parâmetros</button></div>'+
     '<div class="brzp-sub">'+esc(d.id)+' · '+esc(d.replacementCalculo?.parametros?.porto)+
      ' · Replacement '+fmt(d.replacementCalculo?.replacementBasis_cbu,1)+' c/bu · FOB US$ '+
      fmt(d.replacementCalculo?.costUSDt,2)+'/t · <b>Salvo (indicativo)</b></div>';
+   el.querySelector('[data-edit]').onclick=()=>openEditor(d);
    completedList.appendChild(el);
   }
   workspace.querySelector('#brzp-search').oninput=e=>{query=e.target.value;editing=null;refresh();};
