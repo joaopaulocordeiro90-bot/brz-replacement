@@ -90,7 +90,8 @@ export function installPendencias(api){
      freteRodoviarioBRZ_RSt:p.freteRodo,freteFerroviarioBRZ_RSt:p.freteFerro,
      outrosCustosBRZ_RSt:p.despesas,basisFOBBid_cbu:p.basis,
      cbot_cbu:p.cbot,cambioBRLUSD:p.fx,margemExecutada:false,
-     freteFonte:'BRZ indicativo / configurado em Negócios → Pendências'},
+     freteFonte:p.freteFonte||'BRZ indicativo',rotaBRZ:p.rota||null,proxy:p.proxy===true,
+     portoHipotese:p.portoHipotese===true,rateioMensalPendente:p.rateioMensalPendente===true},
     replacementCalculo:{...out,parametros:p,dataCalculo:now,indicativo:true,executado:false}
    };
 
@@ -234,36 +235,68 @@ export function installPendencias(api){
   };
  }
  let processing=false;
+ // Operational closure only for the 16/11 intake, after authenticated desk action.
+ // Indicatives use a traceable routing source. Never infer FX/CBOT, DUE or executed margin.
  function autoCandidate(d){
-  if(!d||isCif(d)||!/^fob\b/i.test(String(d.modalidadeComercial||''))||!(num(d.preco)>0))return null;
+  if(!d||!/^nf261116_\d{2,4}$/.test(d.id||'')||!(num(d.preco)>0))return null;
   if(String(d.retirada||'').includes('INCONSISTENTE')||String(d.embarque||'').includes('PENDENTE'))return null;
+  const cif=isCif(d),sc=d.replacementCenario||{},place=normal(d.origem||'');
+  const deliveredPort=cif&&['Rio Grande','São Francisco do Sul'].find(x=>place.startsWith(normal(x)));
+  const scenarioItaqui=cif&&place.includes('luizmangues')&&normal(sc.porto||'').includes('itaqui')&&num(sc.freteRodoviarioBRZ_RSt)>0;
+  if(cif&&!deliveredPort&&!scenarioItaqui)return null;
   let routes=[];try{if(typeof getRotasCorredor==='function')routes=getRotasCorredor(d)||[];}catch{}
-  if(!routes.length)return null;
+  if(!cif&&!routes.length)return null;
   const options=candidates(d,api.getState(),refs);
-  const authorized=options.filter(p=>p.calc&&num(p.freteRodo)!==null&&num(p.fx)>0&&num(p.cbot)>0&&
-   routes.some(rt=>{
+  const authorized=options.filter(p=>{
+   if(!p?.calc||!(num(p.preco)>0)||!(num(p.fx)>0)||!(num(p.cbot)>0)||num(p.freteRodo)===null)return false;
+   if(p.modal==='Rodoviário + Ferroviário'&&!(num(p.freteFerro)>0))return false;
+   if(cif){
+    if(deliveredPort)return p.porto===deliveredPort&&p.modal==='Rodoviário'&&p.freteRodo===0;
+    return scenarioItaqui&&p.porto==='Itaqui'&&p.modal==='Rodoviário'&&p.freteRodo>0;
+   }
+   return routes.some(rt=>{
     if(rt.porto!==p.porto)return false;
     const valid=(rt.modal==='T'&&p.modal==='Rodoviário')||
-       (rt.modal==='T+R'&&p.modal==='Rodoviário + Ferroviário'&&
-         p.rota.includes(String(rt.transbordo||'__no_rail_term__')));
+     (rt.modal==='T+R'&&p.modal==='Rodoviário + Ferroviário'&&
+       p.rota.includes(String(rt.transbordo||'__no_hub__')));
     if(!valid)return false;
     if(p.modal==='Rodoviário + Ferroviário'&&p.freteRodo===0)return true;
     const leg=rt.modal==='T'?rt.porto:rt.transbordo;
     if(window.BRZRoadGeo?.getApproved?.(d.id,d.origem,leg,d.data))return true;
-    try{const quote=window.findRodoFreight?.(d.origem,leg,d.data,d.corredor,d.id);
-      return quote?.estimado===false&&num(quote.valor)>0;}catch{return false;}
-   }));
+    try{
+     const q=window.findRodoFreight?.(d.origem,leg,d.data,d.corredor,d.id);
+     if(!(num(q?.valor)>0))return false;
+     if(q?.estimado===false){
+      const wk=String(q.semana||'');
+      return /^2026-S(3[8-9]|4\d|5[0-3])$/.test(wk);
+     }
+     return q?.estimado===true&&(num(q.km)>0)&&(num(q.tku)>0)&&num(q.tku)<2 &&
+      num(q.km)<6000&&String(q.fonteFrete||'').includes('tku');
+    }catch{return false;}
+   });
+  });
   if(!authorized.length)return null;
-  const explicit=d.portoReferencia||d.replacementCenario?.porto||null;
-  const choices=explicit?authorized.filter(c=>c.porto===explicit):authorized;
+  const explicit=normal(String(d.portoReferencia||sc.porto||''));
+  const choices=explicit?authorized.filter(p=>explicit.includes(normal(p.porto))):authorized;
   if(!choices.length)return null;
+  // No allocation invented for multi-month withdrawals: reference the first
+  // port month; preserve both windows in the original physical trade.
+  const order=m=>{const k=month(m||'');return k?k.y*12+k.m:999999;};
+  choices.sort((a,b)=>order(a.mesPorto)-order(b.mesPorto)||
+   (b.calc.marginUSDt??-999999)-(a.calc.marginUSDt??-999999)||
+   a.calc.costUSDt-b.calc.costUSDt);
   const top=choices[0],p={
-   origem:d.origem,incoterm:'FOB',porto:top.porto,mesPorto:top.mesPorto,
+   origem:d.origem,incoterm:cif?'CIF':'FOB',porto:top.porto,mesPorto:top.mesPorto,
    modal:top.modal,retirada:d.retirada,pagamento:d.pagamentoRegra||'',
    preco:num(d.preco),freteRodo:top.freteRodo,freteFerro:top.freteFerro,
    despesas:top.despesas??0,cbot:top.cbot,contratoCBOT:top.contratoCBOT,
    fx:top.fx,contratoDOL:top.contratoDOL,basis:top.basis,due:null,
-   obs:'Replacement indicativo automático F60; DUE não quantificado quando ausente.'
+   freteFonte:top.freteFonte,rota:top.rota,proxy:top.proxy,
+   portoHipotese:Boolean(scenarioItaqui),
+   rateioMensalPendente:/novembro\s*\/\s*dezembro|27\/11\/2026 a 10\/12\/2026/i.test(d.retirada||''),
+   obs:'F63 | Replacement INDICATIVO não executado. '+(scenarioItaqui?'Corredor Itaqui hipotético. ':'')+
+    (top.proxy?'Frete com praça ou TKU proxy, não contratado. ':'')+
+    'DUE não quantificado quando ausente; rateio mensal não presumido.'
   };
   const out=calculate(d,p);
   return out?{d,p,out,route:top.rota}:null;
@@ -274,7 +307,7 @@ export function installPendencias(api){
   const eligible=pending().map(autoCandidate).filter(Boolean);
   const note=document.getElementById('brzp-batch-message');
   if(!eligible.length){if(note)note.textContent='Nenhum negócio FOB com referências completas e corredor validado para cálculo automático. Os demais permanecem pendentes.';return;}
-  if(!confirm('Salvar '+eligible.length+' replacement(s) INDICATIVO(S) no Supabase? Negócios CIF, referências faltantes e outros produtos serão preservados.'))return;
+  if(!confirm('Salvar '+eligible.length+' indicativo(s) de 16/11 no Supabase? CIF apenas no ponto econômico correto; referências insuficientes não serão baixadas.'))return;
   processing=true;let ok=0;const errors=[];
   const btn=document.getElementById('brzp-batch');if(btn)btn.disabled=true;
   for(const item of eligible){
@@ -296,7 +329,7 @@ export function installPendencias(api){
    '<div class="brzp-note">Motor de grãos: soja, milho e sorgo. Fretes rodoviários por OSRM; ferroviário inalterado. Salvar registra conta no banco.</div></div>'+
    '<input id="brzp-search" placeholder="Buscar negócio, praça ou comprador" value="'+esc(query)+'"></div>'+
    '<div class="brzp-note">'+rows.length+' pendência(s) de grãos · '+outOfScope().length+' registro(s) de outros produtos fora deste motor · '+completed.length+' cálculo(s) salvo(s)</div>'+
-   '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px"><button type="button" class="brzp-btn brzp-action" id="brzp-batch">Calcular e salvar elegíveis</button><span class="brzp-note" id="brzp-batch-message">Somente FOB com preço, referência CBOT/DOL e rota permitida. CIF e ausência de preço não são inferidos.</span></div>'+
+   '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px"><button type="button" class="brzp-btn brzp-action" id="brzp-batch">Calcular e salvar negócios elegíveis de 16/11</button><span class="brzp-note" id="brzp-batch-message">Lote 16/11: FOB com frete rastreável e CIF apenas no ponto econômico correto. Câmbio, CBOT e preço obrigatórios.</span></div>'+
    '<div id="brzp-list"></div>'+
    (completed.length?'<details style="margin-top:20px"><summary style="cursor:pointer;font-size:13px;font-weight:700">Contas concluídas ('+
      completed.length+')</summary><div id="brzp-done"></div></details>':'');
