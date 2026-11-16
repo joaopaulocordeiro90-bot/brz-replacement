@@ -87,9 +87,12 @@
    const nav=window.__BRZ_LAST_TAB_RENDER_MS;
    let boot=null;
    try{boot=window.parent?.__BRZ_SESSION_LOAD_MS;}catch(e){}
+   let reused=null;
+   try{reused=window.parent?.__BRZ_SOURCE_CACHE;}catch(e){}
    $('brzpin-speed').textContent=
-    'Tempo de entrada: '+(Number.isFinite(boot)?boot+' ms':'não medido')+
-    ' · Renderização da última aba: '+(Number.isFinite(nav)?nav+' ms':'não medida');
+    'Tempo de entrada: '+(Number.isFinite(boot)?(boot/1000).toFixed(1)+' s':'não medido')+
+    ' · Origem dos históricos: '+(reused==='HIT'?'cache protegido da sessão':'Supabase (carga integral)')+
+    ' · Última aba: '+(Number.isFinite(nav)?nav+' ms':'não medida');
   }
  };
  function setStatus(message,kind='neutral'){
