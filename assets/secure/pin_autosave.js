@@ -309,7 +309,8 @@
   const reply=await req('/rest/v1/rpc/brz_pin_market_excel_archive',{});
   if(!reply?.available)return;
   const mod=await import('./market_excel_overlay.mjs?v=20261116f66');
-  const reconciler=await import('./market_excel_reconcile.mjs?v=20261116f66');
+  const reconciler=await import('./market_excel_reconcile.mjs?v=20261116f67');
+  const auditor=await import('./market_excel_audit.mjs?v=20261116f67');
   const patch=await mod.decodeExcelArchive(reply);
   if(!patch)return;
   if(!reply.curve_capture||reply.curve_capture.source_date!==patch.as_of||
@@ -352,6 +353,8 @@
   const nextBasis=mod.mergeBasisSeries(ppeData(),patch.basis);
   const nextCMA=mod.mergeCMA(r3Data(),patch.derivatives);
   const nextOcean=mod.mergeOcean(state,patch.ocean);
+  const quality=auditor.auditDailyMarketOverlay(patch,enriched,nextBasis,nextCMA,nextOcean);
+  if(quality.errors.length)throw Error('Falha na conferência do Excel: '+quality.errors.join('; '));
   // All validations finished: apply UI-visible market values atomically.
   if(!newerSavedCurve){
     for(const group of ['cbot','cbotMilho','cbotFarelo','cbotOleo','dolar']){
@@ -384,6 +387,7 @@
   state.marketExcelAsOf=patch.as_of;
   state.marketExcelSHA256=patch.sourceSha;
   state.marketExcelReconciliation=enriched.status;
+  state.marketExcelAudit=quality;
   state._version=(Number(state._version)||0)+1;
   // The Excel/curve overlays are READ ONLY. An autosave must not turn their
   // source observations into manual operator edits of the ocean/curve modules.
@@ -394,7 +398,7 @@
     });
   }
   excelBasisReferences=mod.basisReferences(patch.basis);
-  excelMarketStatus={...patch.counts,...enriched.status};
+  excelMarketStatus={...patch.counts,...enriched.status,quality};
   // Reconciliation restores the historical 13/11 snapshot; the original
   // live-sync helper must never overwrite it using CBOT/B3 from 16/11.
   if(typeof window.brzSyncPrecoMarketCurves==='function'){
@@ -425,10 +429,20 @@
     stamp.style.cssText='font:600 12px Arial;color:#176a61;background:#f2fbf8;padding:7px 10px;margin:6px 0;border:1px solid #c7e8de';
     document.querySelector('#mercado .head')?.appendChild(stamp);
   }
-  if(stamp)stamp.textContent='Excel · '+patch.as_of.split('-').reverse().join('/')+
-    ' · '+enriched.status.readyCurrent+' origens prontas no dia · '+
-    enriched.status.revisedPrevious+' revisões históricas · CBOT/B3 C'+effectiveCapture.capture_no+
-    (enriched.status.missingCurve?' · '+enriched.status.missingCurve+' referências incompletas':'');
+  if(stamp){
+    const q=quality.products;
+    stamp.textContent='Excel '+patch.as_of.split('-').reverse().join('/')+
+      ' · Soja '+q.Soja.withFinancials+'/'+q.Soja.total+
+      ' · Milho '+q.Milho.withFinancials+'/'+q.Milho.total+
+      ' · Basis FOB '+quality.totals.basisFOB+
+      ' · Farelo '+quality.totals.soymealCMA+
+      ' · Óleo '+quality.totals.soyoilCMA+
+      ' · CBOT/B3 C'+effectiveCapture.capture_no+
+      ' · '+(quality.ok?'AUDITADO':'ATENÇÃO: '+quality.warnings.join('; '));
+    stamp.style.color=quality.ok?'#176a61':'#8a4a00';
+    stamp.style.background=quality.ok?'#f2fbf8':'#fff8e8';
+    stamp.style.borderColor=quality.ok?'#c7e8de':'#edc87a';
+  }
  }
 
  let curveUpdatedAt=null,curveSourceDate=null,curveCaptureTime='não informado';
