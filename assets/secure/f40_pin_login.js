@@ -325,7 +325,7 @@ async function start(ev){
       // PIN operator session: attach the independent, versioned F33 autosave.
       // Frozen source rows are hydrated first; edits are persisted as overlays.
       const script=iframe.contentDocument.createElement('script');
-      script.src='./assets/secure/pin_autosave.js?v=20261116pin';
+      script.src='./assets/secure/pin_autosave.js?v=20261116pin02';
       await new Promise((resolve,reject)=>{
         script.onload=resolve;
         script.onerror=()=>reject(Error('Gravação centralizada não carregada'));
@@ -345,7 +345,7 @@ async function start(ev){
       window.__BRZF42_DEALS=null;window.__BRZF42_DEALS_READY=false;
       window.__BRZF40_PHYSICAL_ROWS=null;window.__BRZF40_PHYSICAL_READY=false;
       window.__BRZF56_PRIVATE_RUNTIME=null;
-      status('F57 BLOQUEADO: '+e.message+'. Recarregue para tentar novamente.');
+      status('Não foi possível conectar o banco de negócios: '+e.message+'. Confira a sessão PIN.');
       $('go').disabled=true;loading=false;
     }
   },{once:true});
