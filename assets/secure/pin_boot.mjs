@@ -24,18 +24,42 @@ async function load(){
   const entries=Object.entries(manifest.files)
    .filter(([p])=>p!=='index.html'&&p!=='.nojekyll'&&p!=='README_F58.txt');
   if(entries.length<68||entries.length>110)throw Error('Componentes incompletos');
+  // Verified CacheStorage includes ONLY public static assets from this SHA-256
+  // manifest. Never store PIN, JWT, trades, prices, freight or API responses.
+  let assetCache=null;
+  try{if('caches' in window)assetCache=await caches.open('brz-public-code-sha-v1');}
+  catch(e){assetCache=null}
+  async function verifiedStatic(name,record){
+   const key='./'+name;
+   if(assetCache){
+    try{
+     const cached=await assetCache.match(key);
+     if(cached){
+      const bytes=await cached.arrayBuffer();
+      if(bytes.byteLength===record.bytes&&await sha256(bytes)===record.sha256)
+       return;
+      await assetCache.delete(key);
+     }
+    }catch(e){}
+   }
+   const res=await fetch(key,{cache:'no-store',credentials:'same-origin',redirect:'error'});
+   if(!res.ok)throw Error('Componente ausente: '+name);
+   const bytes=await res.arrayBuffer();
+   if(bytes.byteLength!==record.bytes||await sha256(bytes)!==record.sha256)
+     throw Error('Componente divergente: '+name);
+   if(assetCache){
+    try{await assetCache.put(key,new Response(bytes.slice(0),{
+      headers:{'Content-Type':'application/octet-stream'}}));}catch(e){}
+   }
+  }
   let done=0,cursor=0;
-  const workers=Array.from({length:6},()=> (async()=>{
+  const workers=Array.from({length:10},()=> (async()=>{
    while(cursor<entries.length){
     const [name,record]=entries[cursor++];
     if(!/^[a-zA-Z0-9._/-]+$/.test(name)||name.includes('..')||name.startsWith('/'))throw Error('Caminho inválido');
-    const res=await fetch('./'+name,{cache:'no-store',credentials:'same-origin',redirect:'error'});
-    if(!res.ok)throw Error('Componente ausente: '+name);
-    const bytes=await res.arrayBuffer();
-    if(bytes.byteLength!==record.bytes||await sha256(bytes)!==record.sha256)
-      throw Error('Componente divergente: '+name);
+    await verifiedStatic(name,record);
     done++;
-    if(done%15===0||done===entries.length)status('Conferindo interface: '+done+'/'+entries.length);
+    if(done%20===0||done===entries.length)status('Verificando módulos: '+done+'/'+entries.length);
    }
   })());
   await Promise.all(workers);
