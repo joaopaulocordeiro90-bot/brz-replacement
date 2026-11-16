@@ -318,6 +318,10 @@
     "index.html": {
       "bytes": 3252,
       "sha256": "94c624708c0bf8d9d5b85fa7216f7afe4261acaefe1bcda85c2d63d4982492b4"
+    },
+    "assets/secure/tab_cache.mjs": {
+      "bytes": 7095,
+      "sha256": "cd2c9aca5fd5f4a815a4bfc94ca5a83e428e1cc616739e124d0117b1f53f04ab"
     }
   }
 }
