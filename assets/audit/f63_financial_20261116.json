@@ -91,14 +91,26 @@
     "replacement_runs": 0,
     "replacement_result_items": 0,
     "remote_write_authorized": false,
-    "external_backup_restore_certified": false
+    "external_backup_restore_certified": false,
+    "access_review": {
+      "anon_trade_mutation_rpc_execute": false,
+      "authenticated_trade_mutation_rpc_execute": false,
+      "authenticated_restore_rpc_execute": false,
+      "anon_frozen_trades_select": false,
+      "authenticated_frozen_trades_select": true,
+      "authenticated_event_insert": false,
+      "f33_rls_enabled": true,
+      "f33_force_rls": true,
+      "checked_via": "PostgreSQL has_function_privilege / has_table_privilege and pg_class, 2026-11-16"
+    }
   },
   "deployment": {
     "git_repo_visibility": "public",
     "static_history_embedded": true,
     "authenticated_access_control": false,
     "encrypted_server_side_data_access": false,
-    "cross_device_sync": false
+    "cross_device_sync": false,
+    "note": "These restrictions apply to the PostgreSQL API only; the public static V4FQ snapshot has NO authentication barrier."
   },
   "risks": [
     {
