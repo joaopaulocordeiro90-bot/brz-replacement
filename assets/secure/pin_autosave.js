@@ -208,10 +208,13 @@
   }
   // The private chat intake is readable only after the desk/admin PIN login.
   // Original frozen 4,011 and F33 journal remain untouched.
-  const [response,desk]=await Promise.all([
+  const [response,desk,paymentRules]=await Promise.all([
     req('/rest/v1/rpc/brz_pin_fast_trade_deltas',{}),
-    req('/rest/v1/rpc/brz_pin_desk_chat_snapshot',{})
+    req('/rest/v1/rpc/brz_pin_desk_chat_snapshot',{}),
+    req('/rest/v1/rpc/brz_pin_trade_payment_confirmations',{})
   ]);
+  if(!paymentRules||!Array.isArray(paymentRules.rows))
+    throw Error('Regras de pagamento não foram conciliadas com o banco.');
   if(!desk||!Array.isArray(desk.trades)||!Array.isArray(desk.curves))
     throw Error('Recebimento autenticado da mesa inválido');
   deskChatSnapshot=desk;
@@ -255,6 +258,12 @@
     });
   }
   if(byId.size<EXPECTED)throw Error('Base de negócios incompleta');
+  // F62: projetar confirmações autenticadas após as revisões F33.
+  // Fonte canônica, preços e snapshot original permanecem imutáveis.
+  const {applyPaymentConfirmation}=await import('./pagamento_confirmacoes.mjs?v=20261116f62');
+  const payMap=new Map(paymentRules.rows.map(r=>[r.legacy_id,r]));
+  for(const record of byId.values())if(!record.deleted&&record.record_json)
+    record.record_json=applyPaymentConfirmation(record.record_json,payMap.get(record.legacy_id));
   return [...byId.values()];
  }
  function apply(rowsList){
