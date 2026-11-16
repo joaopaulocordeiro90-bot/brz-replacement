@@ -5,7 +5,7 @@
 export const F43_DERIVATIVE_COUNT = 14235;
 export const F43_DERIVATIVE_SOURCE_SHA256 = 'c78698a65efeb53ed2353945da144973d9b8526ad30d320b681d830c27c95dfb';
 export const F43_DERIVATIVE_CANONICAL_SHA256 = '0a8e2fb18663af7c0b6444ee71f5369ac8d3e6c880c2025dfe1ca9bb319202e7';
-const PAGE_SIZE=4000;
+const PAGE_SIZE=1500;
 const MAX_PAGES=60;
 const DOMAIN='derivatives';
 function stableStringify(value){
