@@ -284,33 +284,62 @@
   const baseShow=window.showScreen,baseRender=window.renderScreenSafe;
   if(typeof baseShow!=='function'||typeof baseRender!=='function')return;
   let navigating=false,seq=0;
-  // Change visible tab and topbar synchronously, then paint before calculating
-  // heavy freight/analysis/replacement contents; cancel obsolete tab requests.
+  const cached=new Map(),uiEpoch=new Map();
+  const heavy=new Set(['analise','report','corredores','negocios','fretes',
+    'mapa','mercado','curva','continuo','portos','indicadores','premios']);
+  // Any interaction inside a page invalidates that page's cached rendering.
+  // PIN and topnav are outside .screen and do not invalidate cached panels.
+  const invalidate=event=>{
+   const screen=event.target?.closest?.('.screen');
+   if(screen?.id)uiEpoch.set(screen.id,(uiEpoch.get(screen.id)||0)+1);
+  };
+  ['input','change','click'].forEach(type=>document.addEventListener(type,invalidate,true));
+  function signature(id){
+   const product=typeof getActiveProduto==='function'?getActiveProduto():'';
+   const base=typeof getActiveBase==='function'?getActiveBase():'';
+   const version=state?._version||0;
+   return [version,product,base,uiEpoch.get(id)||0].join('|');
+  }
+  // Keep recently rendered DOM for quick tab switching, but never reuse it
+  // following a data mutation, filter interaction, product/base change, or
+  // after 12 seconds (so external updates cannot remain stale indefinitely).
   window.renderScreenSafe=function(screenId){
-    if(!navigating)return baseRender.apply(this,arguments);
-    const step=++seq;
+    if(!navigating){
+      cached.delete(screenId);
+      return baseRender.apply(this,arguments);
+    }
     const pane=document.getElementById(screenId);
-    if(pane)pane.setAttribute('aria-busy','true');
+    if(!pane)return baseRender.apply(this,arguments);
+    const stamp=signature(screenId),prior=cached.get(screenId);
+    if(heavy.has(screenId)&&prior?.signature===stamp&&
+       performance.now()-prior.at<12000){
+      pane.removeAttribute('aria-busy');
+      return;
+    }
+    const step=++seq;
+    pane.setAttribute('aria-busy','true');
+    // Show the active tab first. Heavy recalculation starts after the paint.
     requestAnimationFrame(()=>setTimeout(()=>{
-      if(step!==seq||!pane?.classList.contains('active')){
-        pane?.removeAttribute('aria-busy');return;
+      if(step!==seq||!pane.classList.contains('active')){
+       pane.removeAttribute('aria-busy');return;
       }
       const began=performance.now();
-      try{baseRender.call(window,screenId)}
-      finally{
-        pane.removeAttribute('aria-busy');
-        window.__BRZ_LAST_TAB_RENDER_MS=Math.round(performance.now()-began);
+      try{
+       baseRender.call(window,screenId);
+       cached.set(screenId,{signature:signature(screenId),at:performance.now()});
+      }finally{
+       pane.removeAttribute('aria-busy');
+       window.__BRZ_LAST_TAB_RENDER_MS=Math.round(performance.now()-began);
       }
     },0));
   };
   window.showScreen=function(screenId){
     navigating=true;
-    try{return baseShow.call(this,screenId)}
+    try{return baseShow.apply(this,arguments)}
     finally{navigating=false}
   };
   window.__BRZ_PIN_FAST_NAV=true;
  }
-
  async function connect(arg){
   if(connected||applying)throw Error('Conexão já iniciada');
   const supplied=arg&&typeof arg==='object'?arg:{access_token:arg};
