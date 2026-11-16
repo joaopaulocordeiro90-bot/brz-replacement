@@ -7,12 +7,15 @@ function status(s){el('status').textContent=s;}
 function hex(bytes){return [...bytes].map(v=>v.toString(16).padStart(2,'0')).join('');}
 async function sha256(bytes){return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));}
 async function load(){
- const controls=[el('user'),el('pass'),el('go')];
- controls.forEach(x=>x.disabled=true);
+ const pin=el('pin'),go=el('go');
+ if(!pin||!go)throw Error('PIN_UI_CONTROLS_MISSING');
+ const controls=[go];
+ // PIN entry remains available while static integrity checks run.
+ pin.disabled=false;go.disabled=true;
  try{
   if(!allowed||!window.isSecureContext||window.top!==window) throw Error('Endereço de acesso não autorizado');
   if(!crypto?.subtle)throw Error('SHA-256 nativo indisponível');
-  status('Verificando integridade dos componentes públicos…');
+  status('Digite seu PIN. Conferindo os componentes da plataforma…');
   const manifestResp=await fetch('./MANIFEST_F58_PUBLIC_SHA256.json',{cache:'no-store',credentials:'same-origin'});
   if(!manifestResp.ok)throw Error('Manifesto de dependências indisponível');
   const manifest=await manifestResp.json();
@@ -66,7 +69,7 @@ async function load(){
   script.onerror=()=>{controls.forEach(x=>x.disabled=true);status('Não foi possível carregar o login protegido.');};
   document.body.appendChild(script);
  }catch(err){
-  controls.forEach(x=>x.disabled=true);
+  go.disabled=true;
   status('Acesso protegido bloqueado: '+(err?.message||String(err)));
  }
 }
