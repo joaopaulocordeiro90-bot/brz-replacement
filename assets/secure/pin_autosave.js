@@ -367,6 +367,109 @@
    window.__BRZ_PIN_FREIGHT_VIEW_CACHE=true;
  }
 
+
+ // Keep technical controls inside one regular navigation screen. Relocate the
+ // actual DOM nodes, rather than cloning them, so legacy onclick handlers,
+ // status messages and export buttons continue to work unchanged.
+ function installSystemToolsTab(){
+  if(window.__BRZ_SYSTEM_TOOLS_READY)return;
+  const nav=document.querySelector('.topmenu');
+  const content=document.getElementById('contentGrid');
+  if(!nav||!content||typeof window.showScreen!=='function')return;
+  const css=document.createElement('style');
+  css.id='brzsys-styles';
+  css.textContent=[
+   '#sistema{padding:16px 22px 35px;box-sizing:border-box}',
+   '#sistema .brzsys-head{margin-bottom:20px}',
+   '#sistema .brzsys-head h2{margin:0 0 6px;font-size:23px}',
+   '#sistema .brzsys-head p{margin:0;font-size:13px;color:var(--g500,#657b8f);line-height:1.5}',
+   '#sistema .brzsys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;margin:14px 0}',
+   '#sistema .brzsys-card{min-width:0;border:1px solid var(--g200,#dbe3eb);background:var(--panel,#fff);border-radius:8px;padding:16px;box-shadow:none}',
+   '#sistema .brzsys-card h3{font-size:13px;margin:0 0 11px;color:var(--g600,#52677c);font-weight:700}',
+   '#sistema .brzsys-card > button{position:static!important;inset:auto!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;z-index:auto!important;min-height:36px;max-width:100%;width:auto;margin:0 0 6px;box-shadow:none!important;display:inline-block}',
+   '#sistema .brzsys-card > .brzsys-panel{position:static!important;inset:auto!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;z-index:auto!important;max-width:100%!important;width:100%!important;max-height:min(65vh,580px)!important;overflow:auto!important;margin:10px 0 0!important;box-shadow:none!important;box-sizing:border-box!important}',
+   '#sistema .brzsys-card > .brzsys-panel[hidden]{display:none!important}',
+   '#sistema .brzsys-card .brzsys-panel button{max-width:100%}',
+   '#sistema .brzsys-legacy{border-top:1px solid var(--g200,#dbe3eb);padding:16px 0;margin-top:22px}',
+   '#sistema .brzsys-legacy summary{cursor:pointer;font-size:14px;font-weight:700;margin-bottom:9px}',
+   '#sistema .brzsys-legacy small{color:var(--g500,#64748b);font-size:12px;line-height:1.5}',
+   '#sistema .brzsys-card[data-legacy-hidden="true"]{display:none}',
+   '@media(max-width:640px){#sistema{padding:14px 12px 30px}#sistema .brzsys-card{padding:12px}}'
+  ].join('\n');
+  document.head.appendChild(css);
+
+  const button=document.createElement('button');
+  button.type='button';button.dataset.screen='sistema';
+  button.textContent='Sistema';
+  button.title='Banco, sincronização e ferramentas técnicas';
+  button.onclick=()=>window.showScreen('sistema');
+  nav.appendChild(button);
+
+  const screen=document.createElement('section');
+  screen.id='sistema';screen.className='screen scrollable';
+  const intro=document.createElement('div');
+  intro.className='brzsys-head';
+  intro.innerHTML='<h2>Sistema</h2><p>Sincronização, backup e ferramentas de suporte da plataforma em um único lugar.</p>';
+  screen.appendChild(intro);
+  const currentGrid=document.createElement('div');
+  currentGrid.className='brzsys-grid';
+  screen.appendChild(currentGrid);
+  const legacy=document.createElement('details');
+  legacy.className='brzsys-legacy';
+  const summary=document.createElement('summary');
+  summary.textContent='Ferramentas técnicas anteriores';
+  legacy.appendChild(summary);
+  const help=document.createElement('small');
+  help.textContent='Controles de homologação preservados para referência. A operação diária utiliza a sincronização por PIN/Supabase.';
+  legacy.appendChild(help);
+  const oldGrid=document.createElement('div');
+  oldGrid.className='brzsys-grid';legacy.appendChild(oldGrid);
+  screen.appendChild(legacy);
+  content.appendChild(screen);
+
+  const controls=[
+   {id:'brzpin-badge',panel:'brzpin-panel',name:'Banco · Sincronização e backup',legacy:false},
+   {id:'brzf60-button',panel:'brzf60-panel',name:'Diagnóstico e recuperação',legacy:false},
+   {id:'brzf33-launch',panel:'brzf33-panel',name:'F33 · Conector anterior',legacy:true},
+   {id:'brzf34-launch',panel:'brzf34-panel',name:'F34 · Mercado PostgreSQL',legacy:true},
+   {id:'brzf35-launch',panel:'brzf35-panel',name:'F35 · Motor PostgreSQL',legacy:true},
+   {id:'brzf36-launch',panel:'brzf36-panel',name:'F36 · Validação',legacy:true},
+   {id:'brzf37-open',panel:'brzf37-panel',name:'F37 · Pré-publicação',legacy:true},
+   {id:'brzf37b-open',panel:'brzf37b-panel',name:'F37B · Integridade',legacy:true}
+  ];
+  const mounted=new Set();
+  function collect(){
+   for(const spec of controls){
+    const launch=document.getElementById(spec.id);
+    if(!launch||mounted.has(spec.id))continue;
+    const panel=document.getElementById(spec.panel);
+    const card=document.createElement('div');
+    card.className='brzsys-card';
+    const title=document.createElement('h3');
+    title.textContent=spec.name;card.appendChild(title);
+    if(spec.id==='brzf33-launch'&&launch.style.display==='none')
+      card.dataset.legacyHidden='true';
+    // Reparent the same button and panel to preserve listeners and live state.
+    card.appendChild(launch);
+    if(panel){panel.classList.add('brzsys-panel');card.appendChild(panel);}
+    (spec.legacy?oldGrid:currentGrid).appendChild(card);
+    mounted.add(spec.id);
+   }
+   legacy.hidden=oldGrid.children.length===0;
+  }
+  collect();
+  // Some legacy widgets attach directly to document.body after initial load.
+  // Observe only direct body additions; not 178k-row table updates.
+  const observer=new MutationObserver(changes=>{
+   if(changes.some(change=>[...change.addedNodes].some(node=>
+       node.nodeType===1&&controls.some(spec=>
+         node.id===spec.id||node.id===spec.panel))))
+     collect();
+  });
+  observer.observe(document.body,{childList:true});
+  window.__BRZ_SYSTEM_TOOLS_READY=true;
+ }
+
  function installFastNavigation(){
   if(window.__BRZ_PIN_FAST_NAV)return;
   const baseShow=window.showScreen,baseRender=window.renderScreenSafe;
@@ -458,6 +561,7 @@
     installMarketHotPath();
     installFreightViewCache();
     installFastNavigation();
+    installSystemToolsTab();
     dirty=false;blocked=false;
     setStatus('Sincronizado · '+data.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
     return Object.freeze({ready:true,records:data.length,autosave:true});
