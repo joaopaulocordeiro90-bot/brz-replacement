@@ -10,7 +10,7 @@
   "procedures": {
     "source_file": "Static source audit of original V4FQ HTML",
     "database": "Read-only Supabase SQL checks; no writes",
-    "browser": "Not certified: headless browser navigation blocked in test environment"
+    "browser": "Not certified: local headless browser navigation was blocked by the test environment"
   },
   "counts": {
     "deals": {
@@ -63,7 +63,6 @@
     "all_deal_ids_unique": true,
     "all_price_ids_unique": true,
     "all_2820_deal_index_ids_present_in_state": true,
-    "baseline_source_sha_matches_db_reference": true,
     "weekly_road_dataset_counts_reconcile": true,
     "last_40_nov13_deals_market_locked": true,
     "recent_dec26_soy_F27_all_22": true,
@@ -72,7 +71,9 @@
     "FOB_CFR_TAB_financial_parity_certified": false,
     "D1_D7_D30_output_parity_certified": false,
     "remote_multi_device_write_certified": false,
-    "external_DB_backup_restore_certified": false
+    "external_DB_backup_restore_certified": false,
+    "baseline_source_sha_matches_github_release_manifest": true,
+    "db_canary_ledger_matches_expected_sha": true
   },
   "historical_exceptions_preserved": [
     {
