@@ -95,12 +95,15 @@ async function signIn(pin){
  if(typeof token!=='string'||token.length<40)throw Error('Sessão não recebida');
  pinRefreshToken=info.refresh_token;
  pinExpiresIn=Number(info.expires_in||3600);
- const user=await request('/auth/v1/user',{token});
+ // Profile, role and market inventory are independent authenticated reads.
+ const [user,roleRows,stats]=await Promise.all([
+   request('/auth/v1/user',{token}),
+   request('/rest/v1/rpc/brz_api_session',{token}),
+   request('/rest/v1/rpc/brz_api_f34_market_counts',{token})
+ ]);
  if(typeof user?.id!=='string'||!user.id)throw Error('Usuário da sessão não identificado');
- const roleRows=await request('/rest/v1/rpc/brz_api_session',{token});
  const role=Array.isArray(roleRows)?roleRows[0]?.role:roleRows?.role;
  if(!['mesa','admin'].includes(role))throw Error('Perfil de acesso não autorizado');
- const stats=await request('/rest/v1/rpc/brz_api_f34_market_counts',{token});
  if(!Array.isArray(stats)||stats.length!==6||stats.some(r=>!r.ready))
    throw Error('Inventário de mercado indisponível');
  marketStatsCached=stats;
@@ -198,13 +201,14 @@ async function loadFrozenTrades(token,onProgress){
  return rows;
 }
 async function preflightModules(){
+ if(window.__BRZ_F49_VERIFIED===true)return [];
  // F49: dynamic imports must resolve relative to assets/f40/f40_boot.js.
  // Fail before asking the user to type a password if a deployment is incomplete.
  const checks=[
-  ['../f43/f43_derivatives_gate.mjs','hydrateF43Derivatives'],
-  ['../f44/f44_market_gate.mjs','hydrateF44Market'],
+  ['../f43/f43_derivatives_gate.mjs?v=fast20261116a','hydrateF43Derivatives'],
+  ['../f44/f44_market_gate.mjs?v=fast20261116a','hydrateF44Market'],
   ['../f45/f45_rail_source_gate.mjs','hydrateF45Rail'],
-  ['../f46/f46_road_source_gate.mjs','hydrateF46Road'],
+  ['../f46/f46_road_source_gate.mjs?v=fast20261116a','hydrateF46Road'],
   ['../f47/f47_premiums_gate.mjs','hydrateF47Premiums'],
   ['../f48/f48_source_gate.mjs','hydrateF48Legacy'],
   ['../f55/f55_protected_source.mjs','hydrateF55ProtectedSources'],
@@ -215,6 +219,7 @@ async function preflightModules(){
   if(typeof mod?.[name]!=='function')throw Error('F49: exportação '+name+' ausente');
   return name;
  }));
+ window.__BRZ_F49_VERIFIED=true;
  return modules;
 }
 async function start(ev){
@@ -265,11 +270,11 @@ async function start(ev){
     return {frozenTrades,orderedDeals};
   })();
   const derivativesWork=(async()=>{
-    const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs');
+    const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs?v=fast20261116a');
     return hydrateF43Derivatives({request,token,sha256,isAborted:()=>aborted});
   })();
   const marketWork=(async()=>{
-    const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs');
+    const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs?v=fast20261116a');
     return hydrateF44Market({request,token,sha256,
       manifest:window.__BRZF44_META,isAborted:()=>aborted});
   })();
@@ -278,7 +283,7 @@ async function start(ev){
     return hydrateF45Rail({request,token,sha256});
   })();
   const roadWork=(async()=>{
-    const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs');
+    const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs?v=fast20261116a');
     return hydrateF46Road({request,token,sha256,
       manifest:window.__BRZF46_PRIVATE_META,isAborted:()=>aborted});
   })();
