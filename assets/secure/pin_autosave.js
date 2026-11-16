@@ -44,7 +44,7 @@
  const panel=document.createElement('div');panel.id='brzpin-panel';panel.hidden=true;
  panel.innerHTML='<h3>BRZ · Banco de negócios</h3>'+
   '<p id="brzpin-status">Conectando…</p>'+
-  '<p>Negócios: gravação automática e compartilhada entre dispositivos. Outros módulos permanecem no modelo de origem.</p>'+
+  '<p>Negócios, curvas, fretes, prêmios e configurações editáveis são salvos automaticamente no Supabase. Dados históricos originais são preservados.</p>'+
   '<button id="brzpin-reload" type="button">Recarregar negócios do banco</button>'+
   '<p id="brzpin-alert" role="status"></p>';
  document.body.appendChild(badge);document.body.appendChild(panel);
@@ -133,6 +133,115 @@
     else if(typeof renderAll==='function')renderAll();
   }finally{applying=false}
  }
+
+ // Persistent modular overlays. Original market/road archives remain immutable.
+ // Save only operational edits, with optimistic revisions and automatic history.
+ const MODULES=Object.freeze({
+   curves:['cbot','cbotMilho','cbotFarelo','cbotOleo','dolar','curva','curvaMilho',
+      'fobbins','seaFreight','curvasIntraday','dolarNotas','dolarProxies','timestamps'],
+   ocean:['oceanFreight','oceanFreightPorto','oceanFreightMonthly',
+      'oceanFreightCornMonthly','oceanFreightAnoAnterior','oceanFreightRotasExcel','barcaca'],
+   rail:['fretesFerro'],
+   premiums:['premiosMilho'],
+   settings:['precosEdits','farmerSelling','r3Hidden','simulacoes']
+ });
+ let remoteModules=new Map(),roadBaseline=new Map(),moduleBooting=false;
+ function groupSnapshot(name){
+   const obj={};
+   for(const key of MODULES[name]){
+     if(Object.prototype.hasOwnProperty.call(state,key)&&state[key]!==undefined)
+       obj[key]=state[key];
+   }
+   return JSON.parse(JSON.stringify(obj));
+ }
+ function roadDiff(){
+   const rows=Array.isArray(state.fretesRodo)?state.fretesRodo:[];
+   const seen=new Set(),upserts=[],deletes=[];
+   for(const row of rows){
+     const id=row?.id;
+     if(typeof id!=='string'||!id||seen.has(id))
+       throw Error('Frete rodoviário sem ID único');
+     seen.add(id);
+     if(roadBaseline.get(id)!==stable(row))upserts.push(row);
+   }
+   for(const id of roadBaseline.keys())if(!seen.has(id))deletes.push(id);
+   if(upserts.length+deletes.length>2500)
+      throw Error('Alterações rodoviárias em massa bloqueadas; use a ingestão controlada');
+   return {upserts,deletes};
+ }
+ function patchRoad(overlay){
+   if(!overlay||!Array.isArray(overlay.upserts)||!Array.isArray(overlay.deletes))
+     throw Error('Delta rodoviário remoto incompatível');
+   const original=Array.isArray(state.fretesRodo)?state.fretesRodo:[];
+   const all=new Map(original.map(row=>[row.id,row]));
+   for(const id of overlay.deletes)if(typeof id==='string')all.delete(id);
+   for(const record of overlay.upserts){
+     if(!record||typeof record.id!=='string')throw Error('Frete remoto inválido');
+     all.set(record.id,record);
+   }
+   const ordered=[...all.values()];
+   state.fretesRodo=ordered;
+ }
+ async function loadModules(){
+   moduleBooting=true;
+   try{
+     const rows=await req('/rest/v1/rpc/brz_pin_module_list',{});
+     if(!Array.isArray(rows)||rows.length>7)throw Error('Módulos não conciliados');
+     remoteModules=new Map();
+     const roadRows=Array.isArray(state.fretesRodo)?state.fretesRodo:[];
+     roadBaseline=new Map();
+     for(const record of roadRows){
+       if(typeof record?.id!=='string'||roadBaseline.has(record.id))
+         throw Error('Histórico rodoviário com ID inválido');
+       roadBaseline.set(record.id,stable(record));
+     }
+     for(const record of rows){
+       if(!record||!['curves','ocean','rail','premiums','settings','road_delta','basis'].includes(record.module)
+         ||!Number.isSafeInteger(Number(record.revision))
+         ||Number(record.revision)<1||!record.payload||typeof record.payload!=='object')
+         throw Error('Seção remota inválida');
+       if(remoteModules.has(record.module))throw Error('Módulo remoto duplicado');
+       remoteModules.set(record.module,{revision:Number(record.revision),snapshot:null});
+       if(record.module==='road_delta'){
+         patchRoad(record.payload);
+       }else if(record.module in MODULES){
+         for(const key of MODULES[record.module]){
+           if(Object.prototype.hasOwnProperty.call(record.payload,key))
+             state[key]=record.payload[key];
+         }
+       }
+     }
+     for(const name of Object.keys(MODULES)){
+       const saved=remoteModules.get(name);
+       const snap=stable(groupSnapshot(name));
+       remoteModules.set(name,{revision:saved?.revision||0,snapshot:snap});
+     }
+     const persistedRoad=remoteModules.get('road_delta');
+     remoteModules.set('road_delta',{revision:persistedRoad?.revision||0,
+       snapshot:stable(roadDiff())});
+     if(rows.length){
+       if(typeof invalidateDataCache==='function')invalidateDataCache();
+       if(typeof clearCalcCaches==='function')clearCalcCaches();
+       if(typeof scheduleRenderAll==='function')scheduleRenderAll();
+       else if(typeof renderAll==='function')renderAll();
+     }
+   }finally{moduleBooting=false}
+ }
+ async function saveModules(){
+   if(moduleBooting)return;
+   for(const name of [...Object.keys(MODULES),'road_delta']){
+     const previous=remoteModules.get(name)||{revision:0,snapshot:null};
+     const payload=name==='road_delta'?roadDiff():groupSnapshot(name);
+     const shot=stable(payload);
+     if(shot===previous.snapshot)continue;
+     const result=await req('/rest/v1/rpc/brz_pin_module_save',{
+       p_module:name,p_payload:payload,p_expected_revision:previous.revision});
+     const ack=Array.isArray(result)?result[0]:result;
+     if(ack?.module!==name||Number(ack.revision)!==previous.revision+1)
+       throw Error('Alteração do módulo '+name+' sem confirmação do servidor');
+     remoteModules.set(name,{revision:Number(ack.revision),snapshot:shot});
+   }
+ }
  async function connect(arg){
   if(connected||applying)throw Error('Conexão já iniciada');
   const supplied=arg&&typeof arg==='object'?arg:{access_token:arg};
@@ -148,6 +257,8 @@
     const data=await rows();
     if(data.length<EXPECTED)throw Error('Base incompleta');
     apply(data);
+    setStatus('Atualizando curvas, fretes e prêmios…','working');
+    await loadModules();
     const previousButton=$('brzf33-launch');
     if(previousButton)previousButton.style.display='none';
     const base=typeof persist==='function'?persist:null;
@@ -186,6 +297,7 @@
     for(const [id,old] of remote)if(!old.deleted&&!present.has(id))
       operations.push({id,action:'DELETE',version:old.version,record:null,snapshot:null});
     if(!operations.length){
+      await saveModules();
       setStatus('Sincronizado');
       return;
     }
@@ -211,6 +323,7 @@
       });
       operationIds.delete(opKey);
     }
+    await saveModules();
     setStatus('Gravado no Supabase');
     $('brzpin-alert').textContent='';
   }catch(err){
