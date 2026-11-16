@@ -224,6 +224,10 @@ async function preflightModules(){
 }
 async function start(ev){
  ev.preventDefault();if(loading)return;
+ // Every PIN attempt starts a fresh authenticated hydration.
+ // A failed prior parallel request must not poison F55 on retry.
+ aborted=false;
+ marketStatsCached=null;
  const loginBegan=performance.now();
  loading=true;$('go').disabled=true;
  let token=null;
@@ -297,12 +301,19 @@ async function start(ev){
     return hydrateF48Legacy({request,token,sha256,isAborted:()=>aborted});
   })();
   const priceWork=loadPrices(token,()=>{});
-  let tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows;
-  try{
-    [tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows]=
-      await Promise.all([tradeWork,derivativesWork,marketWork,railWork,roadWork,
-        premiumWork,sourceWork,priceWork]);
-  }catch(e){aborted=true;throw e}
+  // Wait for all in-flight reads before declaring a failed attempt: otherwise
+  // old requests and a stale global abort flag contaminate the next PIN login.
+  const names=['F41/F42 negócios','F43 derivados','F44 curvas/basis',
+    'F45 ferroviário','F46 rodoviário','F47 prêmios','F48 históricos','F40 físico'];
+  const settled=await Promise.allSettled([tradeWork,derivativesWork,marketWork,railWork,
+    roadWork,premiumWork,sourceWork,priceWork]);
+  const failed=settled.findIndex(item=>item.status==='rejected');
+  if(failed!==-1){
+    const reason=settled[failed].reason;
+    throw Error(names[failed]+': '+(reason?.message||String(reason)));
+  }
+  const [tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows]=
+    settled.map(item=>item.value);
   const {frozenTrades,orderedDeals}=tradeBundle;
   status('Históricos e fretes conciliados. Abrindo a interface…');
   // Do not persist data to localStorage, IndexedDB, sessionStorage, URL, cache or disk.
