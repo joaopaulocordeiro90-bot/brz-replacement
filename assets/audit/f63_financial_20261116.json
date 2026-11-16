@@ -1,0 +1,128 @@
+{
+  "schema": "BRZ_F63_FINANCIAL_PARITY_AND_ACCESS_GATES_V1",
+  "created_at": "2026-11-16",
+  "status": "SUBSET_VERIFIED_PRODUCTION_BLOCKED",
+  "source_v4fq": {
+    "date": "2026-11-13",
+    "total_trade_records": 4011,
+    "sha256": "d39ecfc34d3f95f6f4e463d59de49c76609c86db09994728dc349a5eca482085"
+  },
+  "f20_reference": {
+    "snapshot_id": "42488543-70c0-461e-b596-dc77949cccb4",
+    "sealed": true,
+    "source_domains": 14,
+    "source_rows": 445686,
+    "legacy_trade_records": 3911,
+    "full_financial_parity": false,
+    "known_missing_corn_ocean_quotes": 117
+  },
+  "port_fob_parity": {
+    "method": "Recompute in both read-only PostgreSQL SQL and Python Decimal against exact V4FQ HTML; compare historical canonical SHA-256.",
+    "historical_census": {
+      "deals": 201,
+      "soybean": 175,
+      "corn": 16,
+      "sorghum": 10,
+      "unique_ids": 201,
+      "original_blank_premiums": 1,
+      "expected_sha256": "f1ceedff4313940365154f1ab518f73e066590af6ad66cc4558cb6592c41b043",
+      "sql_actual_sha256": "f1ceedff4313940365154f1ab518f73e066590af6ad66cc4558cb6592c41b043",
+      "v4fq_python_actual_sha256": "f1ceedff4313940365154f1ab518f73e066590af6ad66cc4558cb6592c41b043",
+      "pass": true
+    },
+    "v4fq_current_census": {
+      "deals": 204,
+      "soybean": 178,
+      "corn": 16,
+      "sorghum": 10,
+      "added_since_historical_reference": 3,
+      "all_unique_ids": true,
+      "port_ledger_sha256": "cd813ee8dae3b28b776911fc680b57894582312a3e08cc1dc3ca91ef350baa6e"
+    },
+    "equations": {
+      "fob_cbu": "((cash_BRL_per_60kg / fx_BRL_per_USD) + (0.06 * fobbing_BRL_per_t)) * 100 / bushel_factor",
+      "basis_cbu": "fob_cbu - cbot_cbu",
+      "margin_cbu": "premium_cbu - basis_cbu"
+    },
+    "factors": {
+      "soybean": "2.2046",
+      "corn_sorghum": "2.3621"
+    },
+    "fobbing_brl_t": {
+      "default": 11,
+      "itaqui": 14,
+      "barcarena": 14
+    },
+    "scope": "FAS port-only formula; no road, rail, barge, ocean freight or replacement CFR validated"
+  },
+  "lookback_inputs": {
+    "note": "Calendar-date source observations only. Does not prove contractual-month matching or D-1/D-7/D-30 calculation correctness.",
+    "selected_dates": {
+      "D0": "2026-11-13",
+      "D_minus_1": "2026-11-12",
+      "D_minus_7": "2026-11-06",
+      "D_minus_30": "2026-10-14"
+    },
+    "observed_rows": {
+      "physical": [
+        155,
+        155,
+        159,
+        160
+      ],
+      "curves": [
+        50,
+        51,
+        51,
+        24
+      ],
+      "ocean": [
+        192,
+        179,
+        179,
+        175
+      ]
+    },
+    "output_certified": false
+  },
+  "backend": {
+    "project_status": "ACTIVE_HEALTHY",
+    "f33_trade_events": 0,
+    "replacement_runs": 0,
+    "replacement_result_items": 0,
+    "remote_write_authorized": false,
+    "external_backup_restore_certified": false
+  },
+  "deployment": {
+    "git_repo_visibility": "public",
+    "static_history_embedded": true,
+    "authenticated_access_control": false,
+    "encrypted_server_side_data_access": false,
+    "cross_device_sync": false
+  },
+  "risks": [
+    {
+      "severity": "HIGH",
+      "code": "STATIC_REPOSITORY_PUBLIC",
+      "description": "Source HTML contains deal data and counterparties and is served without authentication. UI password alone cannot secure public static assets.",
+      "mitigation": "Publish only non-sensitive shell code publicly. Move restricted history to private authenticated API + RLS; do not treat GitHub Pages as a private datastore."
+    },
+    {
+      "severity": "BLOCKER",
+      "code": "FULL_ROUTE_FINANCIAL_GAP",
+      "description": "117 source corn ocean quotes known missing in reference snapshot",
+      "mitigation": "Use verified external source observations or keep route labeled unavailable; never estimate without provenance."
+    },
+    {
+      "severity": "BLOCKER",
+      "code": "PERSISTENCE_CROSS_DEVICE",
+      "description": "F61 IndexedDB is browser-local; no server mutation enabled.",
+      "mitigation": "Use audited Auth+RLS API and event journal only after backup/restore and user acceptance testing."
+    }
+  ],
+  "artifacts": {
+    "reproducible_test": "tools/audit_f63_port.py",
+    "previous": "assets/audit/f62_20261116.json"
+  },
+  "production_approved": false
+}
