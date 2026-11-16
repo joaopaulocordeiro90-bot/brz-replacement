@@ -197,7 +197,7 @@
       if(!uuid){uuid=crypto.randomUUID();operationIds.set(opKey,uuid);}
       if(op.record&&stable(op.record).length>100000)
         throw Error('Negócio acima do limite de tamanho');
-      const answer=await req('/rest/v1/rpc/brz_api_f33_trade_mutate',{
+      const answer=await req('/rest/v1/rpc/brz_pin_trade_mutate',{
         p_operation_id:uuid,p_legacy_id:op.id,p_action:op.action,
         p_expected_version:op.version,p_record:op.record
       });
