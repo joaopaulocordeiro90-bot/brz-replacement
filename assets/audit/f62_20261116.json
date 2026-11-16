@@ -1,0 +1,104 @@
+{
+  "schema": "BRZ_F62_TECHNICAL_AUDIT_V1",
+  "audited_at": "2026-11-16",
+  "baseline": {
+    "snapshot": "V4FQ C35",
+    "date": "2026-11-13",
+    "source_sha256": "d39ecfc34d3f95f6f4e463d59de49c76609c86db09994728dc349a5eca482085",
+    "git_commit_before_audit": "98304142374adce6ef0881f268ad5529e7e05c7c"
+  },
+  "procedures": {
+    "source_file": "Static source audit of original V4FQ HTML",
+    "database": "Read-only Supabase SQL checks; no writes",
+    "browser": "Not certified: headless browser navigation blocked in test environment"
+  },
+  "counts": {
+    "deals": {
+      "source": 4011,
+      "db_canary": 4011,
+      "distinct_ids": 4011,
+      "missing_ids": 0,
+      "latest": "2026-11-13",
+      "db_ledger_sha256": "9697b87d6b2db893e5d5b40ca0f25a09a48b733b1ca27134747aa876c81cc890"
+    },
+    "deal_index": {
+      "source": 2820,
+      "missing_ids_in_canonical": 0
+    },
+    "prices": {
+      "source": 59758,
+      "db_market_sources": 59758,
+      "last_date": "2026-11-13"
+    },
+    "road": {
+      "source": 178201,
+      "db_historical": 177687,
+      "db_s46": 514,
+      "db_total": 178201,
+      "last_week": "2026-S46"
+    },
+    "rail": {
+      "source_entries": 39
+    },
+    "markets": {
+      "db_total": 267959,
+      "db_deltas": 1531,
+      "domains": {
+        "basis_points": 107184,
+        "basis_series": 1405,
+        "curves": 16418,
+        "derivatives": 14235,
+        "ocean": 68959,
+        "physical": 59758
+      }
+    },
+    "rules": {
+      "source_count": 187,
+      "source_version": "V4EL-1"
+    }
+  },
+  "test_results": {
+    "11_json_blocks_parse": true,
+    "26_inline_js_syntax": true,
+    "all_deal_ids_unique": true,
+    "all_price_ids_unique": true,
+    "all_2820_deal_index_ids_present_in_state": true,
+    "baseline_source_sha_matches_db_reference": true,
+    "weekly_road_dataset_counts_reconcile": true,
+    "last_40_nov13_deals_market_locked": true,
+    "recent_dec26_soy_F27_all_22": true,
+    "recent_dec26_corn_Z26_all_74": true,
+    "browser_full_navigation_certified": false,
+    "FOB_CFR_TAB_financial_parity_certified": false,
+    "D1_D7_D30_output_parity_certified": false,
+    "remote_multi_device_write_certified": false,
+    "external_DB_backup_restore_certified": false
+  },
+  "historical_exceptions_preserved": [
+    {
+      "id": "nf260921_05",
+      "note": "Corn shipment field Dec-26 but delivery/embarkation note references Jan-27; H27 is documented by source. Review commercially, do not auto-correct."
+    },
+    {
+      "id": "nf260922_08",
+      "note": "Soybeans Dec-26 labeled shipment with price-to-fix contract K27, source specifically documents K27. Preserve."
+    }
+  ],
+  "environment": {
+    "repo_static_public": true,
+    "storage": "same-browser IndexedDB with JSON export",
+    "supabase_project": "BRZ Replacement Homologacao",
+    "supabase_status": "ACTIVE_HEALTHY",
+    "f33_journal_events": 0,
+    "replacement_runs": 0,
+    "replacement_items": 0,
+    "backend_write_enabled": false,
+    "production_approved": false
+  },
+  "blockers": [
+    "End-to-end browser verification on deployed GitHub Pages, including F61 IndexedDB restore and all operational screens",
+    "Reference-by-reference FOB/CFR/TAB and D-1/D-7/D-30 financial parity with the source",
+    "Real authorized create/edit/reload test and cross-device synchronization mechanism; Github Pages alone cannot write shared state",
+    "Independent verified database backup/restore before altering backend write permissions"
+  ]
+}
