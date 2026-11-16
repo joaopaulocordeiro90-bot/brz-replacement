@@ -88,7 +88,7 @@ async function load(){
   window.__BRZF58_PREFLIGHT=Object.freeze({verified:true,readOnly:true,productionApproved:false,
     verifiedResources:done});
   const script=document.createElement('script');
-  script.src='./assets/secure/f40_pin_login.js?v=20261116f66';
+  script.src='./assets/secure/f40_pin_login.js?v=20261116f67';
   script.async=false;
   script.onerror=()=>{controls.forEach(x=>x.disabled=true);status('Não foi possível carregar o login protegido.');};
   document.body.appendChild(script);
