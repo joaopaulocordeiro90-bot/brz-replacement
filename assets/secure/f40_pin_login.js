@@ -93,7 +93,8 @@ async function request(path,{method='GET',body=null,token=null,attempt=0}={}){
     if(response.status===500&&route){
       try{pgCode=(await response.json())?.code||null;}catch{}
     }
-    if(route&&body&&Number(body.p_limit)>250&&attempt===0&&
+    const minSplitSize=path==='/rest/v1/rpc/brz_api_f46_road_page'?750:250;
+    if(route&&body&&Number(body.p_limit)>minSplitSize&&attempt===0&&
       ((response.status===500&&pgCode==='57014')||[502,503,504].includes(response.status))){
       return splitReadPage(path,body,token);
     }
