@@ -2,8 +2,6 @@ import assert from 'node:assert/strict';
 import {gzipSync} from 'node:zlib';
 import {webcrypto} from 'node:crypto';
 import {projectExcel,decodeExcelArchive,mergePrices,mergeBasisSeries,mergeCMA,mergeOcean,basisReferences} from '../assets/secure/market_excel_overlay.mjs';
-globalThis.crypto=webcrypto;
-globalThis.atob=x=>Buffer.from(x,'base64').toString('binary');
 const sha='a'.repeat(64),pack={as_of:'2026-11-16',source_file:'synthetic.xlsx',file_sha256:sha,
  sheets:{
   prices:[
