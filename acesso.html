@@ -1,39 +1,8 @@
-<!doctype html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#10283e">
-<title>BRZ Replacement | Acesso autenticado</title>
-<style>
-:root{font-family:Inter,Arial,sans-serif;color:#f0f6fb;background:#0d1e2d}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center}
-main{width:min(490px,calc(100% - 30px));padding:30px;border:1px solid #36546e;border-radius:12px;background:#142c43}
-.brand{font-weight:800;font-size:13px;letter-spacing:.12em;color:#9ec4d8;margin-bottom:12px}
-h1{font-size:28px;margin:0 0 7px}h2{font-weight:500;font-size:14px;color:#a9c4da;margin:0 0 24px}
-p{font-size:13px;color:#b5cbdc;line-height:1.55}label{display:block;font-size:12px;font-weight:700;color:#d5e6f0;margin:12px 0 6px}
-input{width:100%;background:#0e2234;color:white;border:1px solid #46647e;border-radius:6px;padding:12px;font:14px Arial}
-button{cursor:pointer;padding:12px 17px;border:0;border-radius:6px;color:#082c3a;background:#31c4b6;font-weight:800;font-size:14px;margin:15px 0 6px;width:100%}
-button:disabled{opacity:.48;cursor:not-allowed}
-#status{border:1px solid #37516b;border-radius:7px;background:#102337;padding:12px;color:#a8c9df;white-space:pre-wrap;font-size:12px;min-height:42px}
-#app{display:none;border:0;height:100vh;width:100vw;background:white}
-body.loaded{display:block}body.loaded main{display:none}body.loaded #app{display:block}
-#exitF57{display:none;position:fixed;top:12px;right:15px;z-index:999999;background:#b63a33;color:white;width:auto;padding:10px 13px;margin:0}
-body.loaded #exitF57{display:block}
-@media(max-width:560px){main{padding:24px 19px}}
-</style></head>
-<body>
-<main><div class="brand">BRZ · REPLACEMENT ENGINE</div>
-<h1>Acesso à plataforma</h1>
-<h2>Login autorizado da mesa · Supabase</h2>
-<p>Os dados operacionais são consultados mediante autenticação. Esta entrada funciona em modo de leitura enquanto a gravação centralizada é preparada.</p>
-<form id="authform" autocomplete="off">
-<label for="user">E-mail</label><input id="user" type="email" autocomplete="username" required disabled>
-<label for="pass">Senha</label><input id="pass" type="password" autocomplete="current-password" required disabled>
-<button id="go" type="submit" disabled>Entrar na plataforma</button></form>
-<div id="status" role="status" aria-live="polite">Preparando acesso autenticado…</div>
-<p>Não utilize a senha do GitHub. O acesso depende de usuário cadastrado no Supabase com perfil autorizado.</p>
-</main>
-<button id="exitF57" type="button" onclick="location.reload()">Sair</button>
-<iframe id="app" title="BRZ Replacement" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"></iframe>
-<script type="module" src="assets/secure/login_boot.mjs?v=20261116f40sort"></script>
+<meta http-equiv="refresh" content="0;url=./pin.html">
+<title>BRZ Replacement · Acesso por PIN</title></head>
+<body><p>O acesso oficial agora utiliza PIN. <a href="./pin.html">Abrir BRZ Replacement</a></p>
+<script>location.replace(new URL('./pin.html',location.href).href)</script>
 </body></html>
