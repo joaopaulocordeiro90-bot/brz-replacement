@@ -138,6 +138,66 @@
   return await response.json();
  }
  let frozenBaseline=null,deskChatSnapshot=null;
+ let liveSignature=null,liveCurvesSignature=null,liveCheckBusy=false;
+ let livePollingStarted=false;
+ function signatureOfDesk(response,desk){
+   if(!response||!Array.isArray(response.rows)||!desk||
+       !Array.isArray(desk.trades)||!Array.isArray(desk.curves))
+     throw Error('Sinal de sincronização incompleto');
+   return stable({
+     events:response.rows.map(e=>[e.legacy_id,e.version,e.action]),
+     trades:desk.trades.map(t=>[t.legacy_id,t.record_json]),
+     curves:desk.curves.map(c=>[c.source_date,c.inserted_at,c.payload?.snapshot?.snap])
+   });
+ }
+ function curvesSignature(desk){
+   return stable((desk?.curves||[]).map(c=>[
+      c.source_date,c.inserted_at,c.payload?.snapshot?.snap
+   ]));
+ }
+ async function pollLiveUpdates(){
+   if(!connected||dirty||saving||blocked||applying||moduleBooting||
+      liveCheckBusy||document.hidden)return;
+   liveCheckBusy=true;
+   try{
+     const [response,desk]=await Promise.all([
+       req('/rest/v1/rpc/brz_pin_fast_trade_deltas',{}),
+       req('/rest/v1/rpc/brz_pin_desk_chat_snapshot',{})
+     ]);
+     const next=signatureOfDesk(response,desk);
+     if(liveSignature===null){liveSignature=next;return;}
+     if(next===liveSignature)return;
+     // Re-check after the requests. Local edits always take priority to avoid
+     // overwriting user input while the server response is in flight.
+     if(dirty||saving||blocked||applying||moduleBooting)return;
+     const curveChanged=curvesSignature(desk)!==liveCurvesSignature;
+     setStatus('Recebendo alterações do Supabase…','working');
+     const latest=await rows();
+     if(dirty||saving||blocked)return;
+     apply(latest);
+     if(curveChanged)await loadModules();
+     const liveCount=latest.filter(r=>!r.deleted).length;
+     setStatus('Sincronizado automaticamente · '+liveCount.toLocaleString('pt-BR')+' negócios');
+     $('brzpin-alert').textContent='';
+   }catch(error){
+     // A transient network failure must neither discard local state nor log
+     // out the operator. Retry on the next visibility/focus/interval event.
+     console.warn('BRZ: sincronização automática adiada',error?.message);
+     if(connected&&!dirty&&!blocked&&!saving)
+       setStatus('Conectado · aguardando nova sincronização','warning');
+   }finally{liveCheckBusy=false;}
+ }
+ function startLivePolling(){
+   if(livePollingStarted)return;
+   livePollingStarted=true;
+   // Change detection reads only a tiny authenticated journal/desk snapshot.
+   // SHA-validated immutable 4k/178k archives are never reloaded by the poll.
+   setInterval(()=>{void pollLiveUpdates()},20000);
+   window.addEventListener('focus',()=>{void pollLiveUpdates()});
+   document.addEventListener('visibilitychange',()=>{
+     if(!document.hidden)void pollLiveUpdates();
+   });
+ }
  async function rows(){
   // Source 4,011 trades were loaded and SHA-verified by F41 before this
   // bridge starts. Fetch only versioned F33 changes, not 41 redundant pages.
@@ -155,6 +215,8 @@
   if(!desk||!Array.isArray(desk.trades)||!Array.isArray(desk.curves))
     throw Error('Recebimento autenticado da mesa inválido');
   deskChatSnapshot=desk;
+  liveSignature=signatureOfDesk(response,desk);
+  liveCurvesSignature=curvesSignature(desk);
   if(!response||!Array.isArray(response.rows)||response.rows.length>10000)
     throw Error('Diário de negócios inválido');
   const byId=new Map();
@@ -718,6 +780,7 @@
     installFastNavigation();
     installSystemToolsTab();
     dirty=false;blocked=false;
+    startLivePolling();
     setStatus('Sincronizado · '+data.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
     return Object.freeze({ready:true,records:data.length,autosave:true});
   }catch(error){
