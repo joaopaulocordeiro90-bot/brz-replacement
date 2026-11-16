@@ -175,7 +175,7 @@
      const latest=await rows();
      if(dirty||saving||blocked)return;
      apply(latest);
-     if(curveChanged)await loadModules();
+     if(curveChanged){await loadModules();await loadExcelMarketOverlay();}
      const liveCount=latest.filter(r=>!r.deleted).length;
      setStatus('Sincronizado automaticamente · '+liveCount.toLocaleString('pt-BR')+' negócios');
      $('brzpin-alert').textContent='';
@@ -304,6 +304,58 @@
    settings:['precosEdits','farmerSelling','r3Hidden','simulacoes','roadGeoRoutes']
  });
  let remoteModules=new Map(),roadBaseline=new Map(),moduleBooting=false;
+ let excelBasisReferences=[],excelMarketStatus=null;
+ async function loadExcelMarketOverlay(){
+  const reply=await req('/rest/v1/rpc/brz_pin_market_excel_archive',{});
+  if(!reply?.available)return;
+  const mod=await import('./market_excel_overlay.mjs?v=20261116f64');
+  const patch=await mod.decodeExcelArchive(reply);
+  if(!patch)return;
+  // Prepare all replacement arrays before touching the visible UI.
+  const priceBase=typeof PRECOS_BASE_CACHE!=='undefined'&&Array.isArray(PRECOS_BASE_CACHE)
+   ?PRECOS_BASE_CACHE:typeof getPrecosBase==='function'?getPrecosBase():null;
+  if(!Array.isArray(priceBase)||typeof ppeData!=='function'||typeof r3Data!=='function')
+   throw Error('Base financeira legada não inicializada para o Excel.');
+  const nextPrices=mod.mergePrices(priceBase,patch.physical);
+  const nextBasis=mod.mergeBasisSeries(ppeData(),patch.basis);
+  const nextCMA=mod.mergeCMA(r3Data(),patch.derivatives);
+  const nextOcean=mod.mergeOcean(state,patch.ocean);
+  // No snapshots of closed trades, CBOT, FX, railway or road freight are modified.
+  PRECOS_BASE_CACHE=nextPrices;
+  _basisFOB=nextBasis;
+  _r3DerivCache=nextCMA;
+  state.oceanFreightMonthly=nextOcean.oceanFreightMonthly;
+  state.oceanFreightCornMonthly=nextOcean.oceanFreightCornMonthly;
+  state.marketExcelOceanRoutes=nextOcean.marketExcelOceanRoutes;
+  state.marketExcelRawPhysical=patch.physicalRaw;
+  state.marketExcelAsOf=patch.as_of;
+  state.marketExcelSHA256=patch.sourceSha;
+  // The Excel overlay is read-only market data, never an editable ocean module.
+  // Rebase local comparison snapshot to avoid accidentally posting source data
+  // as a user's manual change during the next autosave.
+  const oceanModule=remoteModules.get('ocean');
+  if(oceanModule)remoteModules.set('ocean',{...oceanModule,snapshot:stable(groupSnapshot('ocean'))});
+  state._version=(Number(state._version)||0)+1;
+  excelBasisReferences=mod.basisReferences(patch.basis);
+  excelMarketStatus=patch.counts;
+  for(const key of ['_r3MealCurveCache','_r3SpotCache','_r3PhysicalCache','_r3PhysicalCacheDate']){
+   try{if(key==='_r3MealCurveCache'&&typeof _r3MealCurveCache!=='undefined')_r3MealCurveCache=null;
+    if(key==='_r3SpotCache'&&typeof _r3SpotCache!=='undefined')_r3SpotCache=null;
+    if(key==='_r3PhysicalCache'&&typeof _r3PhysicalCache!=='undefined')_r3PhysicalCache=null;
+    if(key==='_r3PhysicalCacheDate'&&typeof _r3PhysicalCacheDate!=='undefined')_r3PhysicalCacheDate=null;
+   }catch{}
+  }
+  if(typeof invalidateDataCache==='function')invalidateDataCache();
+  if(typeof clearCalcCaches==='function')clearCalcCaches();
+  if(typeof scheduleRenderAll==='function')scheduleRenderAll();
+  let stamp=$('brz-market-xlsx-status');
+  if(!stamp){stamp=document.createElement('div');stamp.id='brz-market-xlsx-status';
+   stamp.style.cssText='font:600 12px Arial;color:#176a61;background:#f2fbf8;padding:7px 10px;margin:6px 0;border:1px solid #c7e8de';
+   document.querySelector('#mercado .head')?.appendChild(stamp);}
+  if(stamp)stamp.textContent='Excel de mercado · '+patch.as_of.split('-').reverse().join('/')+
+   ' · '+patch.counts.physicalBidOffer+' bids/offers · '+patch.counts.basis+
+   ' basis · '+patch.counts.ocean+' fretes marítimos · '+patch.counts.derivatives+' derivados';
+ }
  let curveUpdatedAt=null,curveSourceDate=null,curveCaptureTime='não informado';
  function renderCurveLastUpdate(){
    const head=document.querySelector('#mercado .head');
@@ -856,7 +908,14 @@
    module.installPendencias({
     getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
     getState:()=>state,
-    getReferences:()=>req('/rest/v1/rpc/brz_pin_replacement_references',{}),
+    getReferences:async()=>{
+     const base=await req('/rest/v1/rpc/brz_pin_replacement_references',{});
+     if(!excelBasisReferences.length)return base;
+     const k=x=>[x.product,x.port,x.shipment,x.typ,x.day].join('|');
+     const keys=new Map((base.basis||[]).map(x=>[k(x),x]));
+     for(const x of excelBasisReferences)keys.set(k(x),x);
+     return {...base,basis:[...keys.values()],as_of:state.marketExcelAsOf||base.as_of};
+    },
     saveTrade:savePendingTrade
    });
   }catch(error){
@@ -882,6 +941,9 @@
     apply(data);
     setStatus('Atualizando curvas, fretes e prêmios…','working');
     await loadModules();
+    try{await loadExcelMarketOverlay();}
+    catch(error){console.error('BRZ Excel F64:',error);const banner=$('brzpin-alert');
+      if(banner)banner.textContent='Excel F64 não ativado: '+error.message;}
     const previousButton=$('brzf33-launch');
     if(previousButton)previousButton.style.display='none';
     const base=typeof persist==='function'?persist:null;
