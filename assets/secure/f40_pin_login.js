@@ -62,7 +62,11 @@ async function restoreTabSession(){
     method:'POST',headers:{apikey:KEY,'Content-Type':'application/json',
       Accept:'application/json'},body:JSON.stringify({refresh_token:refresh}),
     cache:'no-store',redirect:'error',credentials:'omit',referrerPolicy:'no-referrer'});
-   if(!resp.ok)throw Error('Sessão não renovável');
+   if(!resp.ok){
+    const err=Error('Sessão não renovável: Supabase HTTP '+resp.status);
+    err.status=resp.status;
+    throw err;
+   }
    const rotated=await resp.json();
    if(typeof rotated?.access_token!=='string'||typeof rotated?.refresh_token!=='string')
     throw Error('Sessão inválida');
@@ -79,7 +83,16 @@ async function restoreTabSession(){
   pinRefreshToken=refresh;pinExpiresIn=seconds;
   rememberTabSession(token,refresh,seconds,saved.keep_until);
   return token;
- }catch(e){forgetTabSession();return null;}
+ }catch(e){
+   // A temporary network failure or timeout is not a logout.
+   // Keep the unexpired tab session so F5 can retry without a new PIN.
+   const message=String(e?.message||e);
+   const trulyInvalid=[401,403].includes(Number(e?.status))||
+     message==='Sessão não autorizada'||
+     message==='Sessão inválida';
+   if(trulyInvalid){forgetTabSession();return null;}
+   throw Error('Não foi possível restabelecer a conexão: '+message);
+ }
 }
 // The inner iframe rotates Supabase refresh tokens while the operator works.
 // Keep the parent tab's saved token synchronized to avoid F5 logout.
@@ -263,8 +276,10 @@ async function request(path,{method='GET',body=null,token=null,attempt=0,skipAhe
       await new Promise(ok=>setTimeout(ok,750*(2**attempt)));
       return request(path,{method,body,token,attempt:attempt+1});
     }
-    throw Error('Supabase HTTP '+response.status+
+    const err=Error('Supabase HTTP '+response.status+
       (pgCode==='57014'?' · F34 timeout (tentativas '+(attempt+1)+')':''));
+    err.status=response.status;
+    throw err;
   }
   const result=await response.json();
   if(route){
@@ -581,6 +596,7 @@ async function start(ev){
       window.__BRZ_SESSION_LOAD_MS=Math.round(performance.now()-loginBegan);
       console.info('BRZ: PIN e cargas autenticadas',window.__BRZ_SESSION_LOAD_MS,'ms');
       document.body.classList.add('loaded');
+      document.documentElement.classList.remove('brz-restoring','brz-resume-failed');
     }catch(e){
       token=null;window.__BRZF57_BRIDGE_VERIFIED=false;
       iframe.src='about:blank';
@@ -588,7 +604,13 @@ async function start(ev){
       window.__BRZF42_DEALS=null;window.__BRZF42_DEALS_READY=false;
       window.__BRZF40_PHYSICAL_ROWS=null;window.__BRZF40_PHYSICAL_READY=false;
       window.__BRZF56_PRIVATE_RUNTIME=null;
-      status('Não foi possível conectar o banco de negócios: '+e.message+'. Confira a sessão PIN.');
+      if(restoring){
+        document.documentElement.classList.add('brz-resume-failed');
+        status('Falha temporária ao recuperar os dados da plataforma: '+e.message+
+          '. Sua sessão permanece guardada nesta aba. Tente restaurar novamente.');
+      }else{
+        status('Não foi possível conectar o banco de negócios: '+e.message+'. Confira a sessão PIN.');
+      }
       $('go').disabled=true;loading=false;
     }
   },{once:true});
@@ -608,7 +630,24 @@ async function start(ev){
   window.__BRZF42_DEALS=null;window.__BRZF42_DEALS_READY=false;
   window.__BRZF41_TRADES=null;window.__BRZF41_TRADES_READY=false;
   window.__BRZF40_PHYSICAL_ROWS=null;window.__BRZF40_PHYSICAL_READY=false;
-  $('pin').value='';status('BLOQUEADO: '+e.message+'\nNenhum dado local foi substituído.');
+  $('pin').value='';
+  if(restoring){
+    let stillValid=false;
+    try{
+      const cached=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');
+      stillValid=Boolean(cached&&Number(cached.keep_until)>Date.now());
+    }catch(error){}
+    if(stillValid){
+      document.documentElement.classList.add('brz-resume-failed');
+      status('Não foi possível terminar a restauração: '+e.message+
+        '. A sessão continua válida. Use Tentar restaurar novamente.');
+    }else{
+      document.documentElement.classList.remove('brz-restoring','brz-resume-failed');
+      status('Sessão expirada ou invalidada. Entre novamente com seu PIN.');
+    }
+  }else{
+    status('BLOQUEADO: '+e.message+'\nNenhum dado local foi substituído.');
+  }
   $('go').disabled=false;loading=false;
  }
 }
