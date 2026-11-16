@@ -796,7 +796,7 @@
    if(!connected||applying||saving||blocked||dirty||moduleBooting)
      throw Error('Conclua primeiro a sincronização pendente do banco.');
    if(!input||typeof input!=='object'||Array.isArray(input)||input.approved!==true||
-       typeof input.id!=='string'||!/^nf\\d{6}_\\d{2,4}$/.test(input.id)||
+       typeof input.id!=='string'||!/^nf\d{6}_\d{2,4}$/.test(input.id)||
        typeof input.routeKey!=='string'||input.routeKey.length>600||
        typeof input.destination!=='string'||!input.destination||input.destination.length>120||
        typeof input.origin!=='string'||!input.origin||input.origin.length>450||
@@ -808,8 +808,8 @@
    if(!trade||trade.origem!==input.origin||String(trade.data||'')!==String(input.date||''))
      throw Error('O negócio mudou: recalcule a rota antes de gravar.');
    const keyExpected=JSON.stringify([input.id,
-     input.origin.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim(),
-     input.destination.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim(),
+     input.origin.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(),
+     input.destination.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(),
      String(input.date||'').slice(0,10)]);
    if(input.routeKey!==keyExpected)throw Error('Chave da rota divergente.');
    const entries=state.roadGeoRoutes&&typeof state.roadGeoRoutes==='object'&&!Array.isArray(state.roadGeoRoutes)
