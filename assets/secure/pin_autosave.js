@@ -279,6 +279,7 @@
     if(typeof clearCalcCaches==='function')clearCalcCaches();
     if(typeof scheduleRenderAll==='function')scheduleRenderAll();
     else if(typeof renderAll==='function')renderAll();
+    if(window.BRZPendencias)window.BRZPendencias.refresh();
   }finally{applying=false}
  }
 
@@ -749,6 +750,62 @@
   };
   window.__BRZ_PIN_FAST_NAV=true;
  }
+
+ async function savePendingTrade(id,change){
+  if(!connected||dirty||saving||blocked||applying||moduleBooting)
+   throw Error('Há sincronização pendente. Conclua as gravações antes de salvar esta conta.');
+  if(typeof id!=='string'||!/^nf\d{6}_\d{2,4}$/.test(id)||
+     !change||typeof change!=='object'||Array.isArray(change))
+   throw Error('Atualização de negócio inválida.');
+  const index=state.negocios.findIndex(d=>d?.id===id);
+  if(index<0)throw Error('Negócio não encontrado.');
+  const record=state.negocios[index],old=remote.get(id);
+  if(!old||old.deleted)throw Error('Negócio não disponível no histórico versionado.');
+  if(old.snapshot!==stable(record))
+   throw Error('Existem alterações locais neste negócio. Salve-as antes.');
+  if(change.replacementStatus!=='CALCULADO_INDICATIVO'||
+     change.replacementIndicativo!==true||
+     change.replacementPendente!==false||
+     change.replacementCalculo?.executado!==false||
+     !Number.isFinite(Number(change.replacementCalculo?.costUSDt)))
+   throw Error('Resultado financeiro incompleto ou inválido.');
+  const next={...record,...change};
+  if(next.id!==id||next.status!=='FECHADO')throw Error('Identificação ou status comercial alterado.');
+  const receipt=await req('/rest/v1/rpc/brz_pin_trade_mutate',{
+   p_operation_id:crypto.randomUUID(),p_legacy_id:id,p_action:'UPDATE',
+   p_expected_version:old.version,p_record:next
+  });
+  const ack=Array.isArray(receipt)?receipt[0]:receipt;
+  if(!ack||ack.legacy_id!==id||ack.applied_action!=='UPDATE'||
+     Number(ack.record_version)!==old.version+1||ack.deleted!==false)
+   throw Error('Supabase não confirmou a revisão do negócio.');
+  state.negocios[index]=next;
+  remote.set(id,{version:old.version+1,deleted:false,record:next,snapshot:stable(next)});
+  if(typeof window.__BRZ_PIN_INVALIDATE_NAV==='function')window.__BRZ_PIN_INVALIDATE_NAV();
+  if(typeof invalidateDataCache==='function')invalidateDataCache();
+  if(typeof clearCalcCaches==='function')clearCalcCaches();
+  if(typeof scheduleRenderAll==='function')scheduleRenderAll();
+  else if(typeof renderAll==='function')renderAll();
+  setStatus('Replacement indicativo salvo · '+id);
+  window.BRZPendencias?.refresh();
+  return ack;
+ }
+ async function initPendingWorkspace(){
+  if(window.BRZPendencias)return;
+  try{
+   const module=await import('./negocios_pendencias.mjs?v=20261116pend01');
+   module.installPendencias({
+    getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
+    getState:()=>state,
+    getReferences:()=>req('/rest/v1/rpc/brz_pin_replacement_references',{}),
+    saveTrade:savePendingTrade
+   });
+  }catch(error){
+   console.error('BRZ Pendências:',error);
+   const box=$('brzpin-alert');
+   if(box)box.textContent='Subaba Pendências indisponível: '+error.message;
+  }
+ }
  async function connect(arg){
   if(connected||applying)throw Error('Conexão já iniciada');
   const supplied=arg&&typeof arg==='object'?arg:{access_token:arg};
@@ -779,6 +836,7 @@
     installFreightViewCache();
     installFastNavigation();
     installSystemToolsTab();
+    await initPendingWorkspace();
     dirty=false;blocked=false;
     startLivePolling();
     setStatus('Sincronizado · '+data.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
