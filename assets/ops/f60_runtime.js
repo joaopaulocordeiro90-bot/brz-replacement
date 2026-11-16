@@ -26,6 +26,7 @@
       if (raw) storedBuild = JSON.parse(raw)._fileBuildId || null;
     } catch(e) { storageError = String(e && e.message || e); }
     const stateUsable = negocios.length >= BASELINE && uniques.size === negocios.length && !ids.includes('');
+    const durableStorage = storageAvailable || !!dbConnection;
     return {
       schema:'BRZ_F60_LOCAL_READINESS', version:VERSION, generatedAt:new Date().toISOString(),
       sourceBuild:build, snapshotDate:'2026-11-13', source:'BRZ_Replacement_V4FQ_F35_HOMOLOGACAO.html',
@@ -37,10 +38,10 @@
       modulesTotal:SECTIONS.length, modulesFound:SECTIONS.length - missing.length, missingModules:missing,
       exportJsonAvailable:typeof downloadBackup === 'function',
       exportHtmlAvailable:typeof downloadHtmlSnapshot === 'function',
-      browserStorageAvailable:storageAvailable, browserStatePreviouslySaved:persisted,
+      browserStorageAvailable:storageAvailable, durableLocalStorageAvailable:durableStorage, browserStatePreviouslySaved:persisted,
       indexedDbStatus:storageMode, indexedDbLastSave:lastSave,
       savedBuild:storedBuild, storageError:storageError,
-      status:stateUsable && !missing.length && storageAvailable ? 'ESTRUTURA_LOCAL_OK' : 'REVISAR',
+      status:stateUsable && !missing.length && durableStorage ? 'ESTRUTURA_LOCAL_OK' : 'REVISAR',
       financeCertified:false, crossDeviceSync:false, backendWriteEnabled:false,
       note:'Verificacao estrutural e de IDs. Nao certifica replacement, D-1/D-7/D-30, valores financeiros ou sincronizacao remota.'
     };
@@ -73,7 +74,7 @@
     const a = getStatus();
     $('brzf60-overview').textContent = a.deals.toLocaleString('pt-BR') + ' negócios | ' +
       a.modulesFound + '/' + a.modulesTotal + ' módulos | ' +
-      (a.browserStorageAvailable ? 'armazenamento local disponível' : 'armazenamento local indisponível');
+      (a.durableLocalStorageAvailable ? 'armazenamento local disponível' : 'armazenamento local indisponível');
     $('brzf60-details').textContent = 'Estrutura: ' + a.status + '\n' +
       'Build: ' + a.sourceBuild + '\n' +
       'IDs únicos: ' + (a.dealIdsUnique ? 'sim' : 'NÃO') + '\n' +
