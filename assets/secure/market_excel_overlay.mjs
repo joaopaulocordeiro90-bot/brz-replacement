@@ -37,7 +37,7 @@ export function projectExcel(pack){
   if(!ISO.test(day)||!Array.isArray(rows)||day>pack.as_of)throw Error('Data física inválida.');
   for(const r of rows){
    if(!Array.isArray(r)||r.length!==5||!ptProd[r[0]]||
-       !['Bid','Offer'].includes(r[2])||!month(r[4]))throw Error('Registro físico inválido.');
+       !['Bid','Offer'].includes(r[2])||(r[4]!==null&&r[4]!==''&&!month(r[4])))throw Error('Registro físico inválido.');
    const price=acceptedValue(r[3],'físico '+day);
    const key=JSON.stringify([day,r[0],r[1],r[4]]),v=map.get(key)||{date:day,product:r[0],city:clean(r[1]),shipment:r[4]};
    if(Object.prototype.hasOwnProperty.call(v,r[2]))throw Error('Bid/offer duplicado para '+key);
@@ -54,8 +54,9 @@ export function projectExcel(pack){
   // preserve both bid and offer, and never multiply by 16.667.
   physical.push({id,data:x.date,produto:ptProd[x.product],origem:x.city,
    preco:(x.Bid+x.Offer)/2,precoLado:'mid',
-   bid:x.Bid,offer:x.Offer,janelaFisica:x.shipment,
-   embarque:shiftShipment(x.shipment,1),embarqueIndicativo:true,
+   bid:x.Bid,offer:x.Offer,janelaFisica:x.shipment||'N/D',
+   embarque:x.shipment?shiftShipment(x.shipment,1):null,embarqueIndicativo:!!x.shipment,
+   janelaFisicaPendente:!x.shipment,
    precoMoeda:'BRL',unidadePreco:'R$/sc',unidadeCabecalhoOriginal:'BRL/ton',
    fonteBase:'Preços',fontePlanilha:pack.source_file||'Excel 16/11/2026',
    fonteRef:'BRZ_XLSX_F64',importacaoSHA256:pack.file_sha256,
@@ -67,7 +68,7 @@ export function projectExcel(pack){
   if(!ISO.test(day)||!Array.isArray(rows)||day>pack.as_of)throw Error('Data FOB inválida');
   for(const r of rows){
    if(!Array.isArray(r)||r.length!==8||!['bid','offer'].includes(r[6])||
-       !/^\d{2}-20\d{2}$/.test(r[4]))throw Error('Basis inválido.');
+       !/^(?:\d{2}|\d{2}\|\d{2})-20\d{2}$/.test(r[4]))throw Error('Basis inválido.');
    const key=[r[1],r[0],r[3],r[4],r[6]].join('|'),
     dayNum=Number(day.replaceAll('-','')),value=Number(r[7]);
    if(!Number.isFinite(value)||seenBasis.has(key+'|'+day))throw Error('Duplicidade ou basis inválido');
@@ -76,14 +77,15 @@ export function projectExcel(pack){
    rawBasis++;
   }
  }
- const derivatives=[],seenDeriv=new Set();
+ const derivatives=[];let seqCma=0;
  for(const [day,rows] of Object.entries(days['Derivados CMA']||{})){
   if(!ISO.test(day)||!Array.isArray(rows)||day>pack.as_of)throw Error('Data CMA inválida.');
   for(const r of rows){
    if(!Array.isArray(r)||r.length!==3||!['Soymeal','Soyoil'].includes(r[2]))throw Error('CMA inválido');
-   const val=acceptedValue(r[1],'CMA'),key=[day,r[0],r[2]].join('|');
-   if(seenDeriv.has(key))throw Error('CMA duplicado em '+key);
-   seenDeriv.add(key);derivatives.push({d:day,o:r[0],v:[val],p:r[2]});rawDeriv++;
+   const val=acceptedValue(r[1],'CMA');
+   // CMA may have multiple distinct quotations for one city/product/day.
+   // Preserve each source observation and its order, never collapse by location.
+   derivatives.push({d:day,o:r[0],v:[val],p:r[2],_brzExcelF64:true,_brzExcelSeq:++seqCma});rawDeriv++;
   }
  }
  const ocean=[],seenOcean=new Set();
@@ -142,13 +144,10 @@ export function mergeBasisSeries(original,entries){
 }
 export function mergeCMA(original,entries){
  if(!original||!Array.isArray(original.rows))throw Error('CMA não carregado.');
- const rows=original.rows.slice(),map=new Map(rows.map((r,i)=>[[r.d,r.o,r.p].join('|'),i]));
- for(const x of entries){
-  const key=[x.d,x.o,x.p].join('|');
-  if(map.has(key))rows[map.get(key)]=x;
-  else{map.set(key,rows.length);rows.push(x);}
- }
- return {...original,rows};
+ // Only remove a previous instance of THIS Excel import; never delete
+ // historic CMA observations with the same city/product/day.
+ const rows=original.rows.filter(x=>x?._brzExcelF64!==true);
+ return {...original,rows:[...rows,...entries]};
 }
 export function mergePrices(original,entries){
  if(!Array.isArray(original))throw Error('Preço físico não carregado.');
