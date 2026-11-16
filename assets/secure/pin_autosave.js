@@ -328,6 +328,45 @@
    window.__BRZ_PIN_FAST_PRICE_SYNC=true;
  }
 
+
+ // Freight table renders scan and sort 178,201 historical freight entries.
+ // Reopening the same page without data/filter changes can reuse the same DOM.
+ function installFreightViewCache(){
+   if(window.__BRZ_PIN_FREIGHT_VIEW_CACHE)return;
+   const original=window.renderFreights;
+   if(typeof original!=='function')return;
+   let epoch=0,last=null;
+   function mark(event){
+     if(event.target?.closest?.('#fretes'))epoch++;
+   }
+   for(const type of ['input','change','click'])
+     document.addEventListener(type,mark,true);
+   function stamp(){
+     const v=id=>document.getElementById(id)?.value||'';
+     return JSON.stringify([
+       state?._version||0,
+       typeof freightTab!=='undefined'?freightTab:'',
+       typeof rodoPage!=='undefined'?rodoPage:'',
+       typeof rodoCompareMode!=='undefined'?rodoCompareMode:false,
+       v('rodoFiltSemana'),v('rodoFiltDestino'),v('rodoFiltOrigem'),
+       v('rodoSortBy'),epoch
+     ]);
+   }
+   window.renderFreights=function(){
+     const freight=state?.fretesRodo,rail=state?.fretesFerro;
+     const key=stamp();
+     const present=document.getElementById('rodoBody')?.firstChild;
+     if(present&&last?.key===key&&last.road===freight&&last.rail===rail&&
+       performance.now()-last.at<18000)return;
+     const start=performance.now();
+     const result=original.apply(this,arguments);
+     last={key:stamp(),road:freight,rail,at:performance.now()};
+     window.__BRZ_LAST_FREIGHT_RENDER_MS=Math.round(performance.now()-start);
+     return result;
+   };
+   window.__BRZ_PIN_FREIGHT_VIEW_CACHE=true;
+ }
+
  function installFastNavigation(){
   if(window.__BRZ_PIN_FAST_NAV)return;
   const baseShow=window.showScreen,baseRender=window.renderScreenSafe;
@@ -417,6 +456,7 @@
       return result;
     };
     installMarketHotPath();
+    installFreightViewCache();
     installFastNavigation();
     dirty=false;blocked=false;
     setStatus('Sincronizado · '+data.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
