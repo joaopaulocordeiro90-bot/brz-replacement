@@ -43,13 +43,24 @@
  badge.id='brzpin-badge';badge.type='button';badge.textContent='Banco · iniciando';
  const panel=document.createElement('div');panel.id='brzpin-panel';panel.hidden=true;
  panel.innerHTML='<h3>BRZ · Banco de negócios</h3>'+
-  '<p id="brzpin-status">Conectando…</p>'+
+  '<p id="brzpin-status">Conectando…</p>'+ 
+  '<p id="brzpin-speed" style="font-size:12px;color:#60788a"></p>'+
   '<p>Negócios, curvas, fretes, prêmios e configurações editáveis são salvos automaticamente no Supabase. Dados históricos originais são preservados.</p>'+
   '<button id="brzpin-reload" type="button">Recarregar negócios do banco</button>'+ 
   '<button id="brzpin-export" type="button" style="margin-left:5px">Exportar alterações</button>'+
   '<p id="brzpin-alert" role="status"></p>';
  document.body.appendChild(badge);document.body.appendChild(panel);
- badge.onclick=()=>{panel.hidden=!panel.hidden};
+ badge.onclick=()=>{
+  panel.hidden=!panel.hidden;
+  if(!panel.hidden){
+   const nav=window.__BRZ_LAST_TAB_RENDER_MS;
+   let boot=null;
+   try{boot=window.parent?.__BRZ_SESSION_LOAD_MS;}catch(e){}
+   $('brzpin-speed').textContent=
+    'Tempo de entrada: '+(Number.isFinite(boot)?boot+' ms':'não medido')+
+    ' · Renderização da última aba: '+(Number.isFinite(nav)?nav+' ms':'não medida');
+  }
+ };
  function setStatus(message,kind='neutral'){
   badge.textContent='Banco · '+message;
   badge.dataset.state=kind;
