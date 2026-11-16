@@ -48,6 +48,9 @@
   '<p>Negócios, curvas, fretes, prêmios e configurações editáveis são salvos automaticamente no Supabase. Dados históricos originais são preservados.</p>'+
   '<button id="brzpin-reload" type="button">Recarregar negócios do banco</button>'+ 
   '<button id="brzpin-export" type="button" style="margin-left:5px">Exportar alterações</button>'+
+  '<p><b>Importar fechamentos e curvas</b></p>'+ 
+  '<input id="brzpin-desk-file" type="file" accept=".json,application/json" style="width:100%;margin:5px 0 8px">'+
+  '<button id="brzpin-desk-run" type="button">Validar e importar JSON</button>'+
   '<p id="brzpin-alert" role="status"></p>';
  document.body.appendChild(badge);document.body.appendChild(panel);
  badge.onclick=()=>{
@@ -634,6 +637,116 @@
     if(dirty&&!blocked)schedule();
   }
  }
+
+
+ // Imports are explicitly initiated by the authenticated operator in the PIN
+ // session. All writes run through the existing Supabase RLS/versioned RPCs.
+ // Nothing commercial is committed to public GitHub Pages source code.
+ $('brzpin-desk-run').onclick=async()=>{
+  const file=$('brzpin-desk-file')?.files?.[0];
+  const output=$('brzpin-alert');
+  const btn=$('brzpin-desk-run');
+  if(!connected||blocked||dirty||saving){
+   output.textContent='Conclua as gravações pendentes antes de importar.';return;
+  }
+  if(!file||file.size<10||file.size>300000){
+   output.textContent='Selecione um JSON de importação BRZ válido (até 300 KB).';return;
+  }
+  let doc;
+  try{doc=JSON.parse(await file.text())}
+  catch{output.textContent='Arquivo JSON inválido.';return;}
+  const records=doc?.business_records,market=doc?.market_patch;
+  if(doc?.schema!=='BRZ_DESK_IMPORT_V1'||!Array.isArray(records)||
+     records.length<1||records.length>50||!market||
+     !/^\d{4}-\d{2}-\d{2}$/.test(doc.source_date||'')){
+    output.textContent='Pacote BRZ incompatível.';return;
+  }
+  const seen=new Set();
+  for(const rec of records){
+    if(!rec||typeof rec!=='object'||Array.isArray(rec)||
+       typeof rec.id!=='string'||!/^nf\d{6}_\d{2,4}$/.test(rec.id)||
+       seen.has(rec.id)||rec.data!==doc.source_date||
+       !['Soja','Milho','Sorgo','Trigo','Farelo','Óleo'].includes(rec.produto)||
+       rec.status!=='FECHADO'||!(Number(rec.volume)>0)||
+       !(Number(rec.preco)>0)||typeof rec.vendedor!=='string'||
+       typeof rec.comprador!=='string'||stable(rec).length>100000){
+       output.textContent='Negócio duplicado ou inválido dentro do pacote.';return;
+    }
+    seen.add(rec.id);
+  }
+  const keys=['cbot','cbotMilho','cbotOleo','cbotFarelo','dolar'];
+  if(!keys.every(key=>market[key]&&typeof market[key]==='object'&&
+    !Array.isArray(market[key])&&Object.keys(market[key]).length>=1&&
+    Object.values(market[key]).every(v=>typeof v==='number'&&Number.isFinite(v)&&v>0))||
+    !market.snapshot||market.snapshot.snap!==doc.source_date+'-C1'){
+    output.textContent='Curvas ou captura de mercado incompatíveis.';return;
+  }
+  if(!confirm('Importar '+records.length+' negócios FECHADOS e a curva indicativa de '+
+     doc.source_date+' no Supabase? Os dados serão gravados em sua sessão PIN.'))return;
+  btn.disabled=true;output.textContent='Conferindo IDs no banco…';
+  let created=0,unchanged=0,curveSaved=false;
+  try{
+    const inventory=await rows();
+    const existing=new Map(inventory.map(row=>[row.legacy_id,row]));
+    for(const rec of records){
+      const old=existing.get(rec.id);
+      if(old){
+        if(!old.deleted&&stable(old.record_json)===stable(rec))unchanged++;
+        else throw Error('ID já existe com dados diferentes: '+rec.id);
+      }
+    }
+    const liveCurves=await req('/rest/v1/rpc/brz_pin_module_list',{});
+    const srvCurve=liveCurves.find(r=>r.module==='curves');
+    const localCurve=remoteModules.get('curves')||{revision:0,snapshot:null};
+    if(Number(srvCurve?.revision||0)!==localCurve.revision)
+      throw Error('Curvas atualizadas em outro dispositivo. Reabra a plataforma e importe novamente.');
+    const original=groupSnapshot('curves');
+    const merged=JSON.parse(JSON.stringify(original));
+    for(const key of keys)merged[key]={...(merged[key]||{}),...market[key]};
+    merged.curvasIntraday={...(merged.curvasIntraday||{}),
+      [doc.source_date]:[market.snapshot]};
+    // Save first so all subsequent deals reference the same captured curves.
+    if(stable(merged)!==stable(original)){
+      output.textContent='Gravando curvas indicativas no Supabase…';
+      const reply=await req('/rest/v1/rpc/brz_pin_module_save',{
+        p_module:'curves',p_payload:merged,p_expected_revision:localCurve.revision});
+      const ack=Array.isArray(reply)?reply[0]:reply;
+      if(ack?.module!=='curves'||Number(ack.revision)!==localCurve.revision+1)
+        throw Error('Curvas sem confirmação de gravação.');
+      for(const key of [...keys,'curvasIntraday'])state[key]=merged[key];
+      remoteModules.set('curves',{revision:Number(ack.revision),snapshot:stable(merged)});
+      curveSaved=true;
+    }
+    for(const rec of records){
+      if(existing.has(rec.id))continue;
+      output.textContent='Gravando negócio '+(created+1)+' de '+(records.length-unchanged)+'…';
+      const ack=await req('/rest/v1/rpc/brz_pin_trade_mutate',{
+        p_operation_id:crypto.randomUUID(),p_legacy_id:rec.id,
+        p_action:'CREATE',p_expected_version:0,p_record:rec});
+      const receipt=Array.isArray(ack)?ack[0]:ack;
+      if(receipt?.legacy_id!==rec.id||Number(receipt.record_version)!==1||
+         receipt.applied_action!=='CREATE'||receipt.deleted===true)
+        throw Error('Negócio sem confirmação: '+rec.id);
+      created++;
+    }
+    const all=await rows();apply(all);
+    if(typeof invalidateDataCache==='function')invalidateDataCache();
+    if(typeof clearCalcCaches==='function')clearCalcCaches();
+    if(typeof scheduleRenderAll==='function')scheduleRenderAll();
+    else if(typeof renderAll==='function')renderAll();
+    setStatus('Sincronizado · '+all.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
+    output.style.color='#176940';
+    output.textContent='Confirmado no Supabase: '+created+' novos negócios; '+
+      unchanged+' já existentes; '+(curveSaved?'curvas atualizadas.':'curvas já atuais.');
+  }catch(error){
+    // PostgreSQL writes completed before an error are durable. Re-importing the
+    // same file is safe: matching IDs are skipped after a fresh DB read.
+    output.style.color='#a3372a';
+    output.textContent='Importação interrompida: '+(error?.message||String(error))+
+      '. Gravados até aqui: '+created+' negócio(s). Reabra/recupere e tente novamente.';
+    setStatus('Importação incompleta · confira banco','error');
+  }finally{btn.disabled=false;}
+ };
 
  $('brzpin-export').onclick=()=>{
    try{
