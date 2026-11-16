@@ -2,7 +2,7 @@
    No business data, password or token is stored by this bootstrap. */
 const el=id=>document.getElementById(id);
 const allowed=location.protocol==='https:'&&location.hostname==='joaopaulocordeiro90-bot.github.io'
-  &&location.pathname==='/brz-replacement/pin.html';
+  &&['/brz-replacement/','/brz-replacement/index.html','/brz-replacement/pin.html'].includes(location.pathname);
 function status(s){el('status').textContent=s;}
 function hex(bytes){return [...bytes].map(v=>v.toString(16).padStart(2,'0')).join('');}
 async function sha256(bytes){return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));}
