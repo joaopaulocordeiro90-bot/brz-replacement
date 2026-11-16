@@ -136,8 +136,29 @@ export function installPendencias(api){
   // change, preserving manually keyed quotes otherwise.
   ui.addEventListener('change',event=>{
    const k=event.target?.dataset?.field;
-   if(k!=='mesPorto'&&k!=='pagamento')return;
+   if(!['mesPorto','pagamento','porto','modal'].includes(k))return;
    const p=parse(),m=month(p.mesPorto);
+   if(['mesPorto','porto','modal'].includes(k)){
+    const look={...d,embarque:p.mesPorto,
+      replacementCenario:{...(d.replacementCenario||{}),
+       embarquePortoCenarios:[],embarquePorto:p.mesPorto}};
+    const choice=candidates(look,api.getState(),refs).find(r=>
+     r.porto===p.porto&&r.mesPorto===p.mesPorto&&r.modal===p.modal);
+    const message=ui.querySelector('[data-message]');
+    if(choice){
+     for(const key of ['freteRodo','freteFerro','basis','cbot','contratoCBOT','fx','contratoDOL']){
+      const input=ui.querySelector('[data-field="'+key+'"]');
+      if(input)input.value=choice[key]===null?'':String(choice[key]??'');
+     }
+     message.textContent='Rota atualizada: '+choice.rota+' · '+choice.freteFonte+
+       (choice.proxy?' (praça proxy)':'');
+    }else if(k==='porto'||k==='mesPorto'){
+     for(const key of ['freteRodo','freteFerro','basis']){
+      const input=ui.querySelector('[data-field="'+key+'"]');if(input)input.value='';
+     }
+     message.textContent='Sem cotação completa para este porto/mês. Preencha frete e basis apenas se houver referência.';
+    }
+   }
    if(m){
     const cc=cbotContract(d,m);
     const candidate=num((commodity(d)==='Soja'?api.getState().cbot:api.getState().cbotMilho)?.[cc]);
@@ -219,7 +240,7 @@ export function installPendencias(api){
      completed.length+')</summary><div id="brzp-done"></div></details>':'');
   const host=workspace.querySelector('#brzp-list');
   for(const d of rows.slice(0,130)){
-   const top=candidates(d,api.getState(),refs)[0],card=document.createElement('div');
+   const options=candidates(d,api.getState(),refs),top=options[0],card=document.createElement('div');
    card.className='brzp-card';card.dataset.id=d.id;
    const preview=top?.calc;
    card.innerHTML='<div class="brzp-head"><div class="brzp-title">'+esc(d.vendedor)+' → '+esc(d.comprador)+'</div>'+
@@ -231,7 +252,12 @@ export function installPendencias(api){
      '<b>Melhor referência disponível:</b> '+esc(top.porto)+' · '+esc(top.mesPorto)+
      ' · Frete R$ '+fmt(top.freteRodo,2)+'/t · FOB US$ '+fmt(preview.costUSDt,2)+'/t'+
      ' · Basis implícito '+fmt(preview.replacementBasis_cbu,1)+' c/bu'+
-     (preview.marginUSDt!==null?' · Margem indicativa US$ '+fmt(preview.marginUSDt,2)+'/t':' · Basis FOB de mercado N/D'):
+     (preview.marginUSDt!==null?' · Margem indicativa US$ '+fmt(preview.marginUSDt,2)+'/t':' · Basis FOB de mercado N/D')+
+     '<div class="brzp-note">Outros cenários BRZ: '+
+      options.slice(1,4).map(q=>esc(q.porto)+' '+esc(q.mesPorto)+' ('+esc(q.modal)+
+       '), FOB US$ '+fmt(q.calc.costUSDt,2)+'/t'+
+       (q.calc.marginUSDt!==null?', margem US$ '+fmt(q.calc.marginUSDt,2)+'/t':', mercado N/D'))
+       .join(' · ')+'</div>':
      'Sem rota completa automaticamente. Abra os campos para definir a referência.')+
      '</div>';
    card.querySelector('[data-edit]').onclick=()=>openEditor(d);
