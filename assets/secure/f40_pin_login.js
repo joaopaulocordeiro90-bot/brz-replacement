@@ -282,9 +282,16 @@ async function start(ev){
   status('Autenticando sessão mesa/admin…');
   token=await signIn($('pin').value.trim());
   $('pin').value='';
-  status('F56 · protegendo metadados e exceções comerciais específicas…');
-  const f56Rows=await request('/rest/v1/rpc/brz_api_f56_private_runtime_config',{
-    method:'POST',body:{},token});
+  status('Verificando metadados e fontes confidenciais em paralelo…');
+  // F55 and F56 are independent authenticated read-only sources.
+  // Concurrent retrieval saves one server round trip without touching data.
+  const [f56Rows,protected55]=await Promise.all([
+    request('/rest/v1/rpc/brz_api_f56_private_runtime_config',{
+      method:'POST',body:{},token}),
+    import('../f55/f55_protected_source.mjs').then(m=>m.hydrateF55ProtectedSources({
+      request,token,sha256,isAborted:()=>aborted
+    }))
+  ]);
   if(!Array.isArray(f56Rows)||f56Rows.length!==1||
      typeof f56Rows[0]?.source_text!=='string'||
      f56Rows[0]?.source_sha256!=='5564509b56fc57f5719e37fc3d47a98af6dc4b4438d042d9cc330610960b8819'||
@@ -297,10 +304,7 @@ async function start(ev){
      typeof f56Config.specialPortId!=='string'||typeof f56Config.specialPortDate!=='string')
     throw Error('F56: private source fields invalid');
   window.__BRZF56_PRIVATE_RUNTIME=Object.freeze(f56Config);
-  status('F55 · autenticando fontes confidenciais para hospedagem estática…');
-  const {hydrateF55ProtectedSources}=await import('../f55/f55_protected_source.mjs');
-  const protected55=await hydrateF55ProtectedSources({request,token,sha256,
-    isAborted:()=>aborted});
+
   // These values never appear in public static HTML/JS; only JWT/RLS returns them.
   window.__BRZF55_CFR=protected55.cfr_offers;
   window.__BRZF55_OCEAN=protected55.ocean_freight;
