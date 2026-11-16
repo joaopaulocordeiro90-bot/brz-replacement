@@ -15,7 +15,7 @@ async function load(){
  try{
   if(!allowed||!window.isSecureContext||window.top!==window) throw Error('Endereço de acesso não autorizado');
   if(!crypto?.subtle)throw Error('SHA-256 nativo indisponível');
-  status('Digite seu PIN. Conferindo os componentes da plataforma…');
+  status('Verificando a plataforma. Se a sessão ainda estiver válida nesta aba, a entrada será restaurada automaticamente, sem novo PIN…');
   const manifestResp=await fetch('./MANIFEST_F58_PUBLIC_SHA256.json',{cache:'no-store',credentials:'same-origin'});
   if(!manifestResp.ok)throw Error('Manifesto de dependências indisponível');
   const manifest=await manifestResp.json();
