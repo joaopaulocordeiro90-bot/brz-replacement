@@ -250,10 +250,10 @@ async function preflightModules(){
  // F49: dynamic imports must resolve relative to assets/f40/f40_boot.js.
  // Fail before asking the user to type a password if a deployment is incomplete.
  const checks=[
-  ['../f43/f43_derivatives_gate.mjs?v=fast20261116a','hydrateF43Derivatives'],
-  ['../f44/f44_market_gate.mjs?v=fast20261116a','hydrateF44Market'],
+  ['../f43/f43_derivatives_gate.mjs?v=20261116dbrelief01','hydrateF43Derivatives'],
+  ['../f44/f44_market_gate.mjs?v=20261116dbrelief01','hydrateF44Market'],
   ['../f45/f45_rail_source_gate.mjs','hydrateF45Rail'],
-  ['../f46/f46_road_source_gate.mjs?v=fast20261116a','hydrateF46Road'],
+  ['../f46/f46_road_source_gate.mjs?v=20261116dbrelief01','hydrateF46Road'],
   ['../f47/f47_premiums_gate.mjs','hydrateF47Premiums'],
   ['../f48/f48_source_gate.mjs','hydrateF48Legacy'],
   ['../f55/f55_protected_source.mjs','hydrateF55ProtectedSources'],
@@ -320,11 +320,11 @@ async function start(ev){
     return {frozenTrades,orderedDeals};
   })();
   const derivativesWork=(async()=>{
-    const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs?v=fast20261116a');
+    const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs?v=20261116dbrelief01');
     return hydrateF43Derivatives({request,token,sha256,isAborted:()=>aborted});
   })();
   const marketWork=(async()=>{
-    const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs?v=fast20261116a');
+    const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs?v=20261116dbrelief01');
     return hydrateF44Market({request,token,sha256,
       manifest:window.__BRZF44_META,isAborted:()=>aborted});
   })();
@@ -333,7 +333,7 @@ async function start(ev){
     return hydrateF45Rail({request,token,sha256});
   })();
   const roadWork=(async()=>{
-    const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs?v=fast20261116a');
+    const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs?v=20261116dbrelief01');
     return hydrateF46Road({request,token,sha256,
       manifest:window.__BRZF46_PRIVATE_META,isAborted:()=>aborted});
   })();
