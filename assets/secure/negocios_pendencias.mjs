@@ -241,11 +241,18 @@ export function installPendencias(api){
   if(!routes.length)return null;
   const options=candidates(d,api.getState(),refs);
   const authorized=options.filter(p=>p.calc&&num(p.freteRodo)!==null&&num(p.fx)>0&&num(p.cbot)>0&&
-   routes.some(rt=>rt.porto===p.porto&&(
-     (rt.modal==='T'&&p.modal==='Rodoviário')||
-     (rt.modal==='T+R'&&p.modal==='Rodoviário + Ferroviário'&&
-       p.rota.includes(String(rt.transbordo||'__no_rail_term__')))
-   )));
+   routes.some(rt=>{
+    if(rt.porto!==p.porto)return false;
+    const valid=(rt.modal==='T'&&p.modal==='Rodoviário')||
+       (rt.modal==='T+R'&&p.modal==='Rodoviário + Ferroviário'&&
+         p.rota.includes(String(rt.transbordo||'__no_rail_term__')));
+    if(!valid)return false;
+    if(p.modal==='Rodoviário + Ferroviário'&&p.freteRodo===0)return true;
+    const leg=rt.modal==='T'?rt.porto:rt.transbordo;
+    if(window.BRZRoadGeo?.getApproved?.(d.id,d.origem,leg,d.data))return true;
+    try{const quote=window.findRodoFreight?.(d.origem,leg,d.data,d.corredor,d.id);
+      return quote?.estimado===false&&num(quote.valor)>0;}catch{return false;}
+   }));
   if(!authorized.length)return null;
   const explicit=d.portoReferencia||d.replacementCenario?.porto||null;
   const choices=explicit?authorized.filter(c=>c.porto===explicit):authorized;
