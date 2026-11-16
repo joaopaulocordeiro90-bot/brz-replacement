@@ -1,5 +1,5 @@
 /* BRZ Replacement — Negócios > Pendências, authenticated F33 save */
-import {num,normal,month,label,commodity,isCif,candidates,calculate} from './pendencias_calc.mjs?v=20261116pend01';
+import {num,normal,month,label,commodity,isCif,candidates,calculate,cbotContract,fxContract,fxValue} from './pendencias_calc.mjs?v=20261116pend01';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(x,d=2)=>num(x)===null?'N/D':num(x).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const ELEMENTS=['origem','incoterm','porto','mesPorto','modal','retirada','pagamento','preco','freteRodo','freteFerro','despesas','cbot','contratoCBOT','fx','contratoDOL','basis','due','obs'];
@@ -127,10 +127,33 @@ export function installPendencias(api){
     ' · Custo FOB '+fmt(out.costUSDt,2)+' US$/t · Frete '+fmt(out.freight,2)+' R$/t'+
     (out.marginUSDt!==null?' · <b>Margem indicativa '+fmt(out.marginUSDt,2)+' US$/t</b>':
      ' · Margem FOB N/D (basis não informado)')+
-    '<div class="brzp-note">CBOT e dólar indicativos; não são taxas de hedge executadas. '+
+    '<div class="brzp-note">'+(out.dueKnown?'DUE aplicado: R$ '+fmt(out.dueAppliedRSsc,2)+'/sc.':'DUE não quantificado: custo DUE não aplicado.')+' CBOT e dólar indicativos; não são taxas de hedge executadas. '+
      (out.proxySorgo?'CBOT milho como proxy de sorgo.':'')+'</div>';
   }
   renderPreview();ui.addEventListener('input',renderPreview);
+  // Port month determines CBOT contract; payment month determines the
+  // Brazilian DOL forward reference. Recalculate only when these inputs
+  // change, preserving manually keyed quotes otherwise.
+  ui.addEventListener('change',event=>{
+   const k=event.target?.dataset?.field;
+   if(k!=='mesPorto'&&k!=='pagamento')return;
+   const p=parse(),m=month(p.mesPorto);
+   if(m){
+    const cc=cbotContract(d,m);
+    const candidate=num((commodity(d)==='Soja'?api.getState().cbot:api.getState().cbotMilho)?.[cc]);
+    if(candidate!==null){
+     ui.querySelector('[data-field="cbot"]').value=candidate;
+     ui.querySelector('[data-field="contratoCBOT"]').value=cc;
+    }
+   }
+   const pay=month(p.pagamento)||m;
+   const dollar=fxValue(api.getState(),pay);
+   if(dollar!==null){
+    ui.querySelector('[data-field="fx"]').value=dollar;
+    ui.querySelector('[data-field="contratoDOL"]').value=fxContract(pay);
+   }
+   renderPreview();
+  });
   ui.querySelector('[data-close]').onclick=()=>{editing=null;ui.remove();};
   ui.querySelector('[data-auto]').onclick=()=>{
    const bestNow=candidates(d,api.getState(),refs)[0];
@@ -151,7 +174,7 @@ export function installPendencias(api){
     message.textContent='Informe porto, mês de embarque, origem e vencimentos CBOT/DOL.';return;}
    if(p.freteRodo===null||p.freteRodo<0||p.freteFerro===null||p.freteFerro<0){
     message.textContent='Informe fretes rodoviário e ferroviário. Use zero somente se o trecho não existir.';return;}
-   if(p.incoterm==='CIF'&&p.modal==='Rodoviário + Ferroviário'&&p.freteFerro===0){
+   if(p.modal!=='Rodoviário'&&p.freteFerro===0){
     message.textContent='Modal rodo + ferro: informe tarifa ferroviária efetiva/indicativa.';return;}
    if(p.due!==null&&p.due<0){message.textContent='DUE não pode ser negativo.';return;}
    const out=calculate({...d,preco:numeric},p);
