@@ -1,11 +1,57 @@
 <!doctype html><html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
-<meta http-equiv="refresh" content="0;url=./pin.html">
-<title>BRZ Replacement · Acesso com PIN</title>
-<style>body{background:#102436;color:#e2eef6;font:16px Arial,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center}main{max-width:430px;padding:35px}a{color:#43c6b2}</style>
-</head><body><main><h1>BRZ Replacement</h1>
-<p>Acesso protegido por PIN. Abrindo a plataforma oficial…</p>
-<p><a href="./pin.html">Entrar na plataforma</a></p></main>
-<script>location.replace(new URL('./pin.html',location.href).href);</script>
+<meta name="theme-color" content="#0e2336"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<title>BRZ Replacement · Acesso PIN</title>
+<style>
+:root{font-family:Inter,Arial,Helvetica,sans-serif;color:#f1f7fa;background:#0d1e2d}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center}
+main{background:#182e45;border:1px solid #3c5670;border-radius:10px;max-width:470px;width:calc(100% - 28px);padding:31px}
+.brand{font-weight:800;font-size:12px;letter-spacing:.15em;color:#9dc9df}
+h1{font-size:27px;margin:12px 0 8px;letter-spacing:-.5px}h2{font-size:14px;font-weight:500;color:#b5c9dc;margin:0 0 19px}
+p{font-size:13px;line-height:1.55;color:#c4d7e5}
+label{display:block;font-size:12px;font-weight:700;margin:11px 0 6px}
+input{font:15px Arial,sans-serif;width:100%;color:#fff;background:#102436;padding:12px;border:1px solid #536e87;border-radius:6px}
+#pin{font-size:20px;letter-spacing:.22em;text-align:center}
+button{cursor:pointer;width:100%;border:0;border-radius:6px;padding:12px 15px;font:700 14px Arial,sans-serif;background:#4cc2b9;color:#102c3e;margin-top:14px}
+button:disabled{opacity:.45;cursor:default}
+#status{margin:14px 0;font-size:12px;line-height:1.5;background:#102439;border:1px solid #36516b;border-radius:6px;padding:12px;color:#a8c9df;min-height:43px;white-space:pre-wrap}
+details{margin-top:19px;padding-top:15px;border-top:1px solid #36526b}
+summary{color:#a6c6db;cursor:pointer;font:600 12px Arial;line-height:1.4}
+#setupStatus{font-size:12px;line-height:1.5;min-height:15px}
+#app{display:none;width:100vw;height:100vh;border:0;background:#fff}
+body.loaded{display:block}body.loaded main{display:none}body.loaded #app{display:block}
+#exitF57{display:none;position:fixed;z-index:2147483009;top:10px;right:13px;max-width:108px;white-space:nowrap;background:#a93634;color:white;font-size:12px;padding:10px 12px;margin:0}
+body.loaded #exitF57{display:block}
+@media(max-width:500px){main{padding:25px 20px}}
+</style></head>
+<body>
+<main>
+<div class="brand">BRZ · REPLACEMENT ENGINE</div>
+<h1>Acesso à plataforma</h1>
+<h2>PIN de entrada · negócios sincronizados no Supabase</h2>
+<form id="authform" autocomplete="off">
+<label for="pin">PIN de seis dígitos</label>
+<input id="pin" type="password" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="off" placeholder="••••••" required disabled>
+<button id="go" type="submit" disabled>Entrar na plataforma</button>
+</form>
+<div id="status" role="status" aria-live="polite">Conferindo os componentes da plataforma…</div>
+<details id="setup">
+<summary>Primeiro acesso? Definir ou redefinir o PIN</summary>
+<p>Para configurar o PIN, confirme uma vez sua conta Supabase já autorizada. Depois disso, a entrada será somente pelo PIN.</p>
+<form id="setupForm" autocomplete="off">
+<label for="email">E-mail autorizado no Supabase</label>
+<input id="email" type="email" required autocomplete="username">
+<label for="password">Senha Supabase (somente para configurar)</label>
+<input id="password" type="password" required autocomplete="current-password">
+<label for="newPin">Novo PIN (6 números)</label>
+<input id="newPin" type="password" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" required>
+<label for="newPinConfirm">Confirmar PIN</label>
+<input id="newPinConfirm" type="password" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" required>
+<button id="pinSet" type="submit">Definir PIN</button>
+<p id="setupStatus" role="status"></p>
+</form></details>
+</main>
+<button type="button" id="exitF57" onclick="location.reload()">Sair</button>
+<iframe id="app" title="BRZ Replacement" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"></iframe>
+<script type="module" src="assets/secure/pin_boot.mjs?v=20261116perf02"></script>
 </body></html>
