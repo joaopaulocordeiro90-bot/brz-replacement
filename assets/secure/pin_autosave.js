@@ -549,6 +549,27 @@
   const oldGrid=document.createElement('div');
   oldGrid.className='brzsys-grid';legacy.appendChild(oldGrid);
   screen.appendChild(legacy);
+  // Sign-out remains available under Sistema without occupying the top bar.
+  const access=document.createElement('details');
+  access.className='brzsys-legacy';
+  const accessSummary=document.createElement('summary');
+  accessSummary.textContent='Segurança da sessão';
+  access.appendChild(accessSummary);
+  const accessInfo=document.createElement('small');
+  accessInfo.textContent='Sessão protegida nesta aba por até 60 minutos após o PIN. Para encerrar antes, use a opção abaixo.';
+  access.appendChild(accessInfo);
+  const closeSession=document.createElement('button');
+  closeSession.type='button';
+  closeSession.textContent='Encerrar sessão nesta aba';
+  closeSession.style.cssText='display:block;margin-top:12px;background:#fff;color:#26455b;border:1px solid #d1dce5;border-radius:6px;padding:9px 13px;font:600 12px Arial;cursor:pointer';
+  closeSession.onclick=()=>{
+    if(dirty||saving||blocked){
+      if(!confirm('Existem alterações pendentes. Encerrar mesmo assim?'))return;
+    }
+    try{window.parent?.__BRZ_END_TAB_SESSION?.()}catch(e){}
+  };
+  access.appendChild(closeSession);
+  screen.appendChild(access);
   content.appendChild(screen);
 
   const controls=[
