@@ -224,6 +224,7 @@ async function preflightModules(){
 }
 async function start(ev){
  ev.preventDefault();if(loading)return;
+ const loginBegan=performance.now();
  loading=true;$('go').disabled=true;
  let token=null;
  try{
@@ -355,6 +356,8 @@ async function start(ev){
       if(ready?.ready!==true)throw Error('Banco não confirmou a conexão');
       token=null;
       window.__BRZ_PIN_OPERATIONAL=true;
+      window.__BRZ_SESSION_LOAD_MS=Math.round(performance.now()-loginBegan);
+      console.info('BRZ: PIN e cargas autenticadas',window.__BRZ_SESSION_LOAD_MS,'ms');
       document.body.classList.add('loaded');
     }catch(e){
       token=null;window.__BRZF57_BRIDGE_VERIFIED=false;
