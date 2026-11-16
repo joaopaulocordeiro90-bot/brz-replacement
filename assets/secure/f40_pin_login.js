@@ -628,7 +628,7 @@ async function start(ev){
       // PIN operator session: attach the independent, versioned F33 autosave.
       // Frozen source rows are hydrated first; edits are persisted as overlays.
       const script=iframe.contentDocument.createElement('script');
-      script.src='./assets/secure/pin_autosave.js?v=20261116livesync01';
+      script.src='./assets/secure/pin_autosave.js?v=20261116pend01';
       await new Promise((resolve,reject)=>{
         script.onload=resolve;
         script.onerror=()=>reject(Error('Gravação centralizada não carregada'));
