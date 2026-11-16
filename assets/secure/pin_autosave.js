@@ -816,7 +816,7 @@
      ?state.roadGeoRoutes:{};
    if(Object.keys(entries).length>2000)throw Error('Limite de rotas atingido. Faça auditoria da base.');
    const clean=Object.fromEntries(['id','routeKey','origin','destination','date','port','modal',
-     'kmRouted','kmAccess','km','tku','freteRodoIndicativo','originPrecision','checkedAt','approved','savedAt',
+     'kmRouted','kmAccess','km','kmTotal','tku','freteRodoIndicativo','originPrecision','originMode','checkedAt','approved','savedAt',
      'source','originLat','originLon','destinationLat','destinationLon'].map(k=>[k,input[k]??null]));
    const previous=remoteModules.get('settings')||{revision:0,snapshot:null};
    const old=state.roadGeoRoutes;
@@ -843,7 +843,7 @@
  async function initPendingWorkspace(){
   if(window.BRZPendencias)return;
   try{
-   const module=await import('./negocios_pendencias.mjs?v=20261116pend03');
+   const module=await import('./negocios_pendencias.mjs?v=20261116f60');
    module.installPendencias({
     getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
     getState:()=>state,
