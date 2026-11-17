@@ -13,6 +13,7 @@ import {parseInternalFreight,compareInternalFreight} from '../homolog/f77/assets
 import {parseOfficialRoadFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
 import {buildDailyPack} from '../homolog/f77/assets/secure/f77_xlsx_upload.mjs';
 import {compareDailyXlsx} from '../homolog/f77/assets/secure/f77_xlsx_diff.mjs';
+import {auditRouteParity,auditDealParity,auditDayParity,isoWeekDay} from '../homolog/f77/assets/secure/f77_financial_parity.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const folder=path.join(root,'homolog/f77');
 const r=file=>readFileSync(path.join(folder,file),'utf8');
@@ -285,4 +286,104 @@ test('F77: data anterior com Bid/Offer ausentes nunca é alteração válida',()
   assert.equal(next.counts.sem_referencia,1);
   assert.equal(next.counts.alterado,0);
  }
+});
+
+
+test('F77 fin: factor soja 2.2046, unidade R$/sc vs frete R$/t vs CBOT c/bu',()=>{
+ const d={id:'fixture-soja',data:'2026-11-16',status:'FECHADO',produto:'Soja',
+  origem:'Jataí/GO',retirada:'01/02/2027',embarqueFisicoOrigem:'Feb-27',
+  embarque:'Feb-27',preco:136,cbot:1100,cambio:5.4};
+ const factor=2.2046,sc=0.06,fr=200,rail=195,sea=35,fobbins=14;
+ const price=100*(136/5.4)/factor,f=100*((fr+rail)*sc/5.4)/factor;
+ const fb=100*(fobbins*sc)/factor,s=100*(sea*sc)/factor;
+ const fob=price+f+fb,cfr=fob+s;
+ const rt={modal:'Rodo + Ferro',freteRodo:fr,freteFerro:rail,freteBarcaca:0,
+  freteTotal:fr+rail,fobbins,seaFreight:sea,cfrRefCbot:1100,
+  freteSemana:'2026-S46',fonteFrete:'semana_anterior',embarquePorto:'Feb-27',
+  replacementFOB:fob,replacementBasis:fob-1100,
+  replacementCFR:cfr,replacementCFRBasis:cfr-1100,
+  _priceCbu:price,_freightCbu:f,_fobbinsCbu:fb,_seaCbu:s,_factor:factor,
+  bidFOB:340,margemFOB:340-(fob-1100),
+  bidCFR:390,margemCFR:390-(cfr-1100)};
+ const snapshot=JSON.stringify({d,rt});
+ const single=auditRouteParity(d,rt,{port:'Santos'});
+ assert.equal(single.status,'conforme',JSON.stringify(single.issues));
+ assert.equal(single.checks.replacementFOB.esperado,fob);
+ assert.equal(single.checks.replacementCFRBasis.esperado,cfr-1100);
+ const calc={cmp:{results:[{porto:'Santos',best:rt,modais:[rt]}]},
+  bestPort:'Santos',portosComparados:['Santos']};
+ assert.equal(auditDealParity(d,calc).status,'conforme');
+ assert.equal(JSON.stringify({d,rt}),snapshot,'auditor não pode alterar contrato ou rota');
+});
+
+test('F77 fin: detecta qualquer divergencia no basis, frete, conversao ou margem',()=>{
+ const d={id:'fixture-milho',data:'2026-11-16',produto:'Milho',
+  preco:57,cbot:480,cambio:5.4,embarque:'Jul-27'};
+ const factor=2.3621,fr=240,fb=11,sea=0;
+ const p=100*(57/5.4)/factor,f=100*(fr*0.06/5.4)/factor;
+ const fo=100*(fb*.06)/factor,fob=p+f+fo;
+ const route={modal:'Rodoviário',freteRodo:fr,freteFerro:0,freteBarcaca:0,
+  freteTotal:fr,fobbins:fb,seaFreight:sea,cfrRefCbot:480,
+  replacementFOB:fob,replacementBasis:fob-480,
+  replacementCFR:fob,replacementCFRBasis:fob-480,
+  _priceCbu:p,_freightCbu:f,_fobbinsCbu:fo,_seaCbu:0,_factor:factor,
+  bidFOB:null,margemFOB:null,bidCFR:null,margemCFR:null};
+ assert.equal(auditRouteParity(d,route,{port:'Santos'}).status,'conforme');
+ assert.ok(auditRouteParity(d,{...route,replacementBasis:route.replacementBasis+1},{port:'Santos'})
+   .issues.some(x=>x.code==='DIVERGENCIA_CALCULO'));
+ assert.ok(auditRouteParity(d,{...route,freteTotal:245},{port:'Santos'})
+   .issues.some(x=>x.code==='SOMA_FRETES'));
+ assert.ok(auditRouteParity(d,{...route,_factor:2.2046},{port:'Santos'})
+   .issues.some(x=>x.code==='FATOR_CONVERSAO'));
+ assert.ok(auditRouteParity(d,{...route,freteFerro:200},{port:'Santos'})
+   .issues.some(x=>x.code==='MODAL_TRECHO'));
+ assert.ok(auditRouteParity(d,{...route,bidFOB:200,margemFOB:0},{port:'Santos'})
+   .issues.some(x=>x.code==='MARGEM_INCORRETA'));
+});
+
+test('F77 fin: proxy TKU, frete futuro e multi-lote nao recebem aprovacao automatica',()=>{
+ const d={data:'2026-11-16',produto:'Soja',preco:136,cambio:5.4,cbot:1100,embarque:'Feb-27'};
+ const factor=2.2046,p=100*(136/5.4)/factor,
+  fr=100*(200*.06/5.4)/factor,fb=100*(14*.06)/factor,
+  sea=100*(35*.06)/factor,fob=p+fr+fb;
+ const r={modal:'Rodoviário',freteRodo:200,freteFerro:0,freteBarcaca:0,
+  freteTotal:200,fobbins:14,seaFreight:35,
+  replacementFOB:fob,replacementBasis:fob-1100,
+  replacementCFR:fob+sea,replacementCFRBasis:fob+sea-1100,
+  _priceCbu:p,_freightCbu:fr,_fobbinsCbu:fb,_seaCbu:sea,_factor:factor,
+  freteSemana:'2026-S46'};
+ assert.equal(auditRouteParity(d,{...r,freteEstimado:true},{port:'Santos'}).status,'indicativo');
+ assert.ok(auditRouteParity(d,{...r,freteSemana:'2026-S48'},{port:'Santos'})
+   .issues.some(x=>x.code==='FRETE_FUTURO'));
+ assert.ok(auditRouteParity({...d,embarqueFisicoOrigem:'Mar-27'},r,{port:'Santos'})
+   .issues.some(x=>x.code==='JANELA_PORTO'));
+ assert.equal(auditRouteParity(d,{...r,modal:'Composicao por lote'},{port:'Santos'}).status,'indicativo');
+ assert.equal(isoWeekDay('2026-11-16'),'2026-S47');
+});
+
+test('F77 fin: conciliação cobre todo o dia, bloqueia sem negocio e conserva fonte',async()=>{
+ const date='2026-11-16';
+ const deals=[{id:'a',data:date,status:'FECHADO',produto:'Soja',preco:136,cambio:5.4,cbot:1100},
+  {id:'b',data:date,status:'FECHADO',produto:'Milho',preco:57,cambio:5.4,cbot:480},
+  {id:'c',data:date,status:'PEDIDA',produto:'Milho'},
+  {id:'d',data:'2026-11-13',status:'FECHADO',produto:'Soja'},
+  {id:'e',data:date,status:'FECHADO',produto:'Farelo'}];
+ const copy=JSON.stringify(deals);
+ const report=await auditDayParity({trades:deals,date,calculate:()=>null});
+ assert.equal(report.counts.eligible,2);
+ assert.equal(report.counts.divergente,2);
+ assert.equal(report.passed,false);
+ assert.equal(report.rows.length,2);
+ assert.equal(JSON.stringify(deals),copy);
+ const empty=await auditDayParity({trades:deals,date:'2026-11-10',calculate:()=>null});
+ assert.equal(empty.passed,false);
+ const base={date,trades:[{id:'x',data:date,status:'FECHADO',produto:'Soja',
+   volume:1200,origem:'Jataí/GO',retirada:'01/02/2027'}],
+  cbotDate:date,fxDate:date,excelDate:date,excelAudit:{ok:true},
+  freights:[{semana:'2026-S47'}],
+  geo:{entries:new Map([['x',{geo:{lat:-17.8,lon:-51.7}}]])}};
+ assert.equal(summarizeClose({...base,tradeAudits:{checked:true,failed:0}}).ready,false,
+  'Auditoria antiga não pode aprovar fechamento sem paridade F77');
+ assert.equal(summarizeClose({...base,
+  tradeAudits:{checked:true,failed:0,parityChecked:true,parityFailed:0}}).ready,true);
 });
