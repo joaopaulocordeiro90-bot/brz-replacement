@@ -110,7 +110,7 @@ window.__BRZ_END_TAB_SESSION=()=>{
    .finally(()=>location.reload());
 };
 let marketStatsCached=null;
-function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
+function gate(){if(window.__BRZF58_PREFLIGHT?.quickVerified!==true && window.__BRZF58_PREFLIGHT?.verified!==true)
  throw Error('F58: pacote público ainda não conferido');
  if((!localHost&&!ghPages()&&!stageEdge())||window.top!==window||!window.isSecureContext)
  throw Error('F59: origem nao autorizada');}
@@ -376,8 +376,7 @@ async function start(ev){
  loading=true;$('go').disabled=true;
  let token=null;
  try{
-  gate();status('F49 · verificando oito módulos locais antes da autenticação…');
-  await preflightModules();
+  gate();status('F73 · verificando acesso autenticado à consulta diária…');
   status(restoring?'Restaurando sessão segura desta aba…':'Autenticando sessão mesa/admin…');
   token=restoring?await restoreTabSession():await signIn($('pin').value.trim());
   if(!token)throw Error('Sessão de uma hora expirada. Informe o PIN para entrar.');
@@ -420,6 +419,10 @@ async function start(ev){
     });
     // The quick session may have been idle. Renew it just before the costly
     // full engine load; keep the original one-hour tab-session boundary.
+    if(typeof window.__BRZ_F73_VERIFY_FULL_STATIC!=='function')
+      throw Error('F73: verificação do motor não inicializada');
+    await window.__BRZ_F73_VERIFY_FULL_STATIC();
+    await preflightModules();
     token=await restoreTabSession();
     if(!token)throw Error('Sessão expirou. Atualize o site e faça login novamente.');
   }
@@ -677,8 +680,7 @@ $('go').disabled=true;
 $('pin').disabled=false;
 (async()=>{
  try{
-  gate();status('F49 · verificando a integridade dos oito módulos locais…');
-  await preflightModules();
+  gate();status('F73 · componentes essenciais autenticados, pronto para PIN.');
   $('pin').disabled=false;$('go').disabled=false;
   let cached=null;
   try{cached=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}catch(e){}
@@ -687,7 +689,7 @@ $('pin').disabled=false;
    await start({preventDefault(){},restore:true});
   }else{
    if(cached)forgetTabSession();
-   status('Oito módulos verificados. Aguardando autenticação mesa/admin.');
+   status('Acesso preparado. Informe o PIN para consultar o Excel mais recente.');
   }
  }catch(e){
   status('BLOQUEADO F49: '+e.message);
