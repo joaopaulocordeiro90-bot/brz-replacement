@@ -52,17 +52,43 @@ async function load(){
       headers:{'Content-Type':'application/octet-stream'}}));}catch(e){}
    }
   }
-  let done=0,cursor=0;
-  const workers=Array.from({length:10},()=> (async()=>{
-   while(cursor<entries.length){
-    const [name,record]=entries[cursor++];
-    if(!/^[a-zA-Z0-9._/-]+$/.test(name)||name.includes('..')||name.startsWith('/'))throw Error('Caminho inválido');
-    await verifiedStatic(name,record);
-    done++;
-    if(done%20===0||done===entries.length)status('Verificando módulos: '+done+'/'+entries.length);
-   }
-  })());
-  await Promise.all(workers);
+  // F73: verify the minimal trusted boot path first. All other assets are
+  // checked against the SAME SHA manifest before loading the full engine.
+  // Never execute an unverified script; no private data is in public cache.
+  const immediate=new Set([
+    'assets/f42/f42_hydrate.js',
+    'assets/secure/f40_pin_login.js',
+    'assets/secure/f73_fast_market.mjs',
+    'assets/secure/market_excel_overlay.mjs'
+  ]);
+  for(const path of immediate)if(!manifest.files[path])
+    throw Error('F73: recurso autenticado ausente do manifesto: '+path);
+  let done=0;
+  async function verifyBatch(items,label){
+    let cursor=0;
+    const n=Math.min(6,items.length);
+    const workers=Array.from({length:n},()=> (async()=>{
+      while(cursor<items.length){
+        const [name,record]=items[cursor++];
+        if(!/^[a-zA-Z0-9._/-]+$/.test(name)||name.includes('..')||name.startsWith('/'))
+          throw Error('Caminho inválido');
+        await verifiedStatic(name,record);
+        done++;
+        if(done%20===0||done===entries.length)status(label+': '+done+'/'+entries.length);
+      }
+    })());
+    await Promise.all(workers);
+  }
+  const basic=entries.filter(([name])=>immediate.has(name));
+  const full=entries.filter(([name])=>!immediate.has(name));
+  await verifyBatch(basic,'Verificando consulta diária segura');
+  const fullVerify=async()=>{
+    if(window.__BRZF58_PREFLIGHT?.verified===true)return;
+    await verifyBatch(full,'Verificando motor completo');
+    window.__BRZF58_PREFLIGHT=Object.freeze({verified:true,quickVerified:true,readOnly:true,
+      productionApproved:false,verifiedResources:done});
+  };
+  window.__BRZ_F73_VERIFY_FULL_STATIC=fullVerify;
   // F42 is defined in its own script (not in F40). Install it with the
   // sealed manifest integrity before enabling the authenticated loader.
   const f42Path='assets/f42/f42_hydrate.js';
@@ -85,8 +111,8 @@ async function load(){
     throw Error('F42: função de hidratação indisponível');
   // Read-only authentication is handled by F40; this flag applies only to
   // this completed local asset preflight and is not a production approval.
-  window.__BRZF58_PREFLIGHT=Object.freeze({verified:true,readOnly:true,productionApproved:false,
-    verifiedResources:done});
+  window.__BRZF58_PREFLIGHT=Object.freeze({verified:false,quickVerified:true,readOnly:true,
+    productionApproved:false,verifiedResources:done});
   const script=document.createElement('script');
   script.src='./assets/secure/f40_pin_login.js?v=20261117f72';
   script.async=false;
