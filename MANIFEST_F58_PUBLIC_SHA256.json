@@ -17,7 +17,7 @@
     },
     "app.html": {
       "bytes": 58672,
-      "sha256": "d118fd8953312507d4354ce80e400c3e1233c99778a9d274f550bbdd07352309"
+      "sha256": "ceeae36cb076073daa397abbf28d934527a4ae6a1aa0527bab5eccc46567065d"
     },
     "assets/css/part_01.css": {
       "bytes": 102207,
@@ -336,8 +336,8 @@
       "sha256": "872702c2064fd84a85cb6d2eaa0734e0adb2625dc43e2a367e728fa7279b996e"
     },
     "assets/secure/f61_map_patch.js": {
-      "bytes": 6098,
-      "sha256": "09ff00124681184953b8f4c1733326857ec343fcba2d9d0819cfa8e61bb6f4e0"
+      "bytes": 6256,
+      "sha256": "f2e95603bbabfbd4213572177f8911febcf534ee9e1d312a91b583da92238745"
     },
     "assets/secure/pin_autosave.js": {
       "bytes": 65839,
