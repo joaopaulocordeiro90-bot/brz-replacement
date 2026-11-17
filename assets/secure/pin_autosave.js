@@ -435,8 +435,8 @@
       ' · Soja '+q.Soja.withFinancials+'/'+q.Soja.total+
       ' · Milho '+q.Milho.withFinancials+'/'+q.Milho.total+
       ' · Basis FOB '+quality.totals.basisFOB+
-      ' · Farelo '+quality.totals.soymealCMA+
-      ' · Óleo '+quality.totals.soyoilCMA+
+      ' · Farelo '+(patch.counts.soymealNotQuoted?'N/D ('+patch.counts.soymealNotQuoted+' sem cotação)':quality.totals.soymealCMA)
+      +' · Óleo '+quality.totals.soyoilCMA
       ' · CBOT/B3 C'+effectiveCapture.capture_no+
       ' · '+(quality.ok?'AUDITADO':'ATENÇÃO: '+quality.warnings.join('; '));
     stamp.style.color=quality.ok?'#176a61':'#8a4a00';
