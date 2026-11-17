@@ -85,17 +85,18 @@ function brzCurvaValor(grupo,chave,iso,maxDias){
   for(var i=0;i<=(maxDias==null?4:maxDias);i++){ var k=_brzIsoMenos(iso,i); if(s[k]!=null) return Number(s[k]); }
   return null;
 }
-var _brzPrecoIdx=null;
-function _brzPrecosIdx(){
-  if(_brzPrecoIdx) return _brzPrecoIdx; _brzPrecoIdx={datas:{},cbot:{}};
-  try{ (getPrecosBase()||[]).forEach(function(r){ _brzPrecoIdx.datas[r.data]=1; var k=r.data+'|'+(r.produto==='Soja'?'ZS':'ZC')+r.vencCBOT; if(r.cbot>0 && _brzPrecoIdx.cbot[k]==null) _brzPrecoIdx.cbot[k]=Number(r.cbot); }); }catch(e){}
-  return _brzPrecoIdx;
+var _brzF71PrecoIndexCache=null;
+function brzF71PrecoIndex(){
+  if(_brzF71PrecoIndexCache) return _brzF71PrecoIndexCache;
+  _brzF71PrecoIndexCache={datas:{},cbot:{}};
+  try{ (getPrecosBase()||[]).forEach(function(r){ _brzF71PrecoIndexCache.datas[r.data]=1; var k=r.data+'|'+(r.produto==='Soja'?'ZS':'ZC')+r.vencCBOT; if(r.cbot>0 && _brzF71PrecoIndexCache.cbot[k]==null) _brzF71PrecoIndexCache.cbot[k]=Number(r.cbot); }); }catch(e){}
+  return _brzF71PrecoIndexCache;
 }
-function brzTemDado(iso){ return !!_brzPrecosIdx().datas[iso]; }
+function brzTemDado(iso){ return !!brzF71PrecoIndex().datas[iso]; }
 function brzCbotNaData(prod,venc,iso){
   var pre=(prod==='Soja')?'ZS':'ZC';
   try{ var md=brzMarketDate(); if(md && String(iso)>=md){ var m=(prod==='Soja'?state.cbot:state.cbotMilho)||{}; var v=Number(m[venc]); if(v>0) return v; } }catch(e){}
-  var b=_brzPrecosIdx().cbot[iso+'|'+pre+venc]; if(b>0) return b;
+  var b=brzF71PrecoIndex().cbot[iso+'|'+pre+venc]; if(b>0) return b;
   return brzCurvaValor('cbot',pre+venc,iso,4);
 }
 /* V4AT · dataRodo compacto (rotas × semanas) expandido para o formato de sempre */
@@ -192,7 +193,8 @@ const CBOT_MILHO_VENCIMENTOS = brzVencimentosVivos('ZC',['Z26','H27','K27','N27'
 var activeProduto = 'Soja';
 var activeBase = 'negocios'; // negocios | precos
 var _activeDealsCache = {key:null, rows:null};
-var negociosRenderLimit = 600;
+var negociosRenderLimit = 25;
+var negociosRenderPage = 0;
 function syncDealsTopScroll(){
   var wrap=document.querySelector('#negocios .tableWrap'); if(!wrap) return;
   var top=document.getElementById('dealsTopScroll'), inner=document.getElementById('dealsTopScrollInner');
@@ -333,7 +335,7 @@ function setActiveProduto(p){
   mapaSafraFilter='todos'; curvaSafraFilter='todos';
   curvaHiddenSeries = new Set();
   try{ BRZ_STORAGE.setItem('brz_active_produto', activeProduto); }catch(e){}
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   invalidateDataCache();
   selectedId = getActiveDeals()[0]?.id || null;
   scheduleRenderAll();
@@ -341,7 +343,7 @@ function setActiveProduto(p){
 function setActiveBase(b){
   activeBase = normalizeBase(b);
   try{ BRZ_STORAGE.setItem('brz_active_base', activeBase); }catch(e){}
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   invalidateDataCache();
   selectedId = getActiveDeals()[0]?.id || null;
   scheduleRenderAll();
@@ -8023,9 +8025,13 @@ function renderDeals(){
     });
   }
 
-  const visibleLimit = Math.max(200, negociosRenderLimit || 600);
-  const visibleDs = ds.slice(0, visibleLimit);
-  const hasMoreDeals = ds.length > visibleDs.length;
+  // F71: true DOM pagination. Never calculate or mount all historical rows.
+  // Filters and KPI totals still use the full filtered dataset.
+  const visibleLimit = [10,25,50].includes(Number(negociosRenderLimit))?Number(negociosRenderLimit):25;
+  const pageCount = Math.max(1,Math.ceil(ds.length/visibleLimit));
+  negociosRenderPage = Math.max(0,Math.min(pageCount-1,Number(negociosRenderPage)||0));
+  const pageStart = negociosRenderPage*visibleLimit;
+  const visibleDs = ds.slice(pageStart,pageStart+visibleLimit);
 
   document.getElementById('dealsBody').innerHTML = visibleDs.map(d => {
     const audit = bestRouteAudit(d);
@@ -8072,7 +8078,19 @@ function renderDeals(){
         <button class="btn small danger" onclick="deleteDeal('${d.id}')">×</button>
       </td>
     </tr>`;
-  }).join('') + (hasMoreDeals ? `<tr><td colspan="33" class="empty" style="padding:18px;text-align:center">${(typeof _currentLang!=='undefined' && _currentLang==='en') ? `Showing ${visibleDs.length.toLocaleString('en-US')} of ${ds.length.toLocaleString('en-US')} filtered rows.` : `Mostrando ${visibleDs.length.toLocaleString('pt-BR')} de ${ds.length.toLocaleString('pt-BR')} linhas filtradas.`} <button class="btn small primary" onclick="negociosRenderLimit += 600; renderDeals()" style="margin-left:8px">Carregar mais</button></td></tr>` : '') || '<tr><td colspan="33" class="empty">Nenhum negócio encontrado.</td></tr>';
+  }).join('') + (ds.length ? `<tr><td colspan="33" class="empty" style="padding:12px 16px;text-align:left">
+   <div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap">
+     <span>${(typeof _currentLang!=='undefined' && _currentLang==='en')?'Rows':'Linhas'} ${(pageStart+1).toLocaleString('pt-BR')}–${Math.min(ds.length,pageStart+visibleLimit).toLocaleString('pt-BR')} / ${ds.length.toLocaleString('pt-BR')}</span>
+     <button class="btn small" ${negociosRenderPage===0?'disabled':''} onclick="negociosSetPage(-1)">‹ ${(typeof _currentLang!=='undefined'&&_currentLang==='en')?'Previous':'Anterior'}</button>
+     <b>${negociosRenderPage+1} / ${pageCount}</b>
+     <button class="btn small primary" ${negociosRenderPage>=pageCount-1?'disabled':''} onclick="negociosSetPage(1)">${(typeof _currentLang!=='undefined'&&_currentLang==='en')?'Next':'Próxima'} ›</button>
+     <label style="white-space:nowrap">${(typeof _currentLang!=='undefined'&&_currentLang==='en')?'Page size':'Linhas por página'}
+       <select class="btn small" aria-label="Linhas por página" onchange="negociosSetPageSize(this.value)">
+         ${[10,25,50].map(n=>`<option value="${n}" ${n===visibleLimit?'selected':''}>${n}</option>`).join('')}
+       </select>
+     </label>
+   </div>
+  </td></tr>` : '') || '<tr><td colspan="33" class="empty">Nenhum negócio encontrado.</td></tr>';
 
   const mDealsEl = document.getElementById('mDeals');
   if(mDealsEl) mDealsEl.textContent = dealsProduct.length;
@@ -8112,6 +8130,18 @@ function renderDeals(){
   }
 }
 
+// F71: only the current page is mounted; no mutation of source deal data.
+function negociosSetPage(delta){
+  negociosRenderPage=Math.max(0,(Number(negociosRenderPage)||0)+Number(delta||0));
+  renderDeals();
+}
+function negociosSetPageSize(size){
+  const val=Number(size);
+  if(![10,25,50].includes(val))return;
+  negociosRenderLimit=val;
+  negociosRenderPage=0;
+  renderDeals();
+}
 function selectDeal(id){
   selectedId = id;
   openRightPanel();
@@ -12083,7 +12113,7 @@ var curvaSortDir = 'desc';
 
 /* Toggle de sort: 1º clique → asc, 2º clique → desc, 3º clique → desliga (default) */
 function sortDeals(field){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   if(dealsSortField === field){
     if(dealsSortDir === 'asc') dealsSortDir = 'desc';
     else { dealsSortField = null; dealsSortDir = 'desc'; }  // 3º clique reseta
@@ -12307,34 +12337,34 @@ function toggleNegociosEstadoAll(sigla){
 }
 
 function toggleNegociosSafra(s){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   if(negociosFiltroSafra.has(s)) negociosFiltroSafra.delete(s);
   else negociosFiltroSafra.add(s);
   renderDeals();
 }
 function toggleNegociosCorr(c){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   if(negociosFiltroCorr.has(c)) negociosFiltroCorr.delete(c);
   else negociosFiltroCorr.add(c);
   renderDeals();
 }
 function setNegociosAno(v){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   negociosFiltroAno = v || 'todos';
   renderDeals();
 }
 function setNegociosMes(v){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   negociosFiltroMes = v || 'todos';
   renderDeals();
 }
 function setNegociosEmb(v){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   negociosFiltroEmb = v || 'todos';
   renderDeals();
 }
 function clearNegociosFiltros(){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   negociosFiltroSafra.clear();
   negociosFiltroCorr.clear();
   negociosBusca = '';
@@ -12344,7 +12374,7 @@ function clearNegociosFiltros(){
   renderDeals();
 }
 function setNegociosBuscaDebounced(v){
-  negociosRenderLimit = 600;
+  negociosRenderPage = 0;
   // Debounce de 200ms pra não rerender a cada tecla em base grande
   if(setNegociosBuscaDebounced._timer) clearTimeout(setNegociosBuscaDebounced._timer);
   setNegociosBuscaDebounced._timer = setTimeout(()=>{
