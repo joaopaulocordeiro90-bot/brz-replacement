@@ -107,7 +107,8 @@ export function installDailyClose({getTrades,getState,getGeo}={}){
    fxDate:state?.timestamps?.dolar,excelDate:state?.marketExcelAsOf,
    excelAudit:state?.marketExcelAudit,freights:state?.fretesRodo,
    geo:typeof getGeo==='function'?getGeo():null,
-   tradeAudits:{checked:!!auditCurrent,failed:relevant.length}});
+   tradeAudits:{checked:!!auditCurrent,failed:relevant.length,
+    parityChecked:financialCurrent,parityFailed:badFinance}});
   const products=Object.entries(current.products);
   const rows=products.map(([p,v])=>'<tr><td>'+esc(p)+'</td><td>'+fmt(v.count)+'</td><td>'+fmt(v.volume)+'</td></tr>').join('');
   $('brz-f77-close-content').innerHTML='<p><b>'+esc(current.date)+'</b> · '+fmt(current.records)+' negócios · '+fmt(current.closed)+' fechados · '+fmt(current.pending)+' pendentes · '+fmt(current.volume)+' t</p>'+
