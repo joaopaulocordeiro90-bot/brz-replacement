@@ -4663,13 +4663,37 @@ function aShort(c){ var city=String(c||'').split(' - ')[0].trim(); var uf=_aUFma
 
 /* V4FO/C33 · Regiao de preco do negocio: CIF = ponto contratado de entrega;
    FOB = local de coleta. Rótulo não altera o motor ou seus portos. */
+/* F77: geographical-origin region is an analytical label.
+ * Original commercial corridor remains intact for price/freight snapshots.
+ * A bare state or a state-inconsistent tag is NOT a precise region. */
+function brzF77OriginRegion(d){
+  if(!d)return 'Região a validar';
+  var text=String(d.origem||''),old=String(d.corredor||'').trim();
+  var city=typeof extractCidadeBase==='function'?String(extractCidadeBase(text)||'').trim():'';
+  var uf=(text.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1]||
+    (old.match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+  var k=typeof PRACA_TO_CORREDOR==='object'&&PRACA_TO_CORREDOR
+    ? PRACA_TO_CORREDOR[city]||null:null;
+  if(!k&&city&&typeof PRACA_TO_CORREDOR==='object'){
+    var lower=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    var original=Object.keys(PRACA_TO_CORREDOR).find(x=>lower(x)===lower(city));
+    if(original)k=PRACA_TO_CORREDOR[original];
+  }
+  // The commercial corridor can be more precise than the geography dictionary.
+  // Correct an unqualified state tag or an incompatible state, preserving named lanes.
+  if(k&&(old===''||old===uf||(uf&&/^[A-Z]{2}(?:\s|$)/.test(old)&&old.slice(0,2)!==uf)||
+    (uf==='MT'&&String(city).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()==='querencia')))
+    return k;
+  if(old&&(!uf||old===uf||old.startsWith(uf+' ')||(old.startsWith('FAS ')&&k)))return old===uf?uf+' · região a validar':old;
+  return k|| (uf?uf+' · região a validar':old||'Região a validar');
+}
 function brzDeskRegionLabel(d){
   if(!d)return '—';
-  var region=String(d.rotuloTabRegiao||d.corredor||'Região a validar').trim();
+  var region=brzF77OriginRegion(d);
   var original=String(d.origem||'').trim();
   var city=typeof extractCidadeBase==='function'?extractCidadeBase(original):'';
   city=String(city||original.split(/\s*\+\s*/)[0]).trim();
-  var uf=(original.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|$)/)||[])[1]||
+  var uf=(original.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1]||
     (region.match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
   var place=city?city+(uf&&!new RegExp('(?:\\/|\\s-\\s)'+uf+'$').test(city)?'/'+uf:''):'Praça a validar';
   return place+' · '+region;
@@ -8029,7 +8053,7 @@ function renderDeals(){
       <td>${fmtDate(d.data)}</td>
       <td><span class="tag ${safraTag}" title="Safra da retirada física; declaração original preservada">${brzSafraLabel(safraK)}</span></td>
       <td><b title="${String(d.origem||'').replace(/"/g,'&quot;')}">${cleanOrigem(d.origem)}</b>${(function(){try{var _c=String(d.origem||'').split(' - ')[0].replace(/\s*\+.*$/,'').trim();return(_c&&!getCityCoord(_c))?' <span class="tag red" title="PRAÇA SEM COORDENADA — frete estimado pelo centróide do corredor; rota pode estar errada">s/ coord</span>':'';}catch(e){return '';}})()}${audit.best&&audit.best.freteOverrideAgoSet?' <span class="tag amber" title="Frete Ago/Set milho \u2014 proxy ano anterior (perna rodoviária ajustada)">frete Ago/Set</span>':''}</td>
-      <td><span class="tag neutral">${d.corredor}</span>${d.foraMercado?' <span class="tag amber" title="Registrado e contado no volume, mas fora do cálculo de replacement">'+(d.foraMercadoMotivo||'fora de mercado')+'</span>':''}${(d.precoAFixar===true||d.status==='A FIXAR')?' <span class="tag amber" title="Preço a fixar: fora das médias e da tabela de replacement até a fixação">A FIXAR</span>':(d.replacementPendente?' <span class="tag amber" title="Registro fechado; replacement pendente por termos comerciais ou origem não informada">REPLACEMENT PENDENTE</span>':'')}</td>
+      <td><span class="tag neutral" title="Corredor comercial original: ${d.corredor||'N/D'}">${brzF77OriginRegion(d)}</span>${d.foraMercado?' <span class="tag amber" title="Registrado e contado no volume, mas fora do cálculo de replacement">'+(d.foraMercadoMotivo||'fora de mercado')+'</span>':''}${(d.precoAFixar===true||d.status==='A FIXAR')?' <span class="tag amber" title="Preço a fixar: fora das médias e da tabela de replacement até a fixação">A FIXAR</span>':(d.replacementPendente?' <span class="tag amber" title="Registro fechado; replacement pendente por termos comerciais ou origem não informada">REPLACEMENT PENDENTE</span>':'')}</td>
       <td>${_dealRetiradaEn(d.retirada)}</td>
       <td>${(function(){ if(d.embarque) return `<span class="tag neutral">${d.embarque}</span>`; const inf=embarqueEfetivo(d); return inf? `<span class="tag neutral" style="opacity:.55" title="Inferido da retirada — campo não gravado no registro">${inf}*</span>` : '<span style="color:var(--muted)">—</span>'; })()}</td>
       <td class="num">${n(d.volume)>0 ? tons(d.volume) : '—'}</td>
