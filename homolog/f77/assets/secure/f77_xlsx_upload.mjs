@@ -116,7 +116,7 @@ export async function parseXlsx(file,onProgress=()=>{}){
  // Real desk exports exceed 24 MB and contain >1 million historical rows.
  // Stream the entire XML, verify counts and retain ONLY each sheet's latest date.
  if(file.size>12*1024*1024){
-  const {parseOfficialDailyXlsx}=await import('./f77_official_daily_xlsx.mjs?v=20261117real01');
+  const {parseOfficialDailyXlsx}=await import('./f77_official_daily_xlsx.mjs?v=20261117hist01');
   return parseOfficialDailyXlsx(file,onProgress);
  }
  if(file.size<50||file.size>MAX_FILE)throw Error('XLSX maior que 24 MB ou vazio');
