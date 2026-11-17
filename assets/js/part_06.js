@@ -13384,7 +13384,10 @@ function renderMapa(){
     try{return render()}catch(e){
       console.error('[BRZ F72] '+label,e);
       const node=document.getElementById(element);
-      if(node)node.innerHTML='<div class="note" role="status">Dados insuficientes para '+label+'. '+String(e?.message||e).slice(0,180)+'</div>';
+      if(node){const notice=document.createElement('div');notice.className='note';
+        notice.setAttribute('role','status');
+        notice.textContent='Dados insuficientes para '+label+'. '+String(e?.message||e).slice(0,180);
+        node.replaceChildren(notice);}
     }
   };
   safePanel('Resumo','mapaSummary',()=>renderMapaSummary(dealsFiltro,agg));
