@@ -33,7 +33,7 @@ const app=readFileSync(new URL('../assets/js/part_06.js',import.meta.url),'utf8'
 assert.match(app,/function setNegociosUF\(v\)/);
 assert.match(app,/function setNegociosCidade\(v\)/);
 assert.match(app,/const citySelectOptions/);
-assert.match(app,/id="brzF77MapCityDetail"/);
+assert.match(app,/cityPanel\.id='brzF77MapCityDetail'/);
 assert.match(app,/renderMapaLeaflet\(data,col,dealsFiltro\)/);
 const rail=readFileSync(new URL('../assets/secure/f77_rail_network.mjs',import.meta.url),'utf8');
 assert.match(rail,/f:'json'/);
