@@ -59,6 +59,7 @@ async function load(){
     'assets/f42/f42_hydrate.js',
     'assets/secure/f40_pin_login.js',
     'assets/secure/f73_fast_market.mjs',
+    'assets/secure/f74_history_pager.mjs',
     'assets/secure/market_excel_overlay.mjs'
   ]);
   for(const path of immediate)if(!manifest.files[path])
