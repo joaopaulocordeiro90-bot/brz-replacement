@@ -45,9 +45,9 @@ const login=readFileSync(new URL('../assets/secure/f40_pin_login.js',import.meta
 const idx=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const boot=readFileSync(new URL('../assets/secure/pin_boot.mjs',import.meta.url),'utf8');
 const sql=readFileSync(new URL('../migrations/20261116_f74_history_window_pages.sql',import.meta.url),'utf8');
-assert.match(login,/installHistoryPanel\(\{root:container,request,token,asOf:preview\.date\}\)/);
-assert.match(idx,/id="brz-f74-history"/);
-assert.match(boot,/assets\/secure\/f74_history_pager\.mjs/);
+assert.doesNotMatch(login,/installHistoryPanel\(\{root:container,request,token,asOf:preview\.date\}\)/);
+assert.doesNotMatch(idx,/id="brz-f74-history"/);
+assert.doesNotMatch(boot,/assets\/secure\/f74_history_pager\.mjs/);
 assert.match(sql,/SECURITY INVOKER/);
 assert.match(sql,/auth\.uid\(\)/);
 assert.match(sql,/brz\.papel\(\)/);
@@ -55,4 +55,4 @@ assert.match(sql,/REVOKE ALL ON FUNCTION.*brz_api_f74_history_page/s);
 assert.match(sql,/p_limit NOT IN \(10,25,50\)/);
 assert.match(sql,/CREATE INDEX IF NOT EXISTS f74_market_domain_day_cursor_idx/);
 assert.match(sql,/WITH dated AS MATERIALIZED/);
-console.log('F74: 5 private domains, cursor pagination, authentication, preflight SHA, indexes and no initial prefetch OK.');
+console.log('F74: 5 domains, cursor pager preserved but removed from F77 initial boot.');
