@@ -1,0 +1,289 @@
+{
+ "schema": "BRZ_F77_MUNICIPAL_INDICATIVE_V1",
+ "source": "brz_f29c_qa.city_geo_effective_f20; BRZ municipal coordinate reference",
+ "precision": "municipal_indicative",
+ "snapshot_date": "2026-11-17",
+ "count": 70,
+ "coords": {
+  "Acrelândia - AC": [
+   -10.077,
+   -67.053
+  ],
+  "Alexânia - GO": [
+   -16.083,
+   -48.507
+  ],
+  "Alta Floresta - MT": [
+   -9.875,
+   -56.086
+  ],
+  "Alto Boa Vista - MT": [
+   -11.673,
+   -51.388
+  ],
+  "Araguaiana - MT": [
+   -15.729,
+   -51.834
+  ],
+  "Araguapaz - GO": [
+   -15.091,
+   -50.631
+  ],
+  "Barcarena - PA": [
+   -1.506,
+   -48.625
+  ],
+  "Barra do Corda - MA": [
+   -5.506,
+   -45.243
+  ],
+  "Bela Vista - MS": [
+   -22.109,
+   -56.521
+  ],
+  "Bela Vista de Goiás - GO": [
+   -16.973,
+   -48.953
+  ],
+  "Brejinho de Nazaré - TO": [
+   -11.006,
+   -48.567
+  ],
+  "Britânia - GO": [
+   -15.242,
+   -51.16
+  ],
+  "Campinorte - GO": [
+   -14.314,
+   -49.151
+  ],
+  "Campo Alegre de Goiás - GO": [
+   -17.636,
+   -47.782
+  ],
+  "Capanema - PA": [
+   -1.196,
+   -47.181
+  ],
+  "Capanema - PR": [
+   -25.672,
+   -53.809
+  ],
+  "Correntina - BA": [
+   -13.343,
+   -44.637
+  ],
+  "Corumbá - MS": [
+   -19.009,
+   -57.651
+  ],
+  "Couto Magalhães - TO": [
+   -8.284,
+   -49.247
+  ],
+  "Crixás - GO": [
+   -14.549,
+   -49.974
+  ],
+  "Dois Irmãos do Tocantins - TO": [
+   -9.255,
+   -49.064
+  ],
+  "Dois Vizinhos - PR": [
+   -25.751,
+   -53.057
+  ],
+  "Feliz Natal - MT": [
+   -12.385,
+   -54.923
+  ],
+  "Firminópolis - GO": [
+   -16.578,
+   -50.304
+  ],
+  "Formoso do Araguaia - TO": [
+   -11.797,
+   -49.529
+  ],
+  "Gaúcha do Norte - MT": [
+   -13.244,
+   -53.081
+  ],
+  "Gilbués - PI": [
+   -9.832,
+   -45.344
+  ],
+  "Guarda-Mor - MG": [
+   -17.773,
+   -47.098
+  ],
+  "Iaciara - GO": [
+   -14.096,
+   -46.633
+  ],
+  "Inhumas - GO": [
+   -16.358,
+   -49.496
+  ],
+  "Ipiranga - PR": [
+   -25.024,
+   -50.584
+  ],
+  "Itaí - SP": [
+   -23.418,
+   -49.092
+  ],
+  "Itajá - GO": [
+   -19.068,
+   -51.549
+  ],
+  "Itarumã - GO": [
+   -18.765,
+   -51.348
+  ],
+  "Itaúba - MT": [
+   -11.061,
+   -55.277
+  ],
+  "Itiquira - MT": [
+   -17.209,
+   -54.142
+  ],
+  "Jataizinho - PR": [
+   -23.258,
+   -50.977
+  ],
+  "Jati - CE": [
+   -7.689,
+   -39.005
+  ],
+  "Júlio de Castilhos - RS": [
+   -29.227,
+   -53.682
+  ],
+  "Luz - MG": [
+   -19.791,
+   -45.679
+  ],
+  "Muitos Capões - RS": [
+   -28.313,
+   -51.183
+  ],
+  "Mundo Novo - BA": [
+   -11.859,
+   -40.472
+  ],
+  "Mundo Novo - GO": [
+   -13.773,
+   -50.275
+  ],
+  "Mundo Novo - MS": [
+   -23.938,
+   -54.271
+  ],
+  "Nobres - MT": [
+   -14.72,
+   -56.328
+  ],
+  "Novo Acordo - TO": [
+   -9.971,
+   -47.677
+  ],
+  "Novo Cabrais - RS": [
+   -29.733,
+   -52.948
+  ],
+  "Ourizona - PR": [
+   -23.405,
+   -52.196
+  ],
+  "Palmeira do Piauí - PI": [
+   -8.731,
+   -44.247
+  ],
+  "Paraíso do Tocantins - TO": [
+   -10.175,
+   -48.882
+  ],
+  "Piracanjuba - GO": [
+   -17.302,
+   -49.017
+  ],
+  "Pontalina - GO": [
+   -17.526,
+   -49.449
+  ],
+  "Porto dos Gaúchos - MT": [
+   -11.533,
+   -57.413
+  ],
+  "Quedas do Iguaçu - PR": [
+   -25.449,
+   -52.91
+  ],
+  "Ribeirãozinho - MT": [
+   -16.486,
+   -52.693
+  ],
+  "Ribeiro Gonçalves - PI": [
+   -7.557,
+   -45.243
+  ],
+  "Santa Adélia - SP": [
+   -21.243,
+   -48.804
+  ],
+  "Santa Fé de Goiás - GO": [
+   -15.766,
+   -51.104
+  ],
+  "Santa Helena - PR": [
+   -24.8583,
+   -54.336
+  ],
+  "Santa Mônica - PR": [
+   -23.108,
+   -53.11
+  ],
+  "São Jorge dOeste - PR": [
+   -25.708,
+   -52.919
+  ],
+  "São Luís - MA": [
+   -2.53,
+   -44.303
+  ],
+  "São Miguel do Passa Quatro - GO": [
+   -17.058,
+   -48.662
+  ],
+  "Sertãozinho - SP": [
+   -21.138,
+   -47.99
+  ],
+  "Sucupira - TO": [
+   -11.993,
+   -48.968
+  ],
+  "Talismã - TO": [
+   -12.795,
+   -49.09
+  ],
+  "Turvânia - GO": [
+   -16.612,
+   -50.136
+  ],
+  "Ubiratã - PR": [
+   -24.546,
+   -52.988
+  ],
+  "Vianópolis - GO": [
+   -16.74,
+   -48.516
+  ],
+  "Vila Rica - MT": [
+   -10.013,
+   -51.119
+  ]
+ }
+}
