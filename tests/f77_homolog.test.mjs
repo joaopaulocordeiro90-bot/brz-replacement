@@ -9,6 +9,7 @@ import {contractedPort,buildRegionalFlowReport} from '../homolog/f77/assets/secu
 import {summarizeClose} from '../homolog/f77/assets/secure/f77_daily_close.mjs';
 import {createGeoRegistry} from '../homolog/f77/assets/secure/f77_geo_registry.mjs';
 import {validatedRailPath} from '../homolog/f77/assets/secure/f77_rail_network.mjs';
+import {parseInternalFreight,compareInternalFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const folder=path.join(root,'homolog/f77');
 const r=file=>readFileSync(path.join(folder,file),'utf8');
@@ -19,10 +20,10 @@ test('F77: PIN direto sem tela Mercado diário e arquivos assinados',()=>{
  assert.match(pin,/__BRZ_VERIFY_FULL_STATIC/);
  assert.match(pin,/full verified replacement engine/);
  assert.match(app,/id="brz-f77-build"/);
- assert.match(index,/pin_boot\.mjs\?v=20261117qa01/);
- assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117qa01/);
- assert.match(pin,/pin_autosave\.js\?v=20261117qa01/);
- assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117C/);
+ assert.match(index,/pin_boot\.mjs\?v=20261117int01/);
+ assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117int01/);
+ assert.match(pin,/pin_autosave\.js\?v=20261117int01/);
+ assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117D/);
  const m=JSON.parse(r('MANIFEST_F58_PUBLIC_SHA256.json'));
  assert.ok(Object.keys(m.files).length>100);
  for(const [name,record] of Object.entries(m.files)){
@@ -102,4 +103,44 @@ test('F77: módulos integrados e nenhum marcador de envio automático na consult
  const f=r('assets/secure/f77_deals_filters.mjs');
  assert.doesNotMatch(f,/brz_pin_module_save|fetch\(|localStorage|state\.negocios\s*=/);
  assert.ok(r('assets/secure/f77_xlsx_upload.mjs').includes('rollbackUpload'));
+});
+
+test('Frete interno: 5o campo, leitura separada e nenhuma mutacao de referencia',()=>{
+ const input=[['Modal','Origem','Destino','Semana','Frete R$/t'],
+  ['Rodoviário','Jataí/GO','Santos','2026-S47','215,50'],
+  ['Ferroviário','Rondonópolis/MT','Santos','Nov-26',195]];
+ const parsed=parseInternalFreight(input,{sheetName:'Frete interno'});
+ assert.deepEqual(parsed.errors,[]);
+ assert.equal(parsed.counts.rodoviario,1);
+ assert.equal(parsed.counts.ferroviario,1);
+ const base={road:[{tipo:'Rodoviário',origem:'Jataí/GO',destino:'Santos',semana:'2026-S47',valor:210}],
+  rail:[{origem:'Rondonópolis/MT',destino:'Santos',meses:{Nov:193}}]};
+ const snapshot=JSON.stringify(base);
+ const diff=compareInternalFreight(parsed.records,base);
+ assert.equal(diff.counts.total,2);
+ assert.equal(diff.counts.comparado,1);
+ assert.equal(diff.counts.alterado,1);
+ assert.equal(diff.counts.sem_referencia,1);
+ assert.equal(diff.counts.ferro_sem_ano,1);
+ assert.equal(diff.changes[0].delta,5.5);
+ assert.equal(diff.changes[1].anterior,null);
+ assert.equal(JSON.stringify(base),snapshot);
+});
+
+test('Frete interno: bloqueia duplicidades, periodo invalido e preco ausente',()=>{
+ const x=[['Modal','Origem','Destino','Período','Valor'],
+ ['Rodoviário','Sorriso/MT','Santos','2026-S47',200],
+ ['Rodoviário','Sorriso/MT','Santos','2026-S47',200],
+ ['Ferroviário','Rondonópolis/MT','Santos','Nov-26',''],
+ ['Rodoviário','Sorriso','Santos','2026-S47',190]];
+ const out=parseInternalFreight(x,{sheetName:'Frete interno'});
+ assert.equal(out.records.length,1);
+ assert.ok(out.errors.some(x=>x.includes('duplicado')));
+ assert.ok(out.errors.some(x=>x.includes('inválido')));
+ assert.ok(out.errors.some(x=>x.includes('UF explícita')));
+ const ui=r('assets/secure/f77_xlsx_upload.mjs');
+ assert.match(ui,/5 · Frete interno/);
+ assert.match(ui,/brz-f77-internal-file/);
+ assert.match(ui,/brz-f77-internal-sheet/);
+ assert.match(ui,/nenhuma cotação de frete interno será publicada/);
 });
