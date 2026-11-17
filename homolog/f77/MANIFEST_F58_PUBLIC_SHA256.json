@@ -340,8 +340,8 @@
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "bytes": 82783,
-      "sha256": "d92e55484c21512c1113c35232c1b6bc65c236ff8728079e3a330fa6793ff946"
+      "bytes": 82787,
+      "sha256": "2b92bf40011d760fdbf40dac48b227dca2c1260b63ed5def9ede357295a52ef1"
     },
     "assets/secure/f40_pin_login.js": {
       "bytes": 39318,
@@ -364,8 +364,8 @@
       "sha256": "6cf8bee0efba6e7816bb6aeabd26fb1cc64237d8ec18e5ed5d3b3e70b17df77e"
     },
     "assets/secure/market_excel_audit.mjs": {
-      "bytes": 3851,
-      "sha256": "1e39d608fbd45ecb48f2b4321bfcbb881d3d698180e88aea41594a28c08dd64c"
+      "bytes": 5485,
+      "sha256": "59bc1b11161ebcd74250217b40e481ffb27332677f8897332feeda6d87e6b1fe"
     },
     "assets/secure/f68_deals_render_guard.mjs": {
       "bytes": 4454,
@@ -404,8 +404,8 @@
       "sha256": "4ee18f42a7fd77d133395ae3d0860d833c7738254e04a357d94113aa53991039"
     },
     "assets/secure/f77_daily_close.mjs": {
-      "bytes": 9043,
-      "sha256": "faa7c139c106acd100223750f8b3a20288336e94454103f671cc2ef50dd56635"
+      "bytes": 9598,
+      "sha256": "4e18a1f5f7bac1f4ead88c642ed7cc7197d6f06f3083894404fe6f2f0852c1ad"
     },
     "assets/secure/f77_xlsx_diff.mjs": {
       "bytes": 5524,
