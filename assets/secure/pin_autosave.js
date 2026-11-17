@@ -805,6 +805,29 @@
   screen.appendChild(access);
   content.appendChild(screen);
 
+
+  // F77: show measured actual load times, not fabricated performance targets.
+  const perf=document.createElement('details');perf.className='brzsys-legacy';
+  const perfSummary=document.createElement('summary');
+  perfSummary.textContent='Desempenho real · carregamento da sessão F77';
+  perf.appendChild(perfSummary);
+  const perfOutput=document.createElement('pre');
+  perfOutput.style.cssText='white-space:pre-wrap;font:12px/1.6 ui-monospace,monospace';
+  perf.appendChild(perfOutput);
+  perf.addEventListener('toggle',()=>{
+    if(!perf.open)return;
+    let m=null;
+    try{m=window.parent?.__BRZ_F77_BOOT_AUDIT;}catch{}
+    if(!m){perfOutput.textContent='Medição disponível após completar a abertura autenticada.';return;}
+    const seconds=n=>(Number(n||0)/1000).toFixed(2)+'s';
+    perfOutput.textContent='Tempo total: '+seconds(m.totalMs)+
+      '\nCache protegido: '+String(m.cache||'N/D')+
+      '\nMotor completo: '+(m.fullEngine?'SIM':'NÃO')+
+      '\n'+(m.stageTimes||[]).map(x=>x.key+': '+seconds(x.ms)).join('\n')+
+      '\nMedição da sessão atual; inclui rede e verificação SHA quando aplicável.';
+  });
+  screen.appendChild(perf);
+
   const controls=[
    {id:'brzpin-badge',panel:'brzpin-panel',name:'Banco · Sincronização e backup',legacy:false},
    {id:'brzf60-button',panel:'brzf60-panel',name:'Diagnóstico e recuperação',legacy:false},
@@ -1236,7 +1259,7 @@
     // F73: audit calculations only after all authenticated source and trade
     // overlays are active; the button runs on demand, without any write.
     try{
-      const audit=await import('./f73_replacement_audit.mjs?v=20261117f76');
+      const audit=await import('./f73_replacement_audit.mjs?v=20261117f77');
       audit.installReplacementAudit(window,()=>state.negocios);
     }catch(e){console.warn('BRZ F73 auditoria opcional indisponível',e)}
     installSystemToolsTab();
