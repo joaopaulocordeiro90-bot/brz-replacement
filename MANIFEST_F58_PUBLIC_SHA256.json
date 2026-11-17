@@ -317,7 +317,7 @@
     },
     "index.html": {
       "bytes": 5078,
-      "sha256": "a584726e352fe502325608f5c4e3db28ad937df1047b3a1ddd7547710e49b414"
+      "sha256": "0d2760650a7f26d7c5961ac37835e991729718fef32071c8433c9e6bdb1dfd63"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -340,24 +340,24 @@
       "sha256": "b8128f5f44bebc5bfb2cf67714ec60a3b4cfb90ac58b526a2ff879ad821b3ad6"
     },
     "assets/secure/pin_autosave.js": {
-      "bytes": 65582,
-      "sha256": "c417d24c60850d0fc7f319e4271d531bb319b4733ca195c17552bd87b931e11b"
+      "bytes": 65669,
+      "sha256": "f29b68010814bd1e619965308506a5e60a0dff8d4214659985183354a87624c9"
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 38656,
-      "sha256": "78770eda4b84c5b25ca053037c6834c9c677a154ea2dd368672a11f3fbe8c26a"
+      "bytes": 38872,
+      "sha256": "1d12c12b77f784efaaba593107be77b251f90fa633bbbeb24e504d0719e9c69b"
     },
     "assets/secure/pin_boot.mjs": {
       "bytes": 7013,
-      "sha256": "3d0c8dec05d43f17e8cd2865a612056014d2b873c36ea49613a36a06d2c8599d"
+      "sha256": "61d9d82a5ba853f80f3f80bcf18ac9d2c24c9ac64ad2a461eff57f8548e7ac92"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
       "sha256": "ad54afc412b91ebf14036af417af26d4f6e92ff7f63c7ae72c38e6569a736288"
     },
     "assets/secure/market_excel_overlay.mjs": {
-      "bytes": 10905,
-      "sha256": "969cb7571f6c403626f8a42d9f39a2c59c1d4b46d2745afcf8d86d686fdd687f"
+      "bytes": 11359,
+      "sha256": "14f2b2fa2c676edf64fc128461260a09cdcac0926a07535117ac56027d7c7398"
     },
     "assets/secure/market_excel_reconcile.mjs": {
       "bytes": 10043,
