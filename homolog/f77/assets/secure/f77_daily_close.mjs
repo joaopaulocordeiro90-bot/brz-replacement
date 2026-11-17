@@ -92,6 +92,17 @@ export function installDailyClose({getTrades,getState,getGeo}={}){
     Number(audit.stateVersion)===Number(state?._version||0)&&
     !!audit.completedAt;
   const relevant=Array.isArray(audit?.issues)?audit.issues.filter(x=>x.date===day):[];
+  const finance=window.__BRZ_F77_FINANCIAL_PARITY_AUDIT;
+  const financialCurrent=!!(finance&&finance.completedAt&&finance.date===day&&
+   finance.totalRecords===getTrades().length&&
+   Number(finance.stateVersion)===Number(state?._version||0)&&
+   finance.marketExcelAsOf===(state?.marketExcelAsOf||null)&&
+   finance.cbotDate===(state?.timestamps?.cbot||null)&&
+   finance.fxDate===(state?.timestamps?.dolar||null)&&
+   Number(finance.freightRows)===(state?.fretesRodo?.length||0)&&
+   Number(finance.railRows)===(state?.fretesFerro?.length||0)&&
+   finance.passed===true);
+  const badFinance=(finance?.counts?.eligible||0)-(finance?.counts?.conforme||0);
   current=summarizeClose({date:day,trades:getTrades(),cbotDate:state?.timestamps?.cbot,
    fxDate:state?.timestamps?.dolar,excelDate:state?.marketExcelAsOf,
    excelAudit:state?.marketExcelAudit,freights:state?.fretesRodo,
