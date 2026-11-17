@@ -317,7 +317,7 @@
     },
     "index.html": {
       "bytes": 7476,
-      "sha256": "0437f62f63c4269fab6af9b47e606483164ff92ce128668e1d52d763a481d8de"
+      "sha256": "118440a56b6480005254e6ac1a7431fe724c95a5cf164a0cce2bb1ee227520d4"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -341,15 +341,15 @@
     },
     "assets/secure/pin_autosave.js": {
       "bytes": 66664,
-      "sha256": "ff86a036bf3bfde97e3b05842b93122f5f9e652cb0ab363a28067e629d424069"
+      "sha256": "3efe053a25ffd991897b40c9c4d34f361d92b3972bba737ca9aa4b7cbe748322"
     },
     "assets/secure/f40_pin_login.js": {
       "bytes": 40410,
-      "sha256": "0e59260f11d50bf887c904c1633ce0f159532fe61f57d82ce5def221c0537370"
+      "sha256": "d79e2d465560de85791ea62e0a66a8c57ccb98280ba4506206df70f77d9398d8"
     },
     "assets/secure/pin_boot.mjs": {
       "bytes": 8280,
-      "sha256": "e20eb7a1d5e5dd2aa7796528f7d4fa8d7a9966627326dd83ad983d4178854fa4"
+      "sha256": "2cac7d8bd4071287c4e90b2a0f620dcba488d60f68c4948bf0c48e695e47f542"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
@@ -380,8 +380,8 @@
       "sha256": "2f22edd08b9aedad94020df63693addd33b9188949a5478e449c00642bdacde4"
     },
     "assets/secure/f73_replacement_audit.mjs": {
-      "bytes": 10467,
-      "sha256": "771fea61ae9c3340d6d915da214b117c0669b302fea28f6ad93bea8567790dbc"
+      "bytes": 12634,
+      "sha256": "612e92c35fc20adc947547b1e6e9cfba64bd38bca6dfe0086b9895abb72aa215"
     },
     "assets/secure/f74_history_pager.mjs": {
       "bytes": 8624,
