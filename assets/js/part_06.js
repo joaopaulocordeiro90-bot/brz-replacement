@@ -13353,7 +13353,7 @@ function renderMapa(){
   brzMapCalculationIssues=0; brzMapCalculationExample=[];
   // Mostra o mapa imediatamente, antes de cálculos de milhares de negócios.
   function showMapLayer(data,col){
-    try{renderMapaLeaflet(data,col)}catch(e){console.error('[BRZ F72] Leaflet',e);
+    try{renderMapaLeaflet(data,col,dealsFiltro)}catch(e){console.error('[BRZ F72] Leaflet',e);
       const target=document.getElementById('mapaContainer');
       if(target)target.setAttribute('data-brz-map-error',String(e?.message||e).slice(0,180));
     }
@@ -13466,7 +13466,7 @@ let _leafletMap = null;
 let _leafletLayer = null;  // grupo de markers
 let _mapaUiState = {panelHidden:false, tableHidden:false, fullscreen:false};
 
-function renderMapaLeaflet(agg, colorFor){
+function renderMapaLeaflet(agg, colorFor, cityDeals=[]){
   const container = document.getElementById('mapaContainer');
   if(!container) return;
 
@@ -13573,6 +13573,75 @@ function renderMapaLeaflet(agg, colorFor){
     marker.on('click', ()=>{ mapaCorredorSelecionado = corr; renderMapa(); });
     _leafletLayer.addLayer(marker);
   });
+
+  // F77: drill down from a Brazilian corridor to the real business origin
+  // municipality. Pins are municipal (indicative), never fictitious farm sites.
+  // All deals in the chosen corridor participate; no source-row cap.
+  const selectedCorridor=String(mapaCorredorSelecionado||'');
+  let cityPanel=document.getElementById('brzF77MapCityDetail');
+  if(!cityPanel){
+    cityPanel=document.createElement('div');
+    cityPanel.id='brzF77MapCityDetail';
+    cityPanel.setAttribute('role','region');
+    cityPanel.setAttribute('aria-label','Negócios por cidade da origem');
+    cityPanel.style.cssText='margin:8px 0;background:var(--card,#fff);border:1px solid var(--g200,#d5e2e9);padding:12px;font:12px Inter,Arial,sans-serif;color:var(--g900,#18364b);max-height:280px;overflow:auto';
+    container.insertAdjacentElement('afterend',cityPanel);
+  }
+  const htmlSafe=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if(selectedCorridor){
+    const grouped=new Map(),withoutCoords=[];
+    for(const d of cityDeals||[]){
+      if(String(d.corredor||'')!==selectedCorridor)continue;
+      const raw=String(d.origem||'');
+      const city=String((typeof extractCidadeBase==='function'&&extractCidadeBase(raw))||'').trim();
+      const uf=(raw.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1]||
+        (String(d.corredor||'').match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+      if(!city){withoutCoords.push(d);continue;}
+      const key=city+'|'+uf;
+      if(!grouped.has(key)){
+        let loc=null;
+        try{loc=getCityCoord(city+(uf?'/'+uf:''))||getCityCoord(city);}catch(_e){}
+        const good=Array.isArray(loc)&&loc.length===2&&loc.every(x=>Number.isFinite(Number(x)))&&
+         loc[0]>=-35&&loc[0]<=6&&loc[1]>=-75&&loc[1]<=-32;
+        grouped.set(key,{city,uf,loc:good?loc:null,deals:[],volume:0});
+      }
+      const group=grouped.get(key);
+      group.deals.push(d);group.volume+=Number(d.volume)>0?Number(d.volume):0;
+    }
+    const known=[...grouped.values()].filter(x=>x.loc),missing=[...grouped.values()].filter(x=>!x.loc);
+    cityPanel.innerHTML='<b>'+htmlSafe(selectedCorridor)+'</b> · '+
+      grouped.size+' municípios · '+known.length+' localizados · '+(missing.length+withoutCoords.length)+
+      ' origens geográficas pendentes · <small>pinos indicam apenas a sede municipal</small>'+
+      '<div id="brzF77MapCitySelected" style="margin-top:9px">Selecione um município no mapa para visualizar os seus negócios.</div>'+
+      (missing.length?'<details style="margin-top:8px"><summary>Municípios sem coordenadas verificadas ('+missing.length+')</summary>'+
+       '<div>'+missing.map(x=>htmlSafe(x.city+(x.uf?'/'+x.uf:'')+' · '+x.deals.length+' negócios')).join(' · ')+'</div></details>':'');
+    for(const group of known){
+      const loc=group.loc;
+      const point=L.circleMarker(loc,{
+        radius:Math.min(10,5+Math.log2(group.deals.length+1)),
+        color:'#fff',weight:2,fillColor:'#168c82',fillOpacity:.96
+      });
+      point.bindTooltip('<b>'+htmlSafe(group.city+(group.uf?'/'+group.uf:''))+'</b> · '+
+        group.deals.length+' negócios · '+group.volume.toLocaleString('pt-BR')+' t'+
+        '<br><small>Coordenada municipal indicativa</small>',{direction:'top',sticky:true});
+      point.on('click',()=>{
+        _leafletMap.setView(loc,Math.max(7,_leafletMap.getZoom()),{animate:false});
+        const target=document.getElementById('brzF77MapCitySelected');
+        if(!target)return;
+        target.innerHTML='<b>'+htmlSafe(group.city+(group.uf?'/'+group.uf:''))+
+          '</b> · '+group.deals.length+' negócios · '+group.volume.toLocaleString('pt-BR')+
+          ' t<div style="margin:6px 0;font-size:11px;color:var(--g600)">Localização indicativa; não representa fazenda nem acesso ferroviário.</div>'+
+          '<div style="overflow:auto;max-height:145px"><table style="width:100%;border-collapse:collapse">'+
+          '<thead><tr><th>ID</th><th>Data</th><th>Produto</th><th>Origem comercial</th><th>Volume</th></tr></thead><tbody>'+
+          group.deals.map(d=>'<tr>'+[d.id,d.data,d.produto,d.origem,(Number(d.volume)||0).toLocaleString('pt-BR')+' t']
+           .map(v=>'<td style="border-bottom:1px solid var(--g200);padding:3px">'+htmlSafe(v)+'</td>').join('')+'</tr>').join('')+
+          '</tbody></table></div>';
+      });
+      _leafletLayer.addLayer(point);
+    }
+  }else{
+    cityPanel.textContent='Selecione um corredor no mapa para detalhar as origens por cidade.';
+  }
 
   // Legenda flutuante (recria a cada render)
   if(_leafletMap._legendControl){ _leafletMap.removeControl(_leafletMap._legendControl); }
