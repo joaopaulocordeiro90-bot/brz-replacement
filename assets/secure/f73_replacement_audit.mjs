@@ -81,7 +81,12 @@ export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isA
      skipped++;continue;
    }
    let result=null,exception=null;
-   try{result=await calculate(d);}catch(e){exception=e}
+   // Contracts explicitly pending or tied to Paraguayan origin are diagnosed
+   // without invoking the Brazilian FOB engine; no fabricated parity.
+   const blocked=d?.replacementPendente===true||d?.replacementPendente==='true'||
+     d?.marketSnapshotPending===true||d?.marketSnapshotPending==='true'||
+     /paraguai|paraguay/i.test(String(d?.corredor||'')+' '+String(d?.origem||''));
+   if(!blocked){try{result=await calculate(d);}catch(e){exception=e}}
    const category=auditReason(d,result,exception);
    byType[category.type]=(byType[category.type]||0)+1;
    if(category.type==='calculado')computed++;
