@@ -81,11 +81,18 @@ export function installDailyClose({getTrades,getState,getGeo}={}){
  function review(){
   if(!box.open)return;
   const state=getState(),day=$('brz-f77-close-day').value;
+  // F77: only a finished, current per-ID replacement audit can clear
+  // the financial gate. No replacement result is inferred from a valid Excel.
+  const audit=window.__BRZ_F73_REPLACEMENT_DIAGNOSTICS;
+  const auditCurrent=audit&&Number(audit.total)===getTrades().length&&
+    Number(audit.stateVersion)===Number(state?._version||0)&&
+    !!audit.completedAt;
+  const relevant=Array.isArray(audit?.issues)?audit.issues.filter(x=>x.date===day):[];
   current=summarizeClose({date:day,trades:getTrades(),cbotDate:state?.timestamps?.cbot,
    fxDate:state?.timestamps?.dolar,excelDate:state?.marketExcelAsOf,
    excelAudit:state?.marketExcelAudit,freights:state?.fretesRodo,
    geo:typeof getGeo==='function'?getGeo():null,
-   tradeAudits:{checked:false,failed:0}});
+   tradeAudits:{checked:!!auditCurrent,failed:relevant.length}});
   const products=Object.entries(current.products);
   const rows=products.map(([p,v])=>'<tr><td>'+esc(p)+'</td><td>'+fmt(v.count)+'</td><td>'+fmt(v.volume)+'</td></tr>').join('');
   $('brz-f77-close-content').innerHTML='<p><b>'+esc(current.date)+'</b> · '+fmt(current.records)+' negócios · '+fmt(current.closed)+' fechados · '+fmt(current.pending)+' pendentes · '+fmt(current.volume)+' t</p>'+
