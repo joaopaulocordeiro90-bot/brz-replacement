@@ -20,10 +20,16 @@ export function compareDailyXlsx(projected,{physicalHistory=[],basisHistory=null
  for(const item of projected.physical||[]){
   const key=[norm(item.produto),norm(item.origem),norm(item.janelaFisica)].join('|');
   const prev=physicalMap.get(key),oldBid=finite(prev?.bid),oldOffer=finite(prev?.offer);
+  // Having an older row does NOT mean it contains usable Bid + Offer.
+  // Missing/zero historic quotes must never count as 'comparado' or 'alterado'.
+  const validHistoricalPair=oldBid!==null&&oldOffer!==null&&oldBid>0&&oldOffer>0;
   changes.push({tab:'Preços',key:item.produto+' · '+item.origem+' · '+item.janelaFisica,
-   oldDate:prev?.data||null,oldBid,newBid:finite(item.bid),bidDelta:delta(oldBid,finite(item.bid)),
-   oldOffer,newOffer:finite(item.offer),offerDelta:delta(oldOffer,finite(item.offer)),
-   status:prev?'comparado':'sem_referencia'});
+   oldDate:prev?.data||null,oldBid,newBid:finite(item.bid),
+   bidDelta:validHistoricalPair?delta(oldBid,finite(item.bid)):null,
+   oldOffer,newOffer:finite(item.offer),
+   offerDelta:validHistoricalPair?delta(oldOffer,finite(item.offer)):null,
+   status:validHistoricalPair?'comparado':'sem_referencia',
+   ...(prev&&!validHistoricalPair?{referenceIssue:'historico_sem_par_bid_offer'}:{})});
  }
  const series=basisHistory?.series||{};
  for(const item of projected.basis||[]){

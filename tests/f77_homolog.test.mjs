@@ -23,10 +23,10 @@ test('F77: PIN direto sem tela Mercado diário e arquivos assinados',()=>{
  assert.match(pin,/__BRZ_VERIFY_FULL_STATIC/);
  assert.match(pin,/full verified replacement engine/);
  assert.match(app,/id="brz-f77-build"/);
- assert.match(index,/pin_boot\.mjs\?v=20261117hist01/);
- assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117hist01/);
- assert.match(pin,/pin_autosave\.js\?v=20261117hist01/);
- assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117F/);
+ assert.match(index,/pin_boot\.mjs\?v=20261117pair01/);
+ assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117pair01/);
+ assert.match(pin,/pin_autosave\.js\?v=20261117pair01/);
+ assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117G/);
  const m=JSON.parse(r('MANIFEST_F58_PUBLIC_SHA256.json'));
  assert.ok(Object.keys(m.files).length>100);
  for(const [name,record] of Object.entries(m.files)){
@@ -261,4 +261,28 @@ test('F77 frete interno: comparar ultima semana do MESMO XLSX',()=>{
  assert.equal(result.changes[0].referencia,'xlsx_semana_anterior');
  assert.equal(result.changes[1].delta,0);
  assert.match(r('assets/secure/f77_official_daily_xlsx.mjs'),/previousSheets/);
+});
+
+
+test('F77: data anterior com Bid/Offer ausentes nunca é alteração válida',()=>{
+ const d='2026-11-16';
+ const projected={as_of:d,sourceSha:'f'.repeat(64),
+  physical:[{produto:'Soja',origem:'Água Boa - MT',janelaFisica:'Dec-26',bid:140,offer:143}],
+  basis:[],derivatives:[],ocean:[]};
+ const prior=[{data:'2026-11-06',produto:'Soja',origem:'Água Boa - MT',
+  janelaFisica:'Dec-26',bid:null,offer:null}];
+ const diff=compareDailyXlsx(projected,{physicalHistory:prior});
+ assert.deepEqual(diff.counts,{total:1,comparado:0,sem_referencia:1,alterado:0,sem_alteracao:0});
+ assert.equal(diff.changes[0].oldDate,'2026-11-06');
+ assert.equal(diff.changes[0].referenceIssue,'historico_sem_par_bid_offer');
+ assert.equal(diff.changes[0].bidDelta,null);
+ assert.equal(diff.changes[0].offerDelta,null);
+ for(const row of [
+  {data:'2026-11-06',produto:'Soja',origem:'Água Boa - MT',janelaFisica:'Dec-26',bid:0,offer:143},
+  {data:'2026-11-06',produto:'Soja',origem:'Água Boa - MT',janelaFisica:'Dec-26',bid:140,offer:null}
+ ]){
+  const next=compareDailyXlsx(projected,{physicalHistory:[row]});
+  assert.equal(next.counts.sem_referencia,1);
+  assert.equal(next.counts.alterado,0);
+ }
 });
