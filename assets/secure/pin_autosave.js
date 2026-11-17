@@ -1155,6 +1155,25 @@
    }catch(error){console.warn('[BRZ F77] origem geográfica:',error?.message);}
  }
 
+
+ async function initDailyClosing(){
+  try{
+   const mod=await import('./f77_daily_close.mjs?v=20261117f77');
+   mod.installDailyClose({
+    getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
+    getState:()=>state,
+    getGeo:()=>{
+     // The registry is read-only and may not yet be expanded by the user.
+     const registry=window.BRZGeoRegistry;
+     if(!registry||typeof registry.getById!=='function')return null;
+     const entries=new Map();
+     for(const deal of state.negocios||[])if(deal?.id)entries.set(String(deal.id),registry.getById(deal.id));
+     return {entries};
+    }
+   });
+  }catch(error){console.warn('[BRZ F77] conciliação de fechamento:',error?.message);}
+ }
+
  async function initPendingWorkspace(){
   if(window.BRZPendencias)return;
   try{
@@ -1224,6 +1243,7 @@
     await initDailyExcelUpload();
     await initPendingWorkspace();
     await initGeoRegistry();
+    await initDailyClosing();
     // F77: analytical classification only; contracted destination vs eligible
     // corridor candidates. No writes, inferred export volume, or route changes.
     try{
