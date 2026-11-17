@@ -4072,10 +4072,7 @@ function _freteAuditoria(m, porto, deal){
   const extra=/\+\s*\d+\s*km/i.test(String(deal.origem||''))?' (km extra incl.)':'';
   const _destLeg=(m.modal==='Rodo + Ferro'||m.modal==='Rodo + Barca\u00e7a')?tb:porto;
   let fonteR;
-  if(m.fonteFrete==='milho_ano1'){ const _ii=m._ano1Info||{};
-    if(_ii.refOrigem){ fonteR='regra milho: ano-1 +15% \u00b7 ref '+_ii.refOrigem+' mediana '+(_ii.mesRef||'?')+'/2025 R$ '+money(_ii.med||0)+' \u00b7 TKU '+_ii.tku+' \u00d7 '+_ii.km+' km \u00d7 1,15 ('+(_ii.n||0)+' sem.)'; }
-    else { fonteR='regra milho: ano-1 +15% \u00b7 mediana '+(_ii.mesRef||'?')+'/2025 R$ '+money(_ii.med||0)+' \u00d7 1,15 ('+(_ii.n||0)+' sem.)'; } }
-  else if(m.fonteFrete==='milho_agoset'){ fonteR='proxy Ago/Set'; }
+  if(m.fonteFrete==='milho_agoset'){ fonteR='proxy Ago/Set'; }
   else if(m.freteEstimado){
     let det='TKU est.';
     try{
@@ -4197,64 +4194,6 @@ var MILHO_AGOSET_CORR_REF={
  'GO Sul':'Rio Verde','GO Sudoeste':'Rio Verde',
  'TO Sul':'Porto Nacional','TO Centro':'Porto Nacional','PR Norte':'Maringá'
 };
-function _isoMonday2025(w){ const j4=new Date(2025,0,4); const day=(j4.getDay()+6)%7; return new Date(2025,0,4-day+(w-1)*7); }
-var _a1Cache={}, _a1Idx=null, _a1WeekMonth=null;
-function _a1BuildIdx(){
-  _a1WeekMonth={};
-  for(let w=1;w<=52;w++){ _a1WeekMonth['2025-S'+String(w).padStart(2,'0')]=_isoMonday2025(w).getMonth(); }
-  _a1Idx={};
-  (state.fretesRodo||[]).forEach(function(r){
-    const mm=_a1WeekMonth[r.semana];
-    if(mm==null||!(r.valor>0)) return;
-    const dl=normFreightText(String(r.destino||''));
-    const oc=String(r.origem||'').split('/')[0];
-    const key=dl+'|'+mm;
-    (_a1Idx[key]=_a1Idx[key]||{});
-    (_a1Idx[key][oc]=_a1Idx[key][oc]||[]).push(r.valor);
-  });
-}
-function _milhoAno1Rodo(deal, destinoLeg){
-  try{
-    if(typeof normalizeProduto==='function' && !['Milho','Sorgo'].includes(normalizeProduto(deal.produto))) return null;
-    const EN={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-    const PT={Jan:0,Fev:1,Mar:2,Abr:3,Mai:4,Jun:5,Jul:6,Ago:7,Set:8,Out:9,Nov:10,Dez:11};
-    let mm=EN[String(deal.embarque||'').slice(0,3)];
-    if(mm==null) mm=PT[vencToMes(deal.vencCBOT)];
-    if(mm==null) return null;
-    const co=normFreightText(freightCityFromOrigem(deal.origem));
-    const dl=normFreightText(String(destinoLeg||''));
-    const _ck=co+'|'+dl+'|'+mm+'|'+String(deal.origem||'');
-    if(_a1Cache[_ck]!==undefined) return _a1Cache[_ck];
-    if(!_a1Idx) _a1BuildIdx();
-    const bucket=_a1Idx[dl+'|'+mm]||{};
-    let vals=[];
-    for(const oc in bucket){ if(normFreightText(oc)===co){ vals=vals.concat(bucket[oc]); } }
-    vals.sort(function(a,b){ return a-b; });
-    const MESPT=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    if(vals.length){
-      const med=vals.length%2? vals[(vals.length-1)/2] : (vals[vals.length/2-1]+vals[vals.length/2])/2;
-      return (_a1Cache[_ck]={valor: Math.round(med*1.15*100)/100, med: med, n: vals.length, mesRef: MESPT[mm]});
-    }
-    // fallback aprovado 13/07/2026: rota de referência mais próxima com mediana ano-1 (método TKU sobre o histórico)
-    const cands=bucket;
-    const _rawCity=String(deal.origem||'').split(' - ')[0].split('/')[0].replace(/\s*\+.*$/,'').trim();
-    let best=null;
-    for(const oc in cands){
-      let dref=null, dor=null;
-      try{ dref=estimateDistanceKm(oc, String(destinoLeg)); }catch(e){}
-      try{ dor=estimateDistanceKm(_rawCity, oc); }catch(e){}
-      if(dref==null||dor==null||!(dref>30)||!(dor>0||oc===_rawCity)) continue;
-      if(best==null || dor<best.dor) best={oc:oc, dor:dor, kmRef:dref, arr:cands[oc].slice().sort(function(a,b){return a-b;})};
-    }
-    if(!best) return (_a1Cache[_ck]=null);
-    let kmDeal=null; try{ kmDeal=estimateDistanceKm(_rawCity, String(destinoLeg)); }catch(e){}
-    if(kmDeal==null||!(kmDeal>0)) return (_a1Cache[_ck]=null);
-    const a2=best.arr, med2=a2.length%2? a2[(a2.length-1)/2] : (a2[a2.length/2-1]+a2[a2.length/2])/2;
-    const tku=med2/best.kmRef;
-    return (_a1Cache[_ck]={valor: Math.round(tku*kmDeal*1.15*100)/100, med: med2, n: a2.length, mesRef: MESPT[mm],
-            refOrigem: best.oc, kmRef: Math.round(best.kmRef), km: Math.round(kmDeal), tku: Math.round(tku*1000)/1000});
-  }catch(e){ return null; }
-}
 function _agoSetFrete(deal, porto, modalCode){
   return null; // DESATIVADO 13/07/2026 — frete milho passa a marcar pela regra ano-1 +15% (tabela proxy Ago/Set aposentada)
   if(typeof normalizeProduto==='function' && !['Milho','Sorgo'].includes(normalizeProduto(deal.produto))) return null;
@@ -4345,12 +4284,12 @@ function buildModalRoute(deal, porto, rt, mes){
   }
   if(modal === 'T'){
     const ri = findRodoFreight(deal.origem, porto, deal.data, deal.corredor);
-    const _a1T=_milhoAno1Rodo(deal, porto);
-    const _ovT=(_a1T!=null?null:_agoSetFrete(deal,porto,'T'));
-    if(_a1T==null && _ovT==null && (!ri || !(ri.valor > 0))) return null;
-    const _rodoT=(_a1T!=null?_a1T.valor+kmExtraRoadCost(deal,porto):(_ovT!=null?_ovT+kmExtraRoadCost(deal,porto):ri.valor));
+    // F77: milho e sorgo usam a mesma referência semanal/TKU vigente aplicada à soja.
+    const _ovT=_agoSetFrete(deal,porto,'T');
+    if(_ovT==null && (!ri || !(ri.valor > 0))) return null;
+    const _rodoT=(_ovT!=null?_ovT+kmExtraRoadCost(deal,porto):ri.valor);
     return { modal:'Rodoviário', freteRodo:_rodoT, freteFerro:0, freteBarcaca:0, freteEstimado:!!(ri&&ri.estimado), freteKm:(ri&&ri.km)||null,
-      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_a1T!=null?'milho_ano1':(_ovT!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual')))), freteOverrideAgoSet:(_ovT!=null), _ano1Info:(_a1T||null),
+      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_ovT!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'))), freteOverrideAgoSet:(_ovT!=null),
       ...calcReplacement(deal,{freteRodo:_rodoT,freteFerro:0,freteBarcaca:0,porto}) };
   }
   if(modal === 'R'){
@@ -4396,12 +4335,11 @@ function buildModalRoute(deal, porto, rt, mes){
         }
       }
     }catch(e){}
-    if(!_noTerminal && !_nearTerminalAccess){ const _a1R=_milhoAno1Rodo(deal, transb);
-      if(_a1R!=null){ ri={valor:_a1R.valor+kmExtraRoadCost(deal,porto), km:(ri&&ri.km)||null, estimado:false, semana:'', fonteFrete:'milho_ano1', _a1:_a1R}; } }
+    // F77: sem substituição por mediana do frete do ano anterior.
     if((_ovTR==null && (!ri || (!(ri.valor > 0) && !_noTerminal))) || !(fFerro > 0)) return null;
     const _rodoTR=(_ovTR!=null?Math.max(0,_ovTR-fFerro)+kmExtraRoadCost(deal,porto):ri.valor);
     return { modal:'Rodo + Ferro', freteRodo:_rodoTR, freteFerro:fFerro, freteBarcaca:0, freteEstimado:!!(ri&&ri.estimado), freteKm:(ri&&ri.km)||null,
-      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_ovTR!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'))), freteOverrideAgoSet:(_ovTR!=null), _transbordo:transb, _ferroEstimado:_ferroEst, _ano1Info:((ri&&ri._a1)||null),
+      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_ovTR!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'))), freteOverrideAgoSet:(_ovTR!=null), _transbordo:transb, _ferroEstimado:_ferroEst,
       ...calcReplacement(deal,{freteRodo:_rodoTR,freteFerro:fFerro,freteBarcaca:0,porto}) };
   }
   if(modal === 'T+B'){
@@ -4411,13 +4349,11 @@ function buildModalRoute(deal, porto, rt, mes){
     if(ri && ri.valor > 0){ rodoVal=ri.valor; estim=!!ri.estimado; km=ri.km||null; semana=ri.semana||''; fonte=ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'); }
     else { const org=String(deal.origem||'').toLowerCase(), tb=String(transb).toLowerCase(); const fx=RODO_LEG_FIXA.find(e=>org.indexOf(e.orig)!==-1 && tb.indexOf(e.transb)!==-1); if(fx){ rodoVal=fx.val; estim=true; fonte='leg_fixa'; } }
     const fBarc = (BARCACA_TRANSBORDO[transb+'|'+porto] != null ? BARCACA_TRANSBORDO[transb+'|'+porto] : (BARCACA_TRANSBORDO[transb] != null ? BARCACA_TRANSBORDO[transb] : getBarcaca(porto, mes)));
-    const _a1B=_milhoAno1Rodo(deal, transb);
-    if(_a1B!=null){ rodoVal=_a1B.valor+kmExtraRoadCost(deal,porto); estim=false; km=null; semana=''; fonte='milho_ano1'; }
-    const _ovTB=(_a1B!=null?null:_agoSetFrete(deal,porto,'T+B'));
+    const _ovTB=_agoSetFrete(deal,porto,'T+B');
     if(_ovTB!=null && fBarc>0){ rodoVal=Math.max(0,_ovTB-fBarc)+kmExtraRoadCost(deal,porto); }
     if((_ovTB==null && (rodoVal == null || !(rodoVal > 0))) || !(fBarc > 0)) return null;
     return { modal:'Rodo + Barcaça', freteRodo:rodoVal, freteFerro:0, freteBarcaca:fBarc, freteEstimado:estim, freteKm:km,
-      freteSemana: semana, fonteFrete: (_ovTB!=null?'milho_agoset':(fonte || 'frete_manual')), freteOverrideAgoSet:(_ovTB!=null), _transbordo:transb, _ano1Info:(_a1B||null),
+      freteSemana: semana, fonteFrete: (_ovTB!=null?'milho_agoset':(fonte || 'frete_manual')), freteOverrideAgoSet:(_ovTB!=null), _transbordo:transb,
       ...calcReplacement(deal,{freteRodo:rodoVal,freteFerro:0,freteBarcaca:fBarc,porto}) };
   }
   return null;
