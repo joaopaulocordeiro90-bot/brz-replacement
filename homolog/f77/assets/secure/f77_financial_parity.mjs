@@ -204,7 +204,7 @@ export function installFinancialParityUI({getTrades,getState,calculate}={}){
  if(!host||document.getElementById('brz-f77-financial-parity'))return null;
  const panel=document.createElement('details');panel.id='brz-f77-financial-parity';
  panel.style.cssText='margin:14px 0;padding:12px;border:1px solid #cbd7df;border-radius:4px;background:var(--card,#fff);font:12px/1.5 Arial,sans-serif';
- const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  panel.innerHTML='<summary style="font-weight:750;cursor:pointer">Auditoria financeira independente · replacement por negócio e porto</summary>'+
  '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;padding:10px 0">'+
  '<label>Data-base <input type="date" id="brz-f77-finance-day"></label>'+
