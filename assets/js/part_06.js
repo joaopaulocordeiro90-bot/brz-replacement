@@ -7841,6 +7841,19 @@ function renderDeals(){
   const baseAtiva = getActiveBase();
   const dealsProduct = getActiveDeals();
   const corrs = [...new Set(dealsProduct.map(d=>d.corredor))].sort();
+  // F77: município/UF são critérios próprios, não texto livre nem o corredor.
+  const placeOf=d=>{
+    const source=String(d?.origem||'');
+    const city=String((typeof extractCidadeBase==='function'&&extractCidadeBase(source))||'').trim();
+    const rawUF=(source.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1];
+    const region=(typeof brzF77OriginRegion==='function'?brzF77OriginRegion(d):d.corredor)||'';
+    const uf=rawUF||(String(region).match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+    return {city,uf};
+  };
+  const hAttr=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const allPlaces=dealsProduct.map(placeOf);
+  const ufs=[...new Set(allPlaces.map(x=>x.uf).filter(Boolean))].sort();
+  const cityOptions=[...new Set(allPlaces.filter(x=>negociosFiltroUF==='todos'||x.uf===negociosFiltroUF).map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   /* V4AV: safras geradas a partir da base (regra safra.calendario) */
   const safras = [{k:'disponivel', label:brzSafraLabel('disponivel')}].concat(brzSafraLista(dealsProduct).map(function(k){ return {k:k, label:brzSafraLabel(k)}; }));
 
@@ -7855,7 +7868,7 @@ function renderDeals(){
     countCorr[c] = dealsProduct.filter(d => d.corredor === c).length;
   });
 
-  const isFiltered = negociosFiltroSafra.size > 0 || negociosFiltroCorr.size > 0 || negociosBusca || negociosFiltroAno !== 'todos' || negociosFiltroMes !== 'todos' || negociosFiltroEmb !== 'todos' || negociosFiltroDia || negociosFiltroInicio || negociosFiltroFim;
+  const isFiltered = negociosFiltroSafra.size > 0 || negociosFiltroCorr.size > 0 || negociosBusca || negociosFiltroAno !== 'todos' || negociosFiltroMes !== 'todos' || negociosFiltroEmb !== 'todos' || negociosFiltroDia || negociosFiltroInicio || negociosFiltroFim || negociosFiltroUF!=='todos' || negociosFiltroCidade!=='todos';
   const chip = (label, isActive, onClick, count) => `
     <button class="btn small ${isActive?'primary':''}" onclick="${onClick}" style="font-size:10.5px;padding:5px 9px">
       ${label}${count !== undefined ? ` <span style="opacity:.65;font-weight:500">(${count})</span>` : ''}
@@ -7872,6 +7885,8 @@ function renderDeals(){
   const _embKey=x=>{const p=/^([A-Za-z]{3})-(\d{2})$/.exec(String(x||'')); return p?(2000+ +p[2])*12+(_MEN[p[1]]!==undefined?_MEN[p[1]]:0):1e9;};
   const embarques=[...new Set(dealsProduct.map(x=>embarqueEfetivo(x)).filter(Boolean))].sort((a,b)=>_embKey(a)-_embKey(b));
   const embOptions = `<option value="todos">Todos embarques</option>` + embarques.map(x=>`<option value="${x}" ${negociosFiltroEmb===x?'selected':''}>${x}</option>`).join('');
+  const ufOptions = '<option value="todos">Todas UF</option>'+ufs.map(x=>`<option value="${hAttr(x)}" ${negociosFiltroUF===x?'selected':''}>${hAttr(x)}</option>`).join('');
+  const citySelectOptions = '<option value="todos">Todas cidades</option>'+cityOptions.map(x=>`<option value="${hAttr(x)}" ${negociosFiltroCidade===x?'selected':''}>${hAttr(x)}</option>`).join('');
 
   const toolbarBox = document.getElementById('negociosToolbar');
   if(toolbarBox){
@@ -7884,6 +7899,8 @@ function renderDeals(){
           <select class="btn" onchange="setNegociosAno(this.value)" style="font-size:11.5px;min-width:130px">${anoOptions}</select>
           <select class="btn" onchange="setNegociosMes(this.value)" style="font-size:11.5px;min-width:140px">${mesOptions}</select>
           <select class="btn" onchange="setNegociosEmb(this.value)" style="font-size:11.5px;min-width:150px">${embOptions}</select>
+          <select class="btn" onchange="setNegociosUF(this.value)" title="Filtrar estado da origem" aria-label="Origem UF" style="font-size:11.5px;min-width:115px">${ufOptions}</select>
+          <select class="btn" onchange="setNegociosCidade(this.value)" title="Filtrar município da origem" aria-label="Origem cidade" style="font-size:11.5px;min-width:170px;max-width:240px">${citySelectOptions}</select>
           <label class="brz-f77-date">Dia <input type="date" aria-label="Dia do negócio" value="${negociosFiltroDia}" onchange="setNegociosDia(this.value)"></label>
           <label class="brz-f77-date">De <input type="date" aria-label="Início do período" value="${negociosFiltroInicio}" onchange="setNegociosInicio(this.value)"></label>
           <label class="brz-f77-date">Até <input type="date" aria-label="Fim do período" value="${negociosFiltroFim}" onchange="setNegociosFim(this.value)"></label>
@@ -7956,6 +7973,11 @@ function renderDeals(){
     if(negociosFiltroInicio && String(d.data||'')<negociosFiltroInicio) return false;
     if(negociosFiltroFim && String(d.data||'')>negociosFiltroFim) return false;
     if(negociosFiltroEmb !== 'todos' && embarqueEfetivo(d) !== negociosFiltroEmb) return false;
+    if(negociosFiltroUF!=='todos'||negociosFiltroCidade!=='todos'){
+      const city=placeOf(d);
+      if(negociosFiltroUF!=='todos'&&city.uf!==negociosFiltroUF)return false;
+      if(negociosFiltroCidade!=='todos'&&city.city!==negociosFiltroCidade)return false;
+    }
     if(negociosFiltroCorr.size > 0 && !negociosFiltroCorr.has(d.corredor)) return false;
     if(negociosFiltroSafra.size > 0 && ![...negociosFiltroSafra].some(f => brzSafraMatch(d, f))) return false;
     if(q && !JSON.stringify(d).toLowerCase().includes(q)) return false;
@@ -12235,6 +12257,8 @@ var negociosFiltroEmb = 'todos';        // filtro de embarque (MMM-YY) na aba Ne
 var negociosFiltroDia = '';             // F77: dia exato
 var negociosFiltroInicio = '';          // F77: intervalo, início
 var negociosFiltroFim = '';             // F77: intervalo, fim
+var negociosFiltroUF = 'todos';         // F77: filtro de estado original
+var negociosFiltroCidade = 'todos';     // F77: filtro de município original
 var _embEffCache = new Map();           // cache embarque efetivo (gravado || inferido) por id
 function embarqueEfetivo(dl){
   var k=String(dl&&dl.id); if(_embEffCache.has(k)) return _embEffCache.get(k);
@@ -12356,6 +12380,8 @@ function toggleNegociosCorr(c){
   else negociosFiltroCorr.add(c);
   renderDeals();
 }
+function setNegociosUF(v){negociosFiltroUF=v||'todos';negociosFiltroCidade='todos';negociosRenderPage=0;renderDeals();}
+function setNegociosCidade(v){negociosFiltroCidade=v||'todos';negociosRenderPage=0;renderDeals();}
 function setNegociosDia(v){negociosFiltroDia=v||'';negociosRenderPage=0;renderDeals();}
 function setNegociosInicio(v){negociosFiltroInicio=v||'';negociosRenderPage=0;renderDeals();}
 function setNegociosFim(v){negociosFiltroFim=v||'';negociosRenderPage=0;renderDeals();}
@@ -12385,6 +12411,8 @@ function clearNegociosFiltros(){
   negociosFiltroDia = '';
   negociosFiltroInicio = '';
   negociosFiltroFim = '';
+  negociosFiltroUF = 'todos';
+  negociosFiltroCidade = 'todos';
   renderDeals();
 }
 function setNegociosBuscaDebounced(v){
