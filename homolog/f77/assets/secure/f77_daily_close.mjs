@@ -43,8 +43,11 @@ export function summarizeClose({trades=[],date,cbotDate,fxDate,excelDate,
   const w=sourceIsoWeek(row?.semana||row?.iso_week||row?.week||row?.semanaISO);
   if(w&&(!maxWeek||w>maxWeek))maxWeek=w;
  }
- const financialCheck=tradeAudits?.checked===true&&tradeAudits.failed===0;
- if(!financialCheck)warnings.push('Replacement/TCO ainda sem auditoria por ID desta data');
+ const financialCheck=tradeAudits?.checked===true&&tradeAudits.failed===0&&
+  tradeAudits?.parityChecked===true&&tradeAudits?.parityFailed===0;
+ if(!financialCheck)warnings.push('Replacement/TCO sem dupla auditoria: referências F73 e recálculo financeiro F77');
+ if(tradeAudits?.parityChecked!==true)
+  warnings.push('Auditoria financeira independente da data não executada, incompleta ou desatualizada');
  if(!maxWeek)warnings.push('Frete semanal não identificado na base; fechamento não aprovado');
  return {date,records:records.length,closed,pending,volume,products,missingOrigin,missingWindow,
   missingCoords,cbotDate:cbotDate||null,fxDate:fxDate||null,excelDate:excelDate||null,
