@@ -233,17 +233,86 @@ function repEscopoCss(){
       var _rp=renderReplacementPorto; var w2=function(){ var r=_rp.apply(this,arguments); if(repAtivo()){ try{ repEspelharEstados(); }catch(e){} var pt=document.getElementById('pageTitle'); if(pt) pt.textContent='Report'; } return r; }; w2._repHook=true; renderReplacementPorto=w2; window.renderReplacementPorto=w2; }
   }catch(e){}
 })();
+// F72: sections are hydrated on demand when visible in the Report.
+// This does not fetch incomplete historical data or change financial formulas.
+var repF72Observer=null,repF72Generation=0;
+function repF72RenderSection(which){
+  const id=which==='analise'?'rep-analise':'rep-estados';
+  const host=document.getElementById(id);
+  if(!host)return;
+  host.dataset.brzF72Loading='1';
+  try{
+    if(which==='analise'){
+      renderAnalise();
+      repEspelharAnalise();
+      if(!host.querySelector('.a-tblpair,.a-tblsingle'))
+        throw Error('Tabela não disponível na base selecionada');
+    }else{
+      renderReplacementPorto();
+      repEspelharEstados();
+      if(!host.querySelector('.rpm-state-section'))
+        throw Error('Tabela por estado indisponível nesta seleção');
+    }
+    host.dataset.brzF72Loaded='1';
+    delete host.dataset.brzF72Error;
+  }catch(error){
+    console.error('[BRZ F72] Report '+which,error);
+    host.dataset.brzF72Error=String(error?.message||error).slice(0,150);
+    const title=document.createElement('div');
+    title.className='rep-sec';
+    title.textContent=which==='analise'?'2 · Tabelas da Análise':'3 · Replacement por estado';
+    const notice=document.createElement('div');
+    notice.className='a-empty';
+    notice.textContent='Erro ao consultar: '+host.dataset.brzF72Error;
+    const retry=document.createElement('button');
+    retry.className='btn small';
+    retry.textContent='Tentar carregar novamente';
+    retry.onclick=()=>repF72RenderSection(which);
+    host.replaceChildren(title,notice,retry);
+  }finally{delete host.dataset.brzF72Loading}
+}
+function repF72MountSection(which,generation){
+  if(generation!==repF72Generation)return;
+  const host=document.getElementById(which==='analise'?'rep-analise':'rep-estados');
+  if(!host||host.dataset.brzF72Loaded==='1'||host.dataset.brzF72Loading==='1')return;
+  repF72RenderSection(which);
+}
 function renderReport(){
   repEscopoCss();
-  var sub=document.getElementById('rep-sub'), pt=document.getElementById('pageTitle');
-  var all=(state.negocios||[]).filter(function(d){return (+d.volume||0)>0;}), datas=all.map(function(d){return d.data;}).sort();
-  if(sub) sub.textContent='Negócios fechados de '+(datas[0]||'').split('-').reverse().join('/')+' a '+(datas[datas.length-1]||'').split('-').reverse().join('/')+' · '+all.length+' registros com volume · replacement = basis FOB do porto vencedor, ponderado por volume';
+  const gen=++repF72Generation;
+  if(repF72Observer){repF72Observer.disconnect();repF72Observer=null}
+  const sub=document.getElementById('rep-sub'),pt=document.getElementById('pageTitle');
+  const all=(state.negocios||[]).filter(d=>(+d.volume||0)>0);
+  const dates=all.map(d=>d.data).sort();
+  if(sub)sub.textContent='Negócios fechados de '+(dates[0]||'').split('-').reverse().join('/')+
+    ' a '+(dates[dates.length-1]||'').split('-').reverse().join('/')+
+    ' · '+all.length+' registros com volume · replacement = basis FOB do porto vencedor, ponderado por volume';
   renderReportLotes();
-  try{ renderAnalise(); }catch(e){ var h=document.getElementById('rep-analise'); if(h) h.innerHTML='<div class="rep-sec">2 · Tabelas da Análise</div><div class="a-empty">Erro: '+String(e).slice(0,80)+'</div>'; }
-  try{ renderReplacementPorto(); }catch(e){ var h2=document.getElementById('rep-estados'); if(h2) h2.innerHTML='<div class="rep-sec">3 · Replacement por estado</div><div class="a-empty">Erro: '+String(e).slice(0,80)+'</div>'; }
-  if(!document.querySelector('#rep-analise .a-tblpair, #rep-analise .a-tblsingle')) repEspelharAnalise();
-  if(!document.querySelector('#rep-estados .rpm-state-section')) repEspelharEstados();
-  if(pt) pt.textContent='Report';
-  try{ if(typeof renderReportParidadeHook==='function') renderReportParidadeHook(); }catch(e){ console.warn('paridade', e); }
+  for(const [which,id,title] of [['analise','rep-analise','2 · Tabelas da Análise'],['estados','rep-estados','3 · Replacement por estado']]){
+    const host=document.getElementById(id);if(!host)continue;
+    host.dataset.brzF72Loaded='';
+    host.innerHTML='<div class="rep-sec">'+title+'</div><div class="a-empty">Carregamento sob demanda ao visualizar esta seção.</div>';
+    const trigger=document.createElement('button');
+    trigger.className='btn small';
+    trigger.textContent='Carregar tabela';
+    trigger.onclick=()=>repF72MountSection(which,gen);
+    host.appendChild(trigger);
+  }
+  if(typeof IntersectionObserver==='function'){
+    repF72Observer=new IntersectionObserver(entries=>{
+      for(const entry of entries)if(entry.isIntersecting){
+        const which=entry.target.id==='rep-analise'?'analise':'estados';
+        repF72Observer?.unobserve(entry.target);
+        setTimeout(()=>repF72MountSection(which,gen),0);
+      }
+    },{rootMargin:'350px 0px'});
+    for(const id of ['rep-analise','rep-estados']){
+      const target=document.getElementById(id);if(target)repF72Observer.observe(target);
+    }
+  }else{
+    // Legacy browser: explicit button remains functional, without eager work.
+  }
+  if(pt)pt.textContent='Report';
+  try{if(typeof renderReportParidadeHook==='function')renderReportParidadeHook()}catch(e){console.warn('paridade',e)}
 }
 
