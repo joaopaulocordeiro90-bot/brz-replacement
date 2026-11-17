@@ -262,3 +262,27 @@ test('F77 frete interno: comparar ultima semana do MESMO XLSX',()=>{
  assert.equal(result.changes[1].delta,0);
  assert.match(r('assets/secure/f77_official_daily_xlsx.mjs'),/previousSheets/);
 });
+
+
+test('F77: data anterior com Bid/Offer ausentes nunca é alteração válida',()=>{
+ const d='2026-11-16';
+ const projected={as_of:d,sourceSha:'f'.repeat(64),
+  physical:[{produto:'Soja',origem:'Água Boa - MT',janelaFisica:'Dec-26',bid:140,offer:143}],
+  basis:[],derivatives:[],ocean:[]};
+ const prior=[{data:'2026-11-06',produto:'Soja',origem:'Água Boa - MT',
+  janelaFisica:'Dec-26',bid:null,offer:null}];
+ const diff=compareDailyXlsx(projected,{physicalHistory:prior});
+ assert.deepEqual(diff.counts,{total:1,comparado:0,sem_referencia:1,alterado:0,sem_alteracao:0});
+ assert.equal(diff.changes[0].oldDate,'2026-11-06');
+ assert.equal(diff.changes[0].referenceIssue,'historico_sem_par_bid_offer');
+ assert.equal(diff.changes[0].bidDelta,null);
+ assert.equal(diff.changes[0].offerDelta,null);
+ for(const row of [
+  {data:'2026-11-06',produto:'Soja',origem:'Água Boa - MT',janelaFisica:'Dec-26',bid:0,offer:143},
+  {data:'2026-11-06',produto:'Soja',origem:'Água Boa - MT',janelaFisica:'Dec-26',bid:140,offer:null}
+ ]){
+  const next=compareDailyXlsx(projected,{physicalHistory:[row]});
+  assert.equal(next.counts.sem_referencia,1);
+  assert.equal(next.counts.alterado,0);
+ }
+});
