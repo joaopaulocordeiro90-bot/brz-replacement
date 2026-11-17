@@ -391,6 +391,17 @@ async function start(ev){
       const fast=await import('./f73_fast_market.mjs?v=20261117f73');
       const preview=await fast.loadFastMarket({request,token});
       fast.renderFastMarket(fastTarget,preview);
+      // F74: historic quotes fetched from PostgreSQL ONLY when a user requests a
+      // date, domain and page; the legacy full-engine hydrate remains opt-in.
+      try{
+        const history=await import('./f74_history_pager.mjs?v=20261117f74');
+        const container=$('brz-f74-history');
+        if(container)history.installHistoryPanel({root:container,request,token,asOf:preview.date});
+      }catch(error){
+        console.warn('[BRZ F74] Histórico paginado indisponível',error);
+        const panel=$('brz-f74-history');
+        if(panel)panel.textContent='Consulta histórica indisponível: '+String(error?.message||error).slice(0,140);
+      }
       window.__BRZ_F73_FAST_STATUS=Object.freeze({
         excelDay:preview.date,counts:preview.counts,
         historicalLoaded:false,authenticated:true});
@@ -592,7 +603,7 @@ async function start(ev){
       // PIN operator session: attach the independent, versioned F33 autosave.
       // Frozen source rows are hydrated first; edits are persisted as overlays.
       const script=iframe.contentDocument.createElement('script');
-      script.src='./assets/secure/pin_autosave.js?v=20261117f73';
+      script.src='./assets/secure/pin_autosave.js?v=20261117f74';
       await new Promise((resolve,reject)=>{
         script.onload=resolve;
         script.onerror=()=>reject(Error('Gravação centralizada não carregada'));
