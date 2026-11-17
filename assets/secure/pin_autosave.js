@@ -1043,6 +1043,102 @@
      return Object.freeze({saved:true,id:input.id,revision:Number(ack.revision)});
    }catch(error){state.originGeoOverrides=old;throw error;}
  }
+
+ async function confirmMarketExcelStage(pack){
+  if(!connected||initialHydrating||blocked||dirty||saving||moduleBooting)
+   throw Error('Conclua primeiro a sincronização pendente.');
+  const day=String(pack?.as_of||''),sha=String(pack?.file_sha256||'');
+  if(!/^20\d{2}-\d{2}-\d{2}$/.test(day)||!/^[a-f0-9]{64}$/.test(sha))
+   throw Error('Data ou SHA-256 do XLSX inválidos.');
+  if(String(state.marketExcelAsOf||'')>=day)
+   throw Error('Data já publicada no motor; não sobrescrever snapshots.');
+  if(String(state.marketExcelStaged?.as_of||'')>=day)
+   throw Error('Fechamento igual ou mais recente já confirmado. Faça rollback explícito.');
+  if(state.timestamps?.cbot!==day||state.timestamps?.dolar!==day)
+   throw Error('Atualize CBOT e dólar da própria data antes de importar o Excel.');
+  const [mod,reconciler,auditor]=await Promise.all([
+   import('./market_excel_overlay.mjs?v=20261116f69'),
+   import('./market_excel_reconcile.mjs?v=20261116f67'),
+   import('./market_excel_audit.mjs?v=20261116f67')]);
+  const patch=mod.projectExcel(pack),raw=$('dataPrecos')?.textContent;
+  if(!raw)throw Error('Histórico físico imutável não carregado.');
+  const original=JSON.parse(raw);
+  if(!Array.isArray(original)||original.length<59000)
+   throw Error('Histórico incompleto: publicação bloqueada.');
+  const capture={source_date:day,capture_no:'PIN-F77',inserted_at:new Date().toISOString(),
+   curves:{cbot:structuredClone(state.cbot||{}),cbotMilho:structuredClone(state.cbotMilho||{}),
+    cbotFarelo:structuredClone(state.cbotFarelo||{}),cbotOleo:structuredClone(state.cbotOleo||{}),
+    dolar:structuredClone(state.dolar||{})}};
+  const reconciled=reconciler.reconcileMarketPrices(original,patch.physical,capture,{
+   cbotContract:(produto,embarque,data)=>
+    typeof brzMesesCBOT==='function'?brzMesesCBOT(produto,embarque,data)?.venc||null:null,
+   dolContract:embarque=>
+    typeof brzDolEmbarque==='function'?brzDolEmbarque(embarque)?.venc||null:null
+  },state.precosEdits||{});
+  if(reconciled.status.sourceRows!==patch.physical.length||!reconciled.status.readyCurrent)
+   throw Error('Referência CBOT/FX/corredor não conciliada; nenhuma publicação.');
+  const prices=reconciler.mergeReconciledMarketPrices(original,reconciled.rows);
+  const basis=mod.mergeBasisSeries(ppeData(),patch.basis);
+  const cma=mod.mergeCMA(r3Data(),patch.derivatives);
+  const ocean=mod.mergeOcean(state,patch.ocean);
+  const quality=auditor.auditDailyMarketOverlay(patch,reconciled,basis,cma,ocean);
+  if(!quality.ok)throw Error('Excel reprovado: '+[...quality.errors,...quality.warnings].join('; ').slice(0,900));
+  const previous=remoteModules.get('settings')||{revision:0};
+  const old=state.marketExcelStaged,prior=state.marketExcelPrevious;
+  const approved={...pack,status:'confirmado',confirmedAt:capture.inserted_at,
+   curve_capture:capture,audit:{totals:quality.totals,errors:quality.errors,
+    warnings:quality.warnings,ok:quality.ok}};
+  if(JSON.stringify(approved).length>1000000)throw Error('XLSX acima do limite permitido (1MB de dados normalizados).');
+  state.marketExcelPrevious=old||null;
+  state.marketExcelStaged=approved;
+  try{
+   const result=await req('/rest/v1/rpc/brz_pin_module_save',{
+    p_module:'settings',p_payload:groupSnapshot('settings'),
+    p_expected_revision:previous.revision});
+   const ack=Array.isArray(result)?result[0]:result;
+   if(ack?.module!=='settings'||Number(ack.revision)!==previous.revision+1)
+    throw Error('Supabase não confirmou a importação.');
+   remoteModules.set('settings',{revision:Number(ack.revision),
+    snapshot:stable(groupSnapshot('settings'))});
+   return Object.freeze({saved:true,day,sha,revision:Number(ack.revision)});
+  }catch(error){
+   if(old===undefined)delete state.marketExcelStaged;else state.marketExcelStaged=old;
+   if(prior===undefined)delete state.marketExcelPrevious;else state.marketExcelPrevious=prior;
+   throw error;
+  }
+ }
+ async function rollbackMarketExcelStage(){
+  if(!connected||blocked||dirty||saving||initialHydrating)
+   throw Error('Sincronização pendente, rollback bloqueado.');
+  if(!state.marketExcelStaged)throw Error('Sem fechamento F77 para reverter.');
+  const old=state.marketExcelStaged,prior=state.marketExcelPrevious;
+  const current=remoteModules.get('settings')||{revision:0};
+  if(prior)state.marketExcelStaged=prior;else delete state.marketExcelStaged;
+  delete state.marketExcelPrevious;
+  try{
+   const reply=await req('/rest/v1/rpc/brz_pin_module_save',{
+    p_module:'settings',p_payload:groupSnapshot('settings'),
+    p_expected_revision:current.revision});
+   const ack=Array.isArray(reply)?reply[0]:reply;
+   if(ack?.module!=='settings'||Number(ack.revision)!==current.revision+1)
+    throw Error('Rollback sem revisão confirmada.');
+   remoteModules.set('settings',{revision:Number(ack.revision),
+    snapshot:stable(groupSnapshot('settings'))});
+   return Object.freeze({saved:true,revision:Number(ack.revision)});
+  }catch(error){state.marketExcelStaged=old;state.marketExcelPrevious=prior;throw error;}
+ }
+ async function initDailyExcelUpload(){
+  try{
+   const xlsx=await import('./f77_xlsx_upload.mjs?v=20261117f77');
+   xlsx.installExcelUpload({
+    getReference:()=>({curveDay:String(state.timestamps?.cbot||''),
+     fxDay:String(state.timestamps?.dolar||'')}),
+    confirmUpload:confirmMarketExcelStage,
+    rollbackUpload:rollbackMarketExcelStage
+   });
+  }catch(error){console.warn('[BRZ F77] Excel upload:',error?.message);}
+ }
+
  async function initGeoRegistry(){
    try{
      const geo=await import('./f77_geo_registry.mjs?v=20261117f77');
@@ -1125,6 +1221,7 @@
       audit.installReplacementAudit(window,()=>state.negocios);
     }catch(e){console.warn('BRZ F73 auditoria opcional indisponível',e)}
     installSystemToolsTab();
+    await initDailyExcelUpload();
     await initPendingWorkspace();
     await initGeoRegistry();
     // F77: analytical classification only; contracted destination vs eligible
@@ -1364,6 +1461,7 @@
  });
  window.BRZPinAutoSave=Object.freeze({
    connect,status:()=>({connected,dirty,saving,blocked,records:remote.size}),
-   save:()=>save(),saveRoadGeoRoute,saveOriginGeoOverride
+   save:()=>save(),saveRoadGeoRoute,saveOriginGeoOverride,
+   confirmMarketExcelStage,rollbackMarketExcelStage
  });
 })();
