@@ -72,6 +72,7 @@ jobs:
           node tests/f77_xlsx_stage.test.mjs
           node tests/f77_daily_close.test.mjs
           node tests/f77_full_readiness.test.mjs
+          node tests/f77_preview_gate.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'
