@@ -1233,8 +1233,19 @@
 
 
  async function initDailyClosing(){
+  // The F73 audit identifies missing business references. F77 separately
+  // recalculates all eligible route economics with independent equations.
+  // Both reports are read-only and must be current to clear the close gate.
   try{
-   const mod=await import('./f77_daily_close.mjs?v=20261117f77');
+   const parity=await import('./f77_financial_parity.mjs?v=20261117fin01');
+   parity.installFinancialParityUI({
+    getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
+    getState:()=>state,
+    calculate:d=>typeof bestRouteAudit==='function'?bestRouteAudit(d):null
+   });
+  }catch(error){console.warn('[BRZ F77] paridade financeira:',error?.message);}
+  try{
+   const mod=await import('./f77_daily_close.mjs?v=20261117fin01');
    mod.installDailyClose({
     getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
     getState:()=>state,
