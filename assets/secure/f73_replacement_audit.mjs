@@ -38,7 +38,9 @@ export function auditReason(deal,calc,error){
  const legs=analyzeShipmentLegs(deal);
  const pending=deal.replacementPendente===true||deal.replacementPendente==='true'||
      deal.marketSnapshotPending===true||deal.marketSnapshotPending==='true';
- const foreign=/paraguai|paraguay/i.test(String(deal.corredor||'')+' '+String(deal.origem||''));
+ // "Alto Paraguai - MT" is a Brazilian origin, NOT an import from Paraguay.
+ const foreign=/^paraguai\s*(?:\/|[-–]|$)/i.test(String(deal.corredor||''))||
+    /\borigem\s+(?:do\s+)?paraguai\b|\borigem\s+paraguay\b/i.test(String(deal.origem||''));
  if(foreign) return {type:'fora_paridade_domestica',
    details:['Origem/transação ligada ao Paraguai: não aplicar FOB doméstico sem parametrização comercial específica']};
  if(pending) return {type:'pendencia_comercial',
@@ -85,7 +87,8 @@ export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isA
    // without invoking the Brazilian FOB engine; no fabricated parity.
    const blocked=d?.replacementPendente===true||d?.replacementPendente==='true'||
      d?.marketSnapshotPending===true||d?.marketSnapshotPending==='true'||
-     /paraguai|paraguay/i.test(String(d?.corredor||'')+' '+String(d?.origem||''));
+     /^paraguai\s*(?:\/|[-–]|$)/i.test(String(d?.corredor||''))||
+     /\borigem\s+(?:do\s+)?paraguai\b|\borigem\s+paraguay\b/i.test(String(d?.origem||''));
    if(!blocked){try{result=await calculate(d);}catch(e){exception=e}}
    const category=auditReason(d,result,exception);
    byType[category.type]=(byType[category.type]||0)+1;
