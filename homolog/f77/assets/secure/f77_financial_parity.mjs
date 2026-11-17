@@ -48,7 +48,21 @@ const mode=x=>{
  if(t==='composicao por lote')return 'multi_leg';
  return null;
 };
-export function auditRouteParity(deal,route,{port=null}={}){
+const placeKey=x=>nrm(x).replace(/\s*[-/]\s*([a-z]{2})$/,'/$1').replace(/\s+/g,' ');
+const exactKey=(o,d,w)=>placeKey(o)+'|'+nrm(d)+'|'+w;
+export function buildRoadReferenceIndex(freights=[],date){
+ const byKey=new Map(),week=isoWeekDay(date),asOf=weekStart(week);
+ if(!Number.isFinite(asOf))return byKey;
+ for(const row of Array.isArray(freights)?freights:[]){
+  if(!row||row.tipo!=='Rodoviário'||!row.origem||!row.destino)continue;
+  const at=weekStart(row.semana),value=num(row.valor);
+  if(at===null||at>asOf||asOf-at>8*604800000||!ok(value)||value<=0)continue;
+  const key=exactKey(row.origem,row.destino,String(row.semana));
+  if(!byKey.has(key))byKey.set(key,value);
+ }
+ return byKey;
+}
+export function auditRouteParity(deal,route,{port=null,freightIndex=null}={}){
  const issues=[],cautions=[],checks={};
  const issue=(tag,explanation)=>issues.push({code:tag,details:explanation});
  const caution=(tag,explanation)=>cautions.push({code:tag,details:explanation});
@@ -66,6 +80,7 @@ export function auditRouteParity(deal,route,{port=null}={}){
  if(!route||[fr,ff,fb,ft,fobbins,sea].some(x=>!ok(x)||x<0))
   issue('FRETE_INCOMPLETO','Faltam frete rodoviário/ferroviário/barcaça, fobbings ou marítimo');
  const modal=mode(route?.modal);
+ const freightWeek=String(route?.freteSemana||'');
  if(!modal)issue('MODAL_DESCONHECIDO','Modal do motor não reconhecido: '+String(route?.modal||'N/D'));
  if(modal==='road'&&(ff>EPS||fb>EPS))issue('MODAL_TRECHO','Rota rodoviária contém ferrovia ou barcaça');
  if(modal==='rail'&&!(ff>0))issue('MODAL_TRECHO','Rota ferroviária sem tarifa ferroviária positiva');
@@ -114,10 +129,37 @@ export function auditRouteParity(deal,route,{port=null}={}){
    }
   }
  }
+ // Audit source provenance separately from the arithmetic. A good sum is
+ // not evidence that the underlying truck/rail quote was the correct one.
+ if(freightIndex instanceof Map&&modal&&['road','road_rail','road_barge'].includes(modal)&&fr>0){
+  const source=String(route?.fonteFrete||'');
+  const exactPrice=!(deal?.freteRodoMin>0)&&!/\+\s*\d+(?:[.,]\d+)?\s*km/i.test(String(deal?.origem||''));
+  const isDirect=/^(semana_exata|semana_anterior)$/.test(source);
+  if(isDirect&&exactPrice){
+   const destination=modal==='road'?port:route?._transbordo;
+   const quote=freightIndex.get(exactKey(deal?.origem,destination,freightWeek||''));
+   const base=num(route?.freteRodoBase);
+   if(quote===undefined||!ok(base))
+    caution('RODO_SEM_REFERENCIA','Rota/semana não conciliada com a cotação rodoviária autenticada');
+   else if(!close(quote,base))
+    issue('RODO_BASE_DIVERGENTE','Tabela R$/t '+fmt(quote)+' difere do frete bruto aplicado '+fmt(base));
+  }else if(!['porto_origem','no_terminal','base_preco_terminal','acesso_terminal'].includes(source)){
+   caution('RODO_NAO_RECONCILIADO','Trecho rodoviário com acesso extra, piso, manual ou estimativa: sem conciliação exata de tarifa');
+  }
+ }
+ if(freightIndex instanceof Map&&modal&&['rail','road_rail'].includes(modal)&&
+    !(deal?.freteModalCotado?.valoresFinais===true)){
+  caution('FERRO_SEM_DATA','Tarifa ferroviária F45 por mês sem ano: o valor por safra não tem evidência temporal independente');
+ }
+ if(modal==='road_barge')caution('BARCACA_SEM_DATA','Tarifa hidroviária não possui cotação datada nesta auditoria');
+ if(route?.freteProjSafraNova||route?.freteProj2028)
+  caution('FRETE_PROJETADO','Projeção futura corretamente recalculada, mas não equivale a tarifa executável');
+ if(deal?.produto==='Soja'&&route?.seaFreightSource&&
+    route.seaFreightSource!=='monthly-shipment'&&route.seaFreightSource!=='manual')
+  caution('MARITIMO_INDICATIVO','Frete marítimo por offset, média ou fallback: sem cotação direta para o porto/janela');
  if(route?.freteEstimado||route?._ferroEstimado||route?.freteManualIndicativo||
     route?.seaFreightFallback||/estimad|proxy|leg_fixa|tku|milho_agoset/i.test(String(route?.fonteFrete||'')))
   caution('TARIFA_INDICATIVA','Frete estimado, proxy ou fallback: cálculo aritmético não significa tarifa confirmada');
- const freightWeek=String(route?.freteSemana||'');
  if(freightWeek){
   const dealWeek=isoWeekDay(deal?.data),a=weekStart(freightWeek),b=weekStart(dealWeek);
   if(a===null||b===null)issue('SEMANA_FRETE','Semana do frete ou data do negócio inválida');
@@ -139,7 +181,7 @@ export function auditRouteParity(deal,route,{port=null}={}){
    embarquePorto:route?.embarquePorto||deal?.embarque||null,
    vencCBOTPorto:route?.vencCBOTPorto||deal?.vencCBOT||null};
 }
-export function auditDealParity(deal,calculation){
+export function auditDealParity(deal,calculation,{freightIndex=null}={}){
  const ref=String(deal?.id||''),issues=[],routes=[];
  if(!calculation||!Array.isArray(calculation?.cmp?.results)){
   return {id:ref,date:deal?.data||null,produto:deal?.produto||null,
@@ -160,7 +202,7 @@ export function auditDealParity(deal,calculation){
    routes.push({port:p?.porto||null,status:'sem_referencia',issues:[
     {code:'ROTA_SEM_TARIFA',details:'Nenhum modal com replacement calculável para o porto'}],cautions:[],checks:{}});continue;
   }
-  for(const rt of p.modais)routes.push(auditRouteParity(deal,rt,{port:p.porto}));
+  for(const rt of p.modais)routes.push(auditRouteParity(deal,rt,{port:p.porto,freightIndex}));
  }
  const eligible=routes.filter(x=>x.status==='conforme');
  const declared=calculation.bestPort;
@@ -175,16 +217,17 @@ export function auditDealParity(deal,calculation){
   bestPort:declared||null,portos:calculation.portosComparados||[],routes,
   issues:[...issues,...errs],cautions:cautionCount,validRoutes:eligible.length};
 }
-export async function auditDayParity({trades=[],date,calculate,onProgress=()=>{},chunk=20}={}){
+export async function auditDayParity({trades=[],date,calculate,freights=[],onProgress=()=>{},chunk=20}={}){
  if(!dateIs(date)||!Array.isArray(trades)||typeof calculate!=='function')
   throw Error('F77 financeiro: data, negócios ou motor inválidos');
  const records=trades.filter(d=>d&&String(d.data||'')===date&&/^FECHADO/i.test(String(d.status||''))&&
   ['Soja','Milho','Sorgo'].includes(d.produto)&&
   !d.foraMercado&&!d.foraEscopo&&!d.naoAbrirMercado);
  const rows=[],counts={eligible:records.length,conforme:0,indicativo:0,sem_referencia:0,divergente:0,routes:0};
+ const freightIndex=buildRoadReferenceIndex(freights,date);
  for(let i=0;i<records.length;i++){
   const deal=records[i];let row;
-  try{const calc=await calculate(deal);row=auditDealParity(deal,calc)}
+  try{const calc=await calculate(deal);row=auditDealParity(deal,calc,{freightIndex})}
   catch(e){row={id:String(deal.id||''),date:deal.data,produto:deal.produto,
     status:'divergente',routes:[],issues:[{code:'ERRO_MOTOR',details:String(e?.message||e).slice(0,170)}]};}
   rows.push(row);counts[row.status]++;counts.routes+=(row.routes||[]).length;
@@ -247,7 +290,7 @@ export function installFinancialParityUI({getTrades,getState,calculate}={}){
     freightRows:state?.fretesRodo?.length||0,railRows:state?.fretesFerro?.length||0,
     trades:source.length});
   try{
-   report=await auditDayParity({trades:source,date,calculate,
+   report=await auditDayParity({trades:source,date,calculate,freights:state?.fretesRodo||[],
     onProgress:p=>{$('brz-f77-finance-output').textContent=
      'Auditoria '+p.current+'/'+p.total+' negócios · '+p.counts.divergente+' divergentes';}});
    const current=getState();
