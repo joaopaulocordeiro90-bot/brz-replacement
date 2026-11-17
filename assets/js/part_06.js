@@ -7831,7 +7831,7 @@ function renderDeals(){
     countCorr[c] = dealsProduct.filter(d => d.corredor === c).length;
   });
 
-  const isFiltered = negociosFiltroSafra.size > 0 || negociosFiltroCorr.size > 0 || negociosBusca || negociosFiltroAno !== 'todos' || negociosFiltroMes !== 'todos' || negociosFiltroEmb !== 'todos';
+  const isFiltered = negociosFiltroSafra.size > 0 || negociosFiltroCorr.size > 0 || negociosBusca || negociosFiltroAno !== 'todos' || negociosFiltroMes !== 'todos' || negociosFiltroEmb !== 'todos' || negociosFiltroDia || negociosFiltroInicio || negociosFiltroFim;
   const chip = (label, isActive, onClick, count) => `
     <button class="btn small ${isActive?'primary':''}" onclick="${onClick}" style="font-size:10.5px;padding:5px 9px">
       ${label}${count !== undefined ? ` <span style="opacity:.65;font-weight:500">(${count})</span>` : ''}
@@ -7860,6 +7860,9 @@ function renderDeals(){
           <select class="btn" onchange="setNegociosAno(this.value)" style="font-size:11.5px;min-width:130px">${anoOptions}</select>
           <select class="btn" onchange="setNegociosMes(this.value)" style="font-size:11.5px;min-width:140px">${mesOptions}</select>
           <select class="btn" onchange="setNegociosEmb(this.value)" style="font-size:11.5px;min-width:150px">${embOptions}</select>
+          <label class="brz-f77-date">Dia <input type="date" aria-label="Dia do negócio" value="${negociosFiltroDia}" onchange="setNegociosDia(this.value)"></label>
+          <label class="brz-f77-date">De <input type="date" aria-label="Início do período" value="${negociosFiltroInicio}" onchange="setNegociosInicio(this.value)"></label>
+          <label class="brz-f77-date">Até <input type="date" aria-label="Fim do período" value="${negociosFiltroFim}" onchange="setNegociosFim(this.value)"></label>
           ${isFiltered ? `<button class="btn small" onclick="clearNegociosFiltros()" style="font-size:10.5px;padding:6px 10px;margin-left:auto">× Limpar filtros</button>` : ''}
         </div>
         <!-- Linha 2: Safra -->
@@ -7925,6 +7928,9 @@ function renderDeals(){
   let ds = dealsProduct.filter(d => {
     if(negociosFiltroAno !== 'todos' && String(d.data||'').slice(0,4) !== negociosFiltroAno) return false;
     if(negociosFiltroMes !== 'todos' && String(d.data||'').slice(5,7) !== negociosFiltroMes) return false;
+    if(negociosFiltroDia && d.data!==negociosFiltroDia) return false;
+    if(negociosFiltroInicio && String(d.data||'')<negociosFiltroInicio) return false;
+    if(negociosFiltroFim && String(d.data||'')>negociosFiltroFim) return false;
     if(negociosFiltroEmb !== 'todos' && embarqueEfetivo(d) !== negociosFiltroEmb) return false;
     if(negociosFiltroCorr.size > 0 && !negociosFiltroCorr.has(d.corredor)) return false;
     if(negociosFiltroSafra.size > 0 && ![...negociosFiltroSafra].some(f => brzSafraMatch(d, f))) return false;
@@ -12202,6 +12208,9 @@ var negociosBusca = '';                 // texto livre
 var negociosFiltroAno = 'todos';        // filtro de ano na aba Negócios
 var negociosFiltroMes = 'todos';        // filtro de mês na aba Negócios, 01-12
 var negociosFiltroEmb = 'todos';        // filtro de embarque (MMM-YY) na aba Negócios
+var negociosFiltroDia = '';             // F77: dia exato
+var negociosFiltroInicio = '';          // F77: intervalo, início
+var negociosFiltroFim = '';             // F77: intervalo, fim
 var _embEffCache = new Map();           // cache embarque efetivo (gravado || inferido) por id
 function embarqueEfetivo(dl){
   var k=String(dl&&dl.id); if(_embEffCache.has(k)) return _embEffCache.get(k);
@@ -12323,6 +12332,9 @@ function toggleNegociosCorr(c){
   else negociosFiltroCorr.add(c);
   renderDeals();
 }
+function setNegociosDia(v){negociosFiltroDia=v||'';negociosRenderPage=0;renderDeals();}
+function setNegociosInicio(v){negociosFiltroInicio=v||'';negociosRenderPage=0;renderDeals();}
+function setNegociosFim(v){negociosFiltroFim=v||'';negociosRenderPage=0;renderDeals();}
 function setNegociosAno(v){
   negociosRenderPage = 0;
   negociosFiltroAno = v || 'todos';
@@ -12346,6 +12358,9 @@ function clearNegociosFiltros(){
   negociosFiltroAno = 'todos';
   negociosFiltroMes = 'todos';
   negociosFiltroEmb = 'todos';
+  negociosFiltroDia = '';
+  negociosFiltroInicio = '';
+  negociosFiltroFim = '';
   renderDeals();
 }
 function setNegociosBuscaDebounced(v){
