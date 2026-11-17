@@ -1025,6 +1025,9 @@
   connected=true;
   try{
     setStatus('Lendo os negócios…','working');
+    // F68 — isolated renderer only for Fechados, before live trade hydration.
+    const guard=await import('./f68_deals_render_guard.mjs?v=20261116f68');
+    guard.installDealsRenderIsolation(window);
     const data=await rows();
     if(data.length<EXPECTED)throw Error('Base incompleta');
     apply(data);
