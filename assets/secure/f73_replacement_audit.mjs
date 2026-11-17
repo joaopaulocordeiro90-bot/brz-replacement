@@ -52,12 +52,12 @@ export function exportAuditCsv(report){
  const cell=value=>{
    let v=String(value??'');
    // Defend spreadsheet tools from CSV formula injection in upstream deal IDs.
-   if(/^[\\t\\r\\n ]*[=+@-]/.test(v))v="'"+v;
+   if(/^[\t\r\n ]*[=+@-]/.test(v))v="'"+v;
    return '"'+v.replaceAll('"','""')+'"';
  };
  const header=['ID','Data','Produto','Categoria','Motivo'];
  const lines=report.issues.map(x=>[x.id,x.date,x.product,x.type,x.details].map(cell).join(';'));
- return '\uFEFFsep=;\r\n'+header.map(cell).join(';')+'\r\n'+lines.join('\\r\\n')+'\\r\\n';
+ return '\uFEFFsep=;\r\n'+header.map(cell).join(';')+'\r\n'+lines.join('\r\n')+'\r\n';
 }
 const el=(d,t,text,cls)=>{
  const x=d.createElement(t);if(text!==undefined)x.textContent=String(text);
