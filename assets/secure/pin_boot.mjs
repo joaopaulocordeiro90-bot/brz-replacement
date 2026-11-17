@@ -52,18 +52,11 @@ async function load(){
       headers:{'Content-Type':'application/octet-stream'}}));}catch(e){}
    }
   }
-  // F73: verify the minimal trusted boot path first. All other assets are
-  // checked against the SAME SHA manifest before loading the full engine.
-  // Never execute an unverified script; no private data is in public cache.
-  const immediate=new Set([
-    'assets/f42/f42_hydrate.js',
-    'assets/secure/f40_pin_login.js',
-    'assets/secure/f73_fast_market.mjs',
-    'assets/secure/f74_history_pager.mjs',
-    'assets/secure/market_excel_overlay.mjs'
-  ]);
+  // F77: minimal trusted PIN loader before login; verify ALL remaining files
+  // in full before hydrating any confidential business source.
+  const immediate=new Set(['assets/f42/f42_hydrate.js','assets/secure/f40_pin_login.js']);
   for(const path of immediate)if(!manifest.files[path])
-    throw Error('F73: recurso autenticado ausente do manifesto: '+path);
+    throw Error('F77: componente de entrada ausente do manifesto: '+path);
   let done=0;
   async function verifyBatch(items,label){
     let cursor=0;
@@ -82,14 +75,14 @@ async function load(){
   }
   const basic=entries.filter(([name])=>immediate.has(name));
   const full=entries.filter(([name])=>!immediate.has(name));
-  await verifyBatch(basic,'Verificando consulta diária segura');
+  await verifyBatch(basic,'Verificando login seguro');
   const fullVerify=async()=>{
     if(window.__BRZF58_PREFLIGHT?.verified===true)return;
     await verifyBatch(full,'Verificando motor completo');
     window.__BRZF58_PREFLIGHT=Object.freeze({verified:true,quickVerified:true,readOnly:true,
       productionApproved:false,verifiedResources:done});
   };
-  window.__BRZ_F73_VERIFY_FULL_STATIC=fullVerify;
+  window.__BRZ_VERIFY_FULL_STATIC=fullVerify;
   // F42 is defined in its own script (not in F40). Install it with the
   // sealed manifest integrity before enabling the authenticated loader.
   const f42Path='assets/f42/f42_hydrate.js';
@@ -115,7 +108,7 @@ async function load(){
   window.__BRZF58_PREFLIGHT=Object.freeze({verified:false,quickVerified:true,readOnly:true,
     productionApproved:false,verifiedResources:done});
   const script=document.createElement('script');
-  script.src='./assets/secure/f40_pin_login.js?v=20261117f76';
+  script.src='./assets/secure/f40_pin_login.js?v=20261117f77';
   script.async=false;
   script.onerror=()=>{controls.forEach(x=>x.disabled=true);status('Não foi possível carregar o login protegido.');};
   document.body.appendChild(script);
