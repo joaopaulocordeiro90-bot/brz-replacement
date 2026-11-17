@@ -344,8 +344,8 @@
       "sha256": "3efe053a25ffd991897b40c9c4d34f361d92b3972bba737ca9aa4b7cbe748322"
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 37949,
-      "sha256": "1e963cc3d12a99bf1ef4411a92c620ddfe3f607ca8813c9b607fbe061a521282"
+      "bytes": 38007,
+      "sha256": "01e81783395c9600335d303d5b25e26ced072ae269b213c758a525457d900f66"
     },
     "assets/secure/pin_boot.mjs": {
       "bytes": 8039,
