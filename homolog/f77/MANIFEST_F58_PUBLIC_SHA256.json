@@ -92,8 +92,8 @@
       "sha256": "6415ab12b778fc8282fd5916749b1eaa535555bae1723ef54241c4e40449007e"
     },
     "assets/f40/f40_boot.js": {
-      "bytes": 22551,
-      "sha256": "0e84fb7a6d792bee90e2347c1f503d5229f06dcceaf806dab696be3af45e3db2"
+      "bytes": 22681,
+      "sha256": "e1ba353516f232a48767fb45a159192b28118c64a181bd35d5e03dfcec6faef9"
     },
     "assets/f42/f42_hydrate.js": {
       "bytes": 1842,
