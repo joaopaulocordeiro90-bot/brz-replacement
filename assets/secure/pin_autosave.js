@@ -339,7 +339,8 @@
     throw Error('Arquivo histórico de preços incompleto.');
   // A later PIN curve edit takes precedence over an earlier desk capture.
   const capture=activeCapture;
-  const newerSavedCurve=curveUpdatedAt&&
+  // F77: a later curve may supersede the imported snapshot ONLY for the SAME physical date.
+  const newerSavedCurve=curveUpdatedAt&&curveSourceDate===patch.as_of&&
     Date.parse(curveUpdatedAt)>Date.parse(capture.inserted_at);
   const effectiveCapture=newerSavedCurve?{
     ...capture,curves:{
