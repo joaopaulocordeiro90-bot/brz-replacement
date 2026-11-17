@@ -4664,10 +4664,15 @@ function aShort(c){ var city=String(c||'').split(' - ')[0].trim(); var uf=_aUFma
 /* V4FO/C33 · Regiao de preco do negocio: CIF = ponto contratado de entrega;
    FOB = local de coleta. Rótulo não altera o motor ou seus portos. */
 function brzDeskRegionLabel(d){
-  if(!d) return '—';
-  if(d.rotuloTabRegiao) return String(d.rotuloTabRegiao);
-  if(normalizeProduto(d.produto)==='Sorgo' && /^TO(?:\s|$)/.test(String(d.corredor||''))) return 'TO';
-  return String(d.corredor||'—');
+  if(!d)return '—';
+  var region=String(d.rotuloTabRegiao||d.corredor||'Região a validar').trim();
+  var original=String(d.origem||'').trim();
+  var city=typeof extractCidadeBase==='function'?extractCidadeBase(original):'';
+  city=String(city||original.split(/\s*\+\s*/)[0]).trim();
+  var uf=(original.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|$)/)||[])[1]||
+    (region.match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+  var place=city?city+(uf&&!new RegExp('(?:\\/|\\s-\\s)'+uf+'$').test(city)?'/'+uf:''):'Praça a validar';
+  return place+' · '+region;
 }
 function brzDeskRailModal(d,modal){
   if(d&&d.terminalVliTipnCIF===true) return 'R · TO Centro (TIPN)';
@@ -8016,7 +8021,7 @@ function renderDeals(){
       <td><span class="tag navy" title="Número visual recalculado automaticamente">${visualNo}</span></td>
       <td><span class="tag neutral" title="ID técnico preservado para auditoria" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px">${d.id}</span></td>
       <td>${fmtDate(d.data)}</td>
-      <td><span class="tag ${safraTag}">${d.safra}</span></td>
+      <td><span class="tag ${safraTag}" title="Safra da retirada física; declaração original preservada">${brzSafraLabel(safraK)}</span></td>
       <td><b title="${String(d.origem||'').replace(/"/g,'&quot;')}">${cleanOrigem(d.origem)}</b>${(function(){try{var _c=String(d.origem||'').split(' - ')[0].replace(/\s*\+.*$/,'').trim();return(_c&&!getCityCoord(_c))?' <span class="tag red" title="PRAÇA SEM COORDENADA — frete estimado pelo centróide do corredor; rota pode estar errada">s/ coord</span>':'';}catch(e){return '';}})()}${audit.best&&audit.best.freteOverrideAgoSet?' <span class="tag amber" title="Frete Ago/Set milho \u2014 proxy ano anterior (perna rodoviária ajustada)">frete Ago/Set</span>':''}</td>
       <td><span class="tag neutral">${d.corredor}</span>${d.foraMercado?' <span class="tag amber" title="Registrado e contado no volume, mas fora do cálculo de replacement">'+(d.foraMercadoMotivo||'fora de mercado')+'</span>':''}${(d.precoAFixar===true||d.status==='A FIXAR')?' <span class="tag amber" title="Preço a fixar: fora das médias e da tabela de replacement até a fixação">A FIXAR</span>':(d.replacementPendente?' <span class="tag amber" title="Registro fechado; replacement pendente por termos comerciais ou origem não informada">REPLACEMENT PENDENTE</span>':'')}</td>
       <td>${_dealRetiradaEn(d.retirada)}</td>
@@ -15069,15 +15074,34 @@ function brzSafraPorFisico(produto, ano, mes){
   return 'safrinha_'+ano;
 }
 function brzFisicoDeal(d){
-  if(!d) return null;
-  var jf=brzEmbParse(d.janelaFisica||''); if(jf) return {ano:2000+jf.yy, mes:jf.mes+1};
-  var e=brzEmbParse(d.embarque||''); if(e){ var i=(2000+e.yy)*12+e.mes-1; return {ano:Math.floor(i/12), mes:i%12+1}; }
+  if(!d)return null;
+  // F77: classificar pela data de retirada física, não pelo rótulo legado.
+  var raw=String(d.retirada||''), norm=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  var date=/^20\d{2}-\d\d-\d\d$/.test(String(d.data||''))?String(d.data):'';
+  var year=date?Number(date.slice(0,4)):null,month=date?Number(date.slice(5,7)):null;
+  var years=[...raw.matchAll(/\b20\d{2}\b/g)].map(x=>Number(x[0])),explicit=years.at(-1)||null;
+  var dates=[...raw.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}|\d{2}))?\b/g)];
+  if(dates.length){
+    var last=dates.at(-1),m=Number(last[2]),y=last[3]?Number(last[3]):explicit||year;
+    if(y!=null&&y<100)y+=2000;
+    if(!last[3]&&!explicit&&month>=10&&m<=5)y++;
+    if(m>=1&&m<=12&&y>=2000&&y<=2100)return {ano:y,mes:m};
+  }
+  var words={jan:1,janeiro:1,fev:2,fevereiro:2,mar:3,marco:3,abr:4,abril:4,mai:5,maio:5,jun:6,junho:6,jul:7,julho:7,ago:8,agosto:8,set:9,setembro:9,out:10,outubro:10,nov:11,novembro:11,dez:12,dezembro:12};
+  var months=[...norm.matchAll(/\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/g)];
+  if(months.length){
+    var mm=words[months.at(-1)[1]],yy=explicit||year;
+    if(yy&&mm){if(!explicit&&month>=10&&mm<=5)yy++;return {ano:yy,mes:mm};}
+  }
+  if(/imediat|\bspot\b|dispon|\bdisp\b|pronta?\b/.test(norm)&&year)return {ano:year,mes:month};
+  var jf=brzEmbParse(d.janelaFisica||'');if(jf)return {ano:2000+jf.yy,mes:jf.mes+1};
+  var e=brzEmbParse(d.embarque||'');if(e){var idx=(2000+e.yy)*12+e.mes-1;return {ano:Math.floor(idx/12),mes:idx%12+1};}
   return null;
 }
 function brzSafraKeyDeal(d){
-  if(d && d.safraKey) return d.safraKey;
-  var f=brzFisicoDeal(d); if(!f) return 'outro';
-  return brzSafraPorFisico(d.grupoProduto==='Milho'?'Milho':d.produto, f.ano, f.mes);
+  var f=brzFisicoDeal(d);
+  if(f)return brzSafraPorFisico(d.grupoProduto==='Milho'?'Milho':d.produto,f.ano,f.mes);
+  return d&&d.safraKey?String(d.safraKey):'outro';
 }
 function brzSafraLabel(k){
   k=String(k||'');
