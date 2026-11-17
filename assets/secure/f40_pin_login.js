@@ -115,7 +115,9 @@ function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
  if((!localHost&&!ghPages()&&!stageEdge())||window.top!==window||!window.isSecureContext)
  throw Error('F59: origem nao autorizada');}
 // Bounded concurrency protects Supabase from memory-heavy simultaneous reads.
-const MAX_HEAVY_READS=3;
+// One market stream plus one road/trade stream avoids the Postgres timeouts
+// observed on 16/11 when multiple 1.500/4.000-row JSON aggregates competed.
+const MAX_HEAVY_READS=2;
 let activeHeavyReads=0;
 const heavyWaiters=[];
 async function heavyReadFetch(url,options,heavy){
@@ -134,7 +136,7 @@ async function heavyReadFetch(url,options,heavy){
 async function splitReadPage(path,body,token){
  const kind=path.includes('f34_market_page')?'market':
    path.includes('f46_road_page')?'road':'trades';
- const width=kind==='road'?750:250;
+ const width=kind==='road'?500:250;
  const out=[];let cursor={...body};
  while(out.length<Number(body.p_limit)){
   const size=Math.min(width,Number(body.p_limit)-out.length);
@@ -197,7 +199,7 @@ function readMarketAhead(path,body,token){
  if(index>=pages)return null;
  let task=eagerMarket.get(domain);
  if(!task){
-  task=concurrentPages(pages,3,i=>request(path,{
+  task=concurrentPages(pages,1,i=>request(path,{
     method:'POST',token,body:{...body,p_after_row_no:i===0?0:meta.first-1+i*size},
     skipAhead:true
   }));
@@ -241,10 +243,9 @@ async function request(path,{method='GET',body=null,token=null,attempt=0,skipAhe
    const ahead=readMarketAhead(path,body,token);
    if(ahead)return ahead;
   }
-  if(path==='/rest/v1/rpc/brz_api_f46_road_page'){
-   const ahead=await readRoadAhead(path,body,token);
-   if(ahead)return ahead;
-  }
+  // F69: the 44-anchor query was repeatedly timing out under real PIN loads.
+  // The immutable F46 source is already keyset-paged; fetch it sequentially
+  // with the existing pkey and cryptographic verification instead.
  }
  // Fast read-only JSON envelope RPCs keep authorized RLS and original source fields;
  // one scalar result avoids the PostgREST 1,000-row cap on SETOF results.
@@ -268,20 +269,19 @@ async function request(path,{method='GET',body=null,token=null,attempt=0,skipAhe
     if(response.status===500&&route){
       try{pgCode=(await response.json())?.code||null;}catch{}
     }
-    const minSplitSize=path==='/rest/v1/rpc/brz_api_f46_road_page'?750:250;
+    const minSplitSize=path==='/rest/v1/rpc/brz_api_f46_road_page'?500:250;
     if(route&&body&&Number(body.p_limit)>minSplitSize&&attempt===0&&
       ((response.status===500&&pgCode==='57014')||[502,503,504].includes(response.status))){
       return splitReadPage(path,body,token);
     }
     const transient=[429,502,503,504].includes(response.status)||
-      (response.status===500&&pgCode==='57014'&&
-       path==='/rest/v1/rpc/brz_api_f34_market_page');
+      (response.status===500&&pgCode==='57014'&&!!route);
     if(transient&&attempt<3){
       await new Promise(ok=>setTimeout(ok,750*(2**attempt)));
       return request(path,{method,body,token,attempt:attempt+1});
     }
     const err=Error('Supabase HTTP '+response.status+
-      (pgCode==='57014'?' · F34 timeout (tentativas '+(attempt+1)+')':''));
+      (pgCode==='57014'?' · timeout temporário na leitura (tentativas '+(attempt+1)+')':''));
     err.status=response.status;
     throw err;
   }
