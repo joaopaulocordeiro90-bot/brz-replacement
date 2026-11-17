@@ -44,7 +44,7 @@ export function auditReason(deal,calc,error){
  if(foreign) return {type:'fora_paridade_domestica',
    details:['Origem/transação ligada ao Paraguai: não aplicar FOB doméstico sem parametrização comercial específica']};
  if(pending) return {type:'pendencia_comercial',
-   details:['Replacement explicitamente pendente: exigir confirmação antes do cálculo']};
+   details:['Pendência sinalizada no estado operacional; confirmar a origem da restrição antes de liberar o cálculo']};
  if(!deal.produto)flags.push('Produto ausente');
  if(!deal.origem)flags.push('Origem ausente');
  if(!deal.corredor)flags.push('Corredor ausente');
@@ -69,10 +69,33 @@ export function auditReason(deal,calc,error){
  return {type:'calculado',details:[]};
 }
 
-export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isAborted=()=>false,chunk=25}){
+// F76: distinguish the immutable 4,011-row F41 source from later mutable
+// F33/desk overlays. A divergence is NOT authorization to clear a pending flag.
+export function compareFrozenSource(current,original){
+ if(!current||!original||current.id!==original.id)return null;
+ const pending=v=>v?.replacementPendente===true||v?.replacementPendente==='true'||
+   v?.marketSnapshotPending===true||v?.marketSnapshotPending==='true';
+ if(pending(current)&&!pending(original))
+   return {type:'divergencia_snapshot',
+     details:['Pendência presente no estado atual, mas ausente do histórico F41 imutável; revisar a sobreposição antes de alterar o contrato']};
+ if(!pending(current)&&pending(original))
+   return {type:'divergencia_snapshot',
+     details:['Pendência removida do estado atual sem evidência equivalente no histórico original; verificar confirmação comercial']};
+ return null;
+}
+
+export async function runReplacementAudit({deals,calculate,baselineDeals=[],onProgress=()=>{},isAborted=()=>false,chunk=25}){
+ if(!Array.isArray(baselineDeals)||baselineDeals.length>10000)
+   throw Error('F76: fonte imutável inválida');
  if(!Array.isArray(deals)||typeof calculate!=='function'||typeof onProgress!=='function'||
     typeof isAborted!=='function'||!Number.isInteger(chunk)||chunk<1||chunk>100)
    throw Error('F73: parâmetros de auditoria inválidos');
+ const frozen=new Map();
+ for(const x of baselineDeals){
+   if(!x||typeof x.id!=='string'||frozen.has(x.id))
+     throw Error('F76: histórico imutável duplicado/inválido');
+   frozen.set(x.id,x);
+ }
  const issues=[],byType=Object.create(null);let computed=0,skipped=0;
  for(let i=0;i<deals.length;i++){
    if(isAborted())throw Error('F73: auditoria interrompida');
@@ -90,7 +113,15 @@ export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isA
      /^paraguai\s*(?:\/|[-–]|$)/i.test(String(d?.corredor||''))||
      /\borigem\s+(?:do\s+)?paraguai\b|\borigem\s+paraguay\b/i.test(String(d?.origem||''));
    if(!blocked){try{result=await calculate(d);}catch(e){exception=e}}
-   const category=auditReason(d,result,exception);
+   let category=auditReason(d,result,exception);
+   const original=frozen.get(String(d.id||''));
+   if(original){
+     const difference=compareFrozenSource(d,original);
+     if(difference)category=difference;
+   }else if(blocked&&category.type==='pendencia_comercial'&&baselineDeals.length){
+     category={...category,details:[...category.details,
+       'Negócio posterior ao F41 imutável: não há snapshot original para comparação']};
+   }
    byType[category.type]=(byType[category.type]||0)+1;
    if(category.type==='calculado')computed++;
    else issues.push({id:String(d?.id||'sem ID'),date:d?.data||'',
@@ -98,7 +129,8 @@ export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isA
    if((i+1)%chunk===0){onProgress({current:i+1,total:deals.length,issues:issues.length});await new Promise(r=>setTimeout(r,0))}
  }
  onProgress({current:deals.length,total:deals.length,issues:issues.length});
- return {total:deals.length,considered:computed+issues.length,computed,skipped,issues,byType};
+ return {total:deals.length,considered:computed+issues.length,computed,skipped,issues,byType,
+   frozenCompared:baselineDeals.length,sourceDiffs:byType.divergencia_snapshot||0};
 }
 // F74: export the COMPLETE pending list from the authenticated session.
 export function exportAuditCsv(report){
@@ -147,7 +179,7 @@ export function installReplacementAudit(root,getDeals){
    const renderResult=()=>{
      container.replaceChildren();
      if(!result)return;
-     const summary=el(doc,'p',result.considered+' negócios elegíveis · '+result.computed+' calculáveis · '+result.issues.length+' com pendência · '+result.skipped+' fora do escopo.');
+     const summary=el(doc,'p',result.considered+' negócios elegíveis · '+result.computed+' calculáveis · '+result.issues.length+' com pendência · '+result.skipped+' fora do escopo · '+result.sourceDiffs+' divergência(s) entre histórico F41 e estado atual.');
      container.appendChild(summary);
      const tb=el(doc,'table');tb.style.cssText='border-collapse:collapse;width:100%';
      const hdr=el(doc,'tr');
@@ -169,7 +201,16 @@ export function installReplacementAudit(root,getDeals){
        const source=typeof getDeals==='function'?getDeals():root.state?.negocios;
        const deals=Array.isArray(source)?source.slice():[];
        text.textContent='Conferindo '+deals.length+' registros…';
-       result=await runReplacementAudit({deals,calculate:deal=>root.bestRouteAudit(deal),
+       let baselineDeals=[];
+       try{
+         const parent=root.parent;
+         if(parent&&parent!==root&&parent.__BRZF41_TRADES_READY===true&&
+            Array.isArray(parent.__BRZF41_TRADES))
+           baselineDeals=parent.__BRZF41_TRADES;
+       }catch(error){
+         console.warn('[BRZ F76] histórico F41 inacessível; auditoria mantém sinalizadores atuais',error?.message);
+       }
+       result=await runReplacementAudit({deals,baselineDeals,calculate:deal=>root.bestRouteAudit(deal),
          onProgress:({current,total,issues})=>{
            text.textContent='Auditoria '+current+'/'+total+' · '+issues+' pendências identificadas';}
        });
