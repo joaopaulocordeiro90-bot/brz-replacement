@@ -1064,6 +1064,15 @@
     }catch(e){console.warn('BRZ F73 auditoria opcional indisponível',e)}
     installSystemToolsTab();
     await initPendingWorkspace();
+    // F77: analytical classification only; contracted destination vs eligible
+    // corridor candidates. No writes, inferred export volume, or route changes.
+    try{
+      const flows=await import('./f77_regional_flows.mjs?v=20261117f77');
+      flows.installRegionalFlows({
+        getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
+        getRoutes:d=>typeof getRotasCorredor==='function'?getRotasCorredor(d):[]
+      });
+    }catch(error){console.warn('[BRZ F77] fluxos regionais:',error?.message);}
     dirty=false;blocked=false;
     initialHydrating=false;
     if(typeof scheduleRenderAll==='function')scheduleRenderAll();
