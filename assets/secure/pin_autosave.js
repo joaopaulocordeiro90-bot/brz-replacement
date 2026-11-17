@@ -1195,12 +1195,12 @@
        if(data?.schema!=='BRZ_F77_GEO_REFERENCE_V1')throw Error('Versão cartográfica divergente');
        geoReferences=data;
      }catch(err){console.warn('[BRZ F77] fallback municipal:',err.message);}
-     const normalize=x=>String(x||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+     const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
      const official=new Map(Object.entries(geoReferences.qualified||{}).map(([k,v])=>[normalize(k),v]));
      const bare=new Map(Object.entries(geoReferences.unqualified||{}).map(([k,v])=>[normalize(k),v]));
      const qualifiedCities=new Set([...official.keys()].map(k=>k.replace(/ - [a-z]{2}$/,'')));
      const qualifiedCoord=key=>{
-       const normalized=normalize(key).replace(/\\/([a-z]{2})$/,' - $1');
+       const normalized=normalize(key).replace(/\/([a-z]{2})$/,' - $1');
        let entry=official.get(normalized),source='BRZ F20 · UF conferida';
        if(!entry&&/ - [a-z]{2}$/.test(normalized)){
          const city=normalized.slice(0,-5);
