@@ -17,7 +17,9 @@ const ghPages=()=>location.protocol==='https:'
  && location.hostname==='joaopaulocordeiro90-bot.github.io'
  && location.port===''
  && (location.pathname==='/brz-replacement/'
-     || location.pathname==='/brz-replacement/index.html');
+     || location.pathname==='/brz-replacement/index.html'
+     || location.pathname==='/brz-replacement/homolog/f77/'
+     || location.pathname==='/brz-replacement/homolog/f77/index.html');
 const stageEdge=()=>location.protocol==='https:' && location.hostname==='irekykmigdfvwozerkfa.supabase.co' && (location.pathname==='/functions/v1/brz-replacement-homologacao/' || location.pathname==='/functions/v1/brz-replacement-homologacao/index.html');
 const status=msg=>{ $('status').textContent=msg; };
 // F57: server-side SQL EXECUTE grants also deny F33 mutation/restore.
