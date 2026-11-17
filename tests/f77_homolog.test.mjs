@@ -15,7 +15,7 @@ const r=file=>readFileSync(path.join(folder,file),'utf8');
 
 test('F77: PIN direto sem tela Mercado diário e arquivos assinados',()=>{
  const index=r('index.html'),pin=r('assets/secure/f40_pin_login.js'),app=r('app.html');
- assert.match(index,/F77 · HOMOLOGAÇÃO/);
+ assert.match(index,/F77 HOMOLOGAÇÃO/);
  assert.match(pin,/__BRZ_VERIFY_FULL_STATIC/);
  assert.match(pin,/full verified replacement engine/);
  assert.match(app,/id="brz-f77-build"/);
