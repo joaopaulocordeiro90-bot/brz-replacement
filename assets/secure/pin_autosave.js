@@ -1155,8 +1155,27 @@
   try{
    const xlsx=await import('./f77_xlsx_upload.mjs?v=20261117f77');
    xlsx.installExcelUpload({
-    getReference:()=>({curveDay:String(state.timestamps?.cbot||''),
-     fxDay:String(state.timestamps?.dolar||'')}),
+    getReference:async pack=>{
+      const base={curveDay:String(state.timestamps?.cbot||''),
+        fxDay:String(state.timestamps?.dolar||'')};
+      if(!pack)return base;
+      try{
+        const [projection,diffModule]=await Promise.all([
+          import('./market_excel_overlay.mjs?v=20261116f69'),
+          import('./f77_xlsx_diff.mjs?v=20261117f77')]);
+        const projected=projection.projectExcel(pack);
+        const original=typeof getPrecosBase==='function'?getPrecosBase():[];
+        const basis=typeof ppeData==='function'?ppeData():null;
+        const cma=typeof r3Data==='function'?r3Data():null;
+        const result=diffModule.compareDailyXlsx(projected,{
+          physicalHistory:Array.isArray(original)?original:[],
+          basisHistory:basis,
+          derivativeHistory:Array.isArray(cma?.rows)?cma.rows:[],
+          oceanHistory:state.marketExcelOceanRoutes||{}
+        });
+        return {...base,diff:result};
+      }catch(error){return {...base,diffError:String(error?.message||error)};}
+    },
     confirmUpload:confirmMarketExcelStage,
     rollbackUpload:rollbackMarketExcelStage
    });
