@@ -1,0 +1,24 @@
+
+/* V2T · layout-constrained Paridade & PPE tables */
+#rep-paridade{min-width:0;max-width:100%;overflow-x:clip}
+#rep-paridade .ppe-card{min-width:0;max-width:100%;overflow:hidden}
+#rep-paridade .ppe-scroll{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;border:1px solid #e2e8f0;border-radius:7px;scrollbar-color:#b6c5d5 #f1f5f9;scrollbar-width:thin}
+#rep-paridade .ppe-scroll:focus-visible{outline:2px solid #0b7181;outline-offset:2px}
+#rep-paridade .ppe-scroll .ppe-table{width:100%;margin:0;border-collapse:separate;border-spacing:0;table-layout:auto}
+#rep-paridade .ppe-scroll .ppe-table-basis{min-width:930px}
+#rep-paridade .ppe-scroll .ppe-table-ppe{min-width:1010px}
+#rep-paridade .ppe-scroll .ppe-table td,#rep-paridade .ppe-scroll .ppe-table th{box-sizing:border-box;padding:6px 7px;white-space:nowrap;vertical-align:middle}
+#rep-paridade .ppe-scroll .ppe-table thead th{position:sticky;top:0;z-index:2}
+#rep-paridade .ppe-scroll .ppe-table tr>th:first-child,#rep-paridade .ppe-scroll .ppe-table tr>td:first-child{position:sticky;left:0;z-index:3;min-width:105px;background:#eef3f9;box-shadow:1px 0 0 #cbd5e1}
+#rep-paridade .ppe-scroll .ppe-table thead tr:first-child>th:first-child{z-index:4}
+#rep-paridade .ppe-table .ppe-quote-date{display:block;margin-top:2px;color:#64748b;font-size:9px;line-height:1.25;font-weight:500;white-space:nowrap}
+#rep-paridade .ppe-table .ppe-ind{color:#99550b;background:#fff2cf}
+#rep-paridade .ppe-table .ppe-basis-cell{min-width:135px;white-space:nowrap}
+#rep-paridade .ppe-table .ppe-basis-value{font-weight:700}
+#rep-paridade .ppe-table .ppe-tag{font-size:9px;padding:1px 3px;white-space:nowrap;margin-left:3px}
+#rep-paridade .ppe-chart{max-width:100%;overflow:hidden}
+#rep-paridade .ppe-chart svg{max-width:100%;height:auto}
+#rep-paridade .ppe-ctrls{max-width:100%;min-width:0}
+#rep-paridade .ppe-params{white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+@media(max-width:820px){#rep-paridade .ppe-card{padding:12px 10px}#rep-paridade .ppe-scroll .ppe-table{font-size:11px}#rep-paridade .ppe-scroll .ppe-table td,#rep-paridade .ppe-scroll .ppe-table th{padding:6px 6px}}
+@media print{#rep-paridade .ppe-scroll{overflow:visible;max-width:none;border:0}#rep-paridade .ppe-scroll .ppe-table{width:100%;min-width:0;font-size:9px}#rep-paridade .ppe-table tr>td:first-child,#rep-paridade .ppe-table tr>th:first-child{position:static}}

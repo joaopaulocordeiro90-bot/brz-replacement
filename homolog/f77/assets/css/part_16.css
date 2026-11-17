@@ -1,0 +1,44 @@
+
+.brz-cam{position:absolute;top:8px;right:9px;z-index:7;width:25px;height:25px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--g200,#E5E7EB);background:var(--card,#fff);color:#6B7280;border-radius:7px;cursor:pointer;opacity:.5;transition:opacity .15s,color .15s,box-shadow .15s;padding:0}
+.brz-cam:hover{opacity:1;color:#1A3A5C;box-shadow:0 1px 5px rgba(16,38,56,.14)}
+.a-card:has(.a-exp) > .brz-cam,.p-card:has(.a-exp) > .brz-cam,.idc-card:has(.a-exp) > .brz-cam,.fd-card:has(.a-exp) > .brz-cam{right:42px;top:9px}
+.brz-cam:active{transform:scale(.94)}
+.brz-add{position:absolute;top:9px;right:73px;z-index:7;width:25px;height:25px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--g200,#E5E7EB);background:var(--card,#fff);color:#6B7280;border-radius:7px;cursor:pointer;opacity:.5;transition:opacity .15s,color .15s,box-shadow .15s,background .15s;padding:0}
+.brz-add:hover{opacity:1;color:#1A3A5C;box-shadow:0 1px 5px rgba(16,38,56,.14)}
+.brz-add.on{opacity:1;background:#1A3A5C;border-color:#1A3A5C;color:#fff}
+.brz-add.busy{opacity:.55;pointer-events:none}
+.brz-add-n{font:800 12px Inter,system-ui,-apple-system,sans-serif;line-height:1}
+.brz-docx-float{position:fixed;right:22px;bottom:22px;z-index:9999;width:54px;height:54px;display:none;align-items:center;justify-content:center;border:none;border-radius:50%;background:#1A3A5C;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(16,38,56,.34);transition:transform .15s,box-shadow .15s}
+.brz-docx-float:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(16,38,56,.42)}
+.brz-docx-float:active{transform:scale(.95)}
+.brz-docx-badge{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;background:#E8590C;color:#fff;border-radius:11px;font:800 11px Inter,system-ui,sans-serif;border:2px solid #fff}
+
+.brz-export-frame, .brz-export-frame *{box-sizing:border-box}
+/* ===== tabelas no PNG (escopo proprio, independe de #analise) ===== */
+.brz-export-frame .a-table-wrap,.brz-export-frame .rpc-table-wrap{overflow:visible;border:1px solid #E8ECF2;border-radius:10px;overflow:hidden;box-shadow:0 1px 2px rgba(16,38,56,.04)}
+.brz-export-frame table,.brz-export-frame .a-table,.brz-export-frame .rpc-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;font-variant-numeric:tabular-nums;background:var(--card)}
+.brz-export-frame thead th,.brz-export-frame .a-table th{text-align:left;font-size:10px;font-weight:800;color:#5B6675;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;background:#F4F7FB;border-bottom:1.5px solid #DDE3EC;white-space:nowrap}
+.brz-export-frame tbody td,.brz-export-frame .a-table td{padding:8px 12px;border-bottom:1px solid #EEF1F6;color:#1F2A37;line-height:1.35}
+.brz-export-frame tbody tr:nth-child(even) td{background:#FAFBFD}
+.brz-export-frame tbody tr:last-child td{border-bottom:none}
+.brz-export-frame th.r,.brz-export-frame td.r{text-align:right}
+.brz-export-frame td.a-mut,.brz-export-frame .muted{color:#8A93A6}
+.brz-export-frame .pos{color:#1F9D78;font-weight:600}.brz-export-frame .neg{color:#D64545;font-weight:600}.brz-export-frame .zero{color:#8A93A6}
+.brz-export-frame tr.a-tr-hl td{background:#EEF4FC;font-weight:700;color:#10283A}
+.brz-export-frame td.mid{text-align:right;font-weight:700;color:#10283A}
+.brz-export-frame .a-card,.brz-export-frame .a-tblsingle,.brz-export-frame .a-tab-wrap-export{overflow:visible !important;max-height:none !important;height:auto !important}
+.brz-export-frame .a-tab-wrap-export{display:block;width:100%;background:#fff;border:1px solid #E8ECF2;border-radius:10px;padding-bottom:0}
+.brz-export-frame .a-tab-table{width:100% !important;min-width:0 !important;max-width:none !important;table-layout:fixed !important;border-collapse:separate !important;border-spacing:0 !important;font-size:12.1px !important;font-variant-numeric:tabular-nums !important;text-rendering:geometricPrecision !important;-webkit-font-smoothing:antialiased !important;font-kerning:normal !important}
+.brz-export-frame .a-tab-table th{font-size:10.6px !important;line-height:1.18 !important;white-space:normal !important;overflow-wrap:break-word !important;word-break:normal !important;hyphens:none !important;padding:9px 11px 6px !important;text-align:left !important;letter-spacing:0 !important;vertical-align:bottom !important}
+.brz-export-frame .a-tab-table thead tr.a-tab-units th{font-size:8.9px !important;line-height:1.12 !important;padding:2px 11px 8px !important}
+.brz-export-frame .a-tab-table td{padding:8px 11px !important;line-height:1.28 !important;white-space:nowrap !important;vertical-align:middle !important;letter-spacing:0 !important;overflow-wrap:normal !important;word-break:normal !important;text-align:left !important;text-rendering:geometricPrecision !important}
+.brz-export-frame .a-tab-table td:nth-child(7),.brz-export-frame .a-tab-table td:nth-child(8){white-space:normal !important}
+.brz-export-frame .a-tab-table td.num{text-align:left !important}
+.brz-export-frame .a-tab-table td:nth-child(12),.brz-export-frame .a-tab-table td:nth-child(13),.brz-export-frame .a-tab-table td:nth-child(14),.brz-export-frame .a-tab-table td.a-tab-margin{text-align:center !important}
+.brz-export-frame .a-tab-table colgroup col{width:auto !important}
+.brz-export-frame .a-sorgo-sep td{padding:10px 12px !important;border-top:3px solid #B5963E !important;border-bottom:1px solid #D8C48A !important;background:linear-gradient(90deg,rgba(181,150,62,.15),rgba(181,150,62,.04)) !important;color:#10283A !important}
+.brz-export-frame .a-sorgo-sep-inner{display:flex !important;align-items:center !important;gap:12px !important;flex-wrap:wrap !important;min-width:0 !important}
+.brz-export-frame .a-sorgo-sep-title{font-size:11px !important;font-weight:900 !important;letter-spacing:.12em !important;text-transform:uppercase !important;white-space:nowrap !important;color:#10283A !important}
+.brz-export-frame .a-sorgo-sep-note{font-size:10px !important;font-weight:700 !important;letter-spacing:.02em !important;color:#6B7280 !important;white-space:normal !important;line-height:1.35 !important}
+.brz-export-frame .a-sorgo-row td{background:rgba(181,150,62,.035) !important}
+.brz-export-frame .a-sorgo-usdt{color:#9A7B19 !important;font-weight:900 !important;white-space:nowrap !important}

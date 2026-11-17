@@ -1,0 +1,776 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+
+
+
+<html lang="pt-BR" style="--panel-width: 580px;">
+
+<head><script src="assets/f55/f55_ephemeral_storage.js" integrity="sha256-a9HL+4JvrfLp5OpIxZrTb/yWyMZAClX/tzBkwxg/VRo=" crossorigin="anonymous"></script>
+<meta charset="utf-8"/>
+<meta name="robots" content="noindex,nofollow,noarchive"/><meta name="referrer" content="no-referrer"/>
+<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+<title>BRZ Replacement — Histórico autenticado</title>
+<link href="assets/css/part_01.css" rel="stylesheet" integrity="sha256-t5Idy0I6/WH2ov4WHdC0tLUUmPKQBLV/oSD+e+SYn7E=" crossorigin="anonymous"/>
+<link crossorigin="" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" rel="stylesheet">
+<script crossorigin="" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="assets/secure/f61_map_patch.js?v=20261117f72" integrity="sha256-QpegwLctHFO/GSwprk2FPfXMMv0hGFwJMr+bOxjCa2o=" crossorigin="anonymous"></script>
+<script src="assets/js/part_01.js" integrity="sha256-VDcOQUmDGsNgtnJ8PQs7eRKvH/spiw57m+faGZaS5DA=" crossorigin="anonymous"></script>
+<link href="assets/css/part_02.css" id="bfStyle" rel="stylesheet" integrity="sha256-KGS6BO8xcCtYi0wwpBm4ScJLkzBeelyVfx7cTi4iKgI=" crossorigin="anonymous"/>
+<link href="assets/css/part_03.css" id="fdStyle" rel="stylesheet" integrity="sha256-mXTuge4772thWa8GKLAz89zKog+a0UE88ieDog8TI64=" crossorigin="anonymous"/>
+<link href="assets/css/part_04.css" id="analiseTabModeStyle" rel="stylesheet" integrity="sha256-wYMkB+qw03gmm/ET6fQxPXcSlrs3c+91OV5kdgzp8e0=" crossorigin="anonymous"/>
+<link href="assets/css/part_05.css" id="rpp-css" rel="stylesheet" integrity="sha256-FTlh3Wls4YtiS+vrZKBQCmnHLpUUicBki9gP2JN7xkM=" crossorigin="anonymous"/>
+<link href="assets/css/part_06.css" id="pm2-css" rel="stylesheet" integrity="sha256-Sk1KH//dy4mivuog5volncxsl9y+Cga5Vb0SRjIPrE4=" crossorigin="anonymous"/>
+<link href="assets/css/part_07.css" id="brz-v2t-ppe-table-fix" rel="stylesheet" integrity="sha256-slEGu60UjLNzQP0EGoK4nw2nVz9+nIBKtpnhAfd2zJY=" crossorigin="anonymous"/>
+<link href="assets/css/part_08.css" id="r3-trades-v2v-style" rel="stylesheet" integrity="sha256-PWstYpgO3VUftEuI012FDPO/G58XdbX89Ns9VzOZ0ow=" crossorigin="anonymous"/>
+<link href="assets/css/part_09.css" id="brz-v2x-mobile-overlay-fix" rel="stylesheet" integrity="sha256-4g468YAtJXmc8dXWw5ibnr5Z3AlXOm5r1g4mVvB72SQ=" crossorigin="anonymous"/>
+<link href="assets/css/part_10.css" id="brz-v3h-internal" rel="stylesheet" integrity="sha256-R+eXzLr7ygsptGDIFzUi/bUBAq1UHqv/8ptDpFf/RDI=" crossorigin="anonymous"/>
+
+<link href="assets/css/part_11.css" id="brz-v4k-restricted-print" rel="stylesheet" integrity="sha256-CIBRZv7R5kbRnMOicbJQbpUJ/9E0Z4lyRYsdFk410qc=" crossorigin="anonymous"/>
+<link href="assets/css/part_12.css" id="brzRegrasCSS" rel="stylesheet" integrity="sha256-vlae4JOX4sSIIyPXNoxsu52l3NrvLfSHbxKWvu2U6as=" crossorigin="anonymous"/>
+<link href="assets/css/part_13.css" id="brzPhysicalFlowCSS" rel="stylesheet" integrity="sha256-J0jV78Ie1f92E6FlDkP7gpbPp5VVMux0QlnEKma9nuk=" crossorigin="anonymous"/>
+
+
+</link></head>
+<body>
+<script src="assets/js/part_02.js" integrity="sha256-XY3fPeLx54lAwVxe4gh94TcJ52VCkDyco6DYOi8ezW4=" crossorigin="anonymous"></script>
+<link href="assets/css/part_14.css" id="r3-visual" rel="stylesheet" integrity="sha256-Ilt/7qWMyM2cYJkYfUKuuGmxCq2rym95T9elmWVIxg8=" crossorigin="anonymous"/>
+<script id="dataDerivadosSpot" type="application/json"></script><script src="assets/loaders/legacy_01.js" integrity="sha256-NWt2PDiUKqhaVtgQgcYHTsHyu5kpGC1SrccE5ISLq7g=" crossorigin="anonymous"></script>
+<script id="repDerivadosModule" src="assets/js/part_03.js" integrity="sha256-P7Qg74MTkindhnQTaTjEGRGXZK2GTpHGSv4tbBsAu30=" crossorigin="anonymous"></script>
+<script id="brzR3ReliableExportsV2k" src="assets/js/part_04.js" integrity="sha256-OA3cOPr0EJL1gkSdD/NjVyXFXqbBqAG9vTxuMT2ia5Y=" crossorigin="anonymous"></script>
+<script id="__HISTORY__" type="application/json"></script><script src="assets/loaders/legacy_02.js" integrity="sha256-r0bu1UHKgREXWCtJlJfvYntBVaIhniRbG88mwWZsNz8=" crossorigin="anonymous"></script>
+
+<link href="assets/css/part_15.css" id="brz-splash-style" rel="stylesheet" integrity="sha256-ReUmUiu9yosmTUttcmucUSP1Qq2xQcWPRizXAVxD09g=" crossorigin="anonymous"/>
+<div aria-label="Carregando Replacement BRZ" data-no-i18n="" id="brz-splash" role="status">
+<div class="brz-grid"></div>
+<div class="brz-inner">
+<div class="brz-eyebrow">Reposição · Grãos · Exportação</div>
+<div class="brz-word">Replacement <b>BRZ</b><span class="brz-dots"><i>.</i><i>.</i><i>.</i></span></div>
+<div class="brz-bar"><i></i></div>
+</div>
+</div>
+<script src="assets/js/part_05.js" integrity="sha256-byCYh7o3fJTXaiadFdIQS83EhkJKvxwnhDxWqgm+XmM=" crossorigin="anonymous"></script>
+<div class="app">
+
+<header class="topnav">
+<div class="topnav-left">
+<div class="brand"><b>BRZ</b><span>Replacement Engine</span></div>
+</div>
+<nav class="topmenu">
+<button class="active" data-screen="inicial" onclick="showScreen('inicial')"><span>Inicial</span></button>
+<button class="" data-screen="analise" onclick="showScreen('analise')"><span>Análise</span></button>
+<button data-screen="report" onclick="showScreen('report')"><span>Report</span></button>
+<button data-screen="corredores" onclick="showScreen('corredores')"><span>Replacement por Porto</span></button>
+<button class="" data-screen="negocios" onclick="showScreen('negocios')"><span data-i18n="closedDeals">Negócios</span></button>
+<button data-screen="fretes" onclick="showScreen('fretes')"><span data-i18n="freights">Fretes</span></button>
+<button data-screen="outros" onclick="showScreen('outros')"><span data-i18n="outrosTab">Outros</span></button>
+</nav>
+<div class="topnav-right">
+<button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Alternar tema claro/escuro"></button>
+<span id="brzBaseStatus" onclick="showScreen('auditoria')" style="cursor:pointer;display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;margin-right:10px;background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0" title="Abrir Auditoria da Base">—</span><div id="brzBellWrap" style="position:relative;display:flex;align-items:center;margin-right:8px"><button id="brzBellBtn" onclick="brzBellToggle(event)" style="position:relative;display:flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.05);cursor:pointer;padding:0" title="Notificações"><svg fill="none" height="15" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24" width="15"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg><span id="brzBellBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:15px;height:15px;border-radius:8px;background:#DC2626;color:#fff;font-size:9px;font-weight:800;align-items:center;justify-content:center;padding:0 3px;line-height:15px">0</span></button><div data-open="0" id="brzBellPanel" style="display:none;position:absolute;top:calc(100% + 10px);right:0;width:430px;max-height:70vh;overflow:auto;background:#fff;border:1px solid #E2E8F0;border-radius:12px;box-shadow:0 12px 32px rgba(15,23,42,.18);padding:14px;z-index:9999;text-align:left"></div></div> <div id="langToggle" style="display:flex;gap:4px;border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:3px;background:rgba(255,255,255,.05)">
+<button id="langBtnPt" onclick="setLang('pt')" style="background: var(--g50); border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; padding: 4px 6px; border-radius: 4px; cursor: pointer; line-height: 0; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1.5px var(--g700);" title="Português">
+<svg height="15" viewbox="0 0 26 18" width="22" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#009c3b" height="18" width="26"></rect>
+<polygon fill="#ffdf00" points="13,2.5 23.5,9 13,15.5 2.5,9"></polygon>
+<circle cx="13" cy="9" fill="#002776" r="3.8"></circle>
+<path d="M 9.5 9.3 Q 13 7.3 16.5 9.3" fill="none" stroke="#fff" stroke-width="0.8"></path>
+</svg>
+</button>
+<button id="langBtnEn" onclick="setLang('en')" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; padding: 4px 6px; border-radius: 4px; cursor: pointer; line-height: 0; display: flex; align-items: center; justify-content: center; box-shadow: none;" title="English">
+<svg height="15" viewbox="0 0 26 18" width="22" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#b22234" height="18" width="26"></rect>
+<rect fill="#fff" height="1.385" width="26" y="1.385"></rect>
+<rect fill="#fff" height="1.385" width="26" y="4.154"></rect>
+<rect fill="#fff" height="1.385" width="26" y="6.923"></rect>
+<rect fill="#fff" height="1.385" width="26" y="9.692"></rect>
+<rect fill="#fff" height="1.385" width="26" y="12.462"></rect>
+<rect fill="#fff" height="1.385" width="26" y="15.231"></rect>
+<rect fill="#3c3b6e" height="9.692" width="10.4"></rect>
+</svg>
+</button>
+</div>
+</div>
+</header>
+
+<main class="main">
+<h1 data-i18n="pageTitleInicial" id="pageTitle" style="display:none">Inicial</h1>
+<div class="meta" id="marketMeta" style="display:none"></div>
+<div class="content panel-closed" id="contentGrid">
+
+<section class="screen scrollable active" id="inicial">
+<div class="homeHero">
+<h2>Inicial</h2>
+<p>Visão geral da BRZ Replacement Engine. Use os quadros abaixo para acessar rapidamente cada módulo operacional da plataforma.</p>
+</div>
+<div class="homeGrid">
+<div class="homeCard" onclick="showScreen('mapa')">
+<div class="eyebrow">Mapa</div>
+<h3>Mapa do Brasil</h3>
+<p>Visualização geográfica das origens, corredores e oportunidades. Ajuda a enxergar concentração de negócios e competitividade regional.</p>
+<div class="go">Abrir mapa →</div>
+</div>
+<div class="homeCard green" onclick="showScreen('negocios')">
+<div class="eyebrow">Base operacional</div>
+<h3>Negócios</h3>
+<p>Lista completa dos negócios fechados, com origem, retirada, preço, safra, corredor, fretes e cálculo de replacement por rota.</p>
+<div class="go">Abrir negócios →</div>
+</div>
+<div class="homeCard amber" onclick="showScreen('mercado')">
+<div class="eyebrow">Mercado</div>
+<h3>Curva CBOT/Câmbio</h3>
+<p>Cadastro e consulta das curvas de CBOT e dólar usadas no cálculo de basis, replacement FOB e replacement CFR.</p>
+<div class="go">Abrir curvas →</div>
+</div>
+<div class="homeCard" onclick="showScreen('curva')" style="display:none">
+<div class="eyebrow">Preços</div>
+<h3>Curva de Preços</h3>
+<p>Gráfico em R$/saca por estado e corredor/região, com média estadual e abertura regional para leitura de tendência.</p>
+<div class="go">Abrir curva de preços →</div>
+</div>
+<div class="homeCard" onclick="showScreen('fretes')">
+<div class="eyebrow">Logística</div>
+<h3>Fretes</h3>
+<p>Base de fretes rodoviários, ferroviários, marítimos e inland. Inclui a aba Buscar Frete, com frete cadastrado ou TKU estimado.</p>
+<div class="go">Abrir fretes →</div>
+</div>
+<div class="homeCard navy" onclick="showScreen('backup')">
+<div class="eyebrow">Backup</div>
+<h3>Exportar</h3>
+<p>Área para exportar e preservar a versão atualizada da plataforma, mantendo a base e as alterações salvas para uso posterior.</p>
+<div class="go">Abrir exportar →</div>
+</div>
+</div>
+<div id="brzAlertsHome" style="margin:6px 0 0"></div>
+<div id="brzStaleHome" style="margin:14px 0 0"></div>
+<div class="homeQuick">
+<div class="homeQuickBox">
+<strong>Fluxo recomendado:</strong> atualize curvas e fretes, cadastre os negócios, confira o replacement na aba Negócios.
+        </div>
+</div>
+</section>
+
+<section class="screen scrollable" id="outros">
+<div class="homeHero">
+<h2>Outros</h2>
+<p>Módulos de apoio da BRZ Replacement Engine. Os quadros abaixo abrem as telas que saíram da barra superior.</p>
+</div>
+<div class="homeGrid">
+<div class="homeCard" onclick="showScreen('regras')">
+<div class="eyebrow">Plataforma</div>
+<h3>Regras</h3>
+<p>Todas as regras da plataforma em um só lugar: régua de meses e vencimentos CBOT, câmbio por negócio e por preço, calendário de pregão e feriados, frete rodoviário, ferroviário e marítimo com projeção de safra, fobbing por porto, spreads de basis FOB, escopo e status dos negócios, preços físicos, derivados, physical flow e paridade. Cada regra mostra texto, parâmetros, vigência e origem. Parâmetros editam com recálculo imediato; textos editam como rascunho e entram no canônico no próximo build. Exceções por negócio e painel de saúde da base.</p>
+<div class="go">Abrir regras →</div>
+</div>
+<div class="homeCard" onclick="showScreen('leitura')">
+<div class="eyebrow">Mesa</div>
+<h3>Leitura do Dia</h3>
+<p>Síntese diária de curva, preços, basis e negócios, no formato de leitura rápida da mesa.</p>
+<div class="go">Abrir leitura →</div>
+</div>
+<div class="homeCard" onclick="showScreen('mapa')">
+<div class="eyebrow">Mapa</div>
+<h3>Mapa do Brasil</h3>
+<p>Visualização geográfica das origens, corredores e oportunidades. Concentração de negócios e competitividade regional.</p>
+<div class="go">Abrir mapa →</div>
+</div>
+<div class="homeCard green" onclick="showScreen('estados');try{brzEstadosOpen()}catch(e){}">
+<div class="eyebrow">Regiões</div>
+<h3>Estados</h3>
+<p>Cards por estado com replacement, janelas de embarque e porto vencedor de cada origem.</p>
+<div class="go">Abrir estados →</div>
+</div>
+<div class="homeCard amber" onclick="showScreen('mercado')">
+<div class="eyebrow">Mercado</div>
+<h3>Curva CBOT/Câmbio</h3>
+<p>Cadastro e consulta das curvas de CBOT e dólar usadas no cálculo de basis, replacement FOB e CFR.</p>
+<div class="go">Abrir curvas →</div>
+</div>
+<div class="homeCard" onclick="showScreen('premios')">
+<div class="eyebrow">Portos</div>
+<h3>Prêmios</h3>
+<p>Basis FOB de milho por porto e janela, basis CFR China de soja e histórico das leituras.</p>
+<div class="go">Abrir prêmios →</div>
+</div>
+<div class="homeCard" onclick="showScreen('indicadores')">
+<div class="eyebrow">Métricas</div>
+<h3>Indicadores</h3>
+<p>Indicadores agregados de originação, replacement e margem por produto, estado e período.</p>
+<div class="go">Abrir indicadores →</div>
+</div>
+<div class="homeCard" onclick="showScreen('continuo')">
+<div class="eyebrow">Série</div>
+<h3>Curva Contínua</h3>
+<p>Série contínua de replacement e basis ao longo do tempo, por embarque e porto.</p>
+<div class="go">Abrir curva contínua →</div>
+</div>
+<div class="homeCard" onclick="showScreen('portos')">
+<div class="eyebrow">Logística</div>
+<h3>Portos</h3>
+<p>Comparação de portos por origem: frete interno, fobbing, marítimo e replacement por rota.</p>
+<div class="go">Abrir portos →</div>
+</div>
+<div class="homeCard" onclick="showScreen('auditoria')">
+<div class="eyebrow">Qualidade</div>
+<h3>Auditoria</h3>
+<p>Verificações de consistência da base: duplicatas, pernas de curva, corredores e coordenadas.</p>
+<div class="go">Abrir auditoria →</div>
+</div>
+<div class="homeCard navy" onclick="showScreen('backup')">
+<div class="eyebrow">Backup</div>
+<h3>Exportar</h3>
+<p>Exportação da base e dos relatórios, cópia de segurança e importação de dados.</p>
+<div class="go">Abrir exportação →</div>
+</div>
+</div>
+</section>
+<section class="screen scrollable" id="leitura">
+<div class="head"><div><h2>Leitura do Dia</h2><div class="sub">rascunho vivo do Daily Report — âncora, deltas, destaques, fluxo, farelo</div></div><div class="toolbar"><button class="btn primary" onclick="brzDailyStudio()">Gerar Daily Report</button></div></div>
+<div id="leituraBody"></div>
+</section>
+
+
+<section class="screen scrollable" id="mapa">
+<div class="head">
+<div>
+<h2 data-i18n="mapTitle">Mapa de Replacement</h2>
+<div class="sub" data-i18n="mapSubtitle" id="mapaSub">Replacement Basis médio por corredor</div>
+</div>
+</div>
+<div id="mapaFreshness"></div>
+<div class="filter-strip" id="mapaToolbar"></div>
+<div id="mapaLayout" style="display:flex;gap:14px;padding:14px;max-width:100%;overflow:hidden">
+
+<div id="mapaMainCol" style="display:flex;flex-direction:column;gap:12px;flex:1 1 0;min-width:0;overflow:hidden">
+<div style="display:flex;gap:6px;justify-content:space-between;align-items:center;flex-wrap:wrap">
+<div id="mapaTabs" style="display:flex;gap:6px"></div>
+<div style="display:flex;gap:5px">
+<button class="btn small" data-i18n="btnPanel" data-i18n-title="tooltipHidePanel" id="btnTogglePanel" onclick="mapaTogglePanel()" title="Esconder/mostrar painel lateral">⟩ Painel</button>
+<button class="btn small" data-i18n="btnTable" data-i18n-title="tooltipHideTable" id="btnToggleTable" onclick="mapaToggleTable()" title="Esconder/mostrar tabela inferior">⤓ Tabela</button>
+<button class="btn small primary" data-i18n="btnExpand" data-i18n-title="tooltipFullscreen" id="btnFullscreen" onclick="mapaFullscreen()" title="Tela cheia">⛶ Expandir</button>
+</div>
+</div>
+<div id="mapaContainer" style="background:var(--card);border:1px solid var(--g200);overflow:hidden;position:relative;height:600px;width:100%"></div>
+</div>
+
+<div id="mapaRightCol" style="display:flex;flex-direction:column;gap:12px;width:380px;max-width:380px;flex-shrink:0;position:relative;min-width:0">
+<button onclick="mapaTogglePanel()" style="position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:24px;height:48px;background:var(--card);border:1px solid var(--g200);border-radius:6px;font-size:13px;color:var(--g500);cursor:pointer;z-index:5" title="Recolher painel">⟩</button>
+<div id="mapaSummary"></div>
+<div id="mapaCorredorDetail"></div>
+</div>
+</div>
+<div id="mapaVplTabela" style="padding:0 14px 14px"></div>
+<div id="mapaNarrativa" style="padding:0 14px 14px"></div>
+<div class="tableWrap" id="mapaTableWrap" style="border-top:1px solid var(--g200);overflow-x:auto;overflow-y:visible;max-width:100%;width:100%">
+<table class="table">
+<thead><tr>
+<th data-i18n="thCorridor">Corredor</th>
+<th data-i18n="thWindow">Vencimento</th>
+<th class="num" data-i18n="thDeals">thDeals</th>
+<th class="num" data-i18n="thVolT">Vol. (t)</th>
+<th class="num" data-i18n="thAvgPrice">Preço médio</th>
+<th class="num" data-i18n="thRepBasis">Rep. Basis</th>
+<th class="num" data-i18n="thDeltaVsPrior">Δ vs período anterior</th>
+<th data-i18n="thComment">Comentário</th>
+</tr></thead>
+<tbody id="mapaTableBody"></tbody>
+</table>
+</div>
+</section>
+<section class="screen" id="estados">
+<div class="head">
+<div>
+<h2>Estados</h2>
+<div class="sub">raio-X por estado — preço do interior, fluxo, frete e leitura automática · clique no mapa</div>
+</div>
+</div>
+<div id="estadosContainer" style="padding:14px 18px"></div>
+</section>
+
+<section class="screen scrollable" id="analise"></section>
+<section class="screen" id="report">
+<div class="rep-wrap">
+<div class="rep-head">
+<div class="rep-h1">Report</div>
+<div class="rep-h2" id="rep-sub"></div>
+</div>
+<div class="rep-granbar rep-subtabs" id="rep-subtabs"></div>
+<div class="rep-toolbar rep-live" id="rep-toolbar"></div>
+<div class="rep-block" id="rep-lotes"></div>
+<div class="rep-block" id="rep-physical"></div>
+<div class="rep-block" id="rep-analise"></div>
+<div class="rep-block" id="rep-estados"></div>
+<div class="rep-block" id="rep-paridade" style="display:none"></div>
+<div class="rep-block" id="rep-derivados" style="display:none"></div>
+</div>
+</section>
+<section class="screen scrollable" id="corredores"></section>
+<section class="screen scrollable" id="negocios">
+<div class="head">
+<div>
+<h2 data-i18n="pageTitleNegocios">Negócios Fechados</h2>
+<div class="sub" data-i18n="dealsSub">dealsSub</div>
+</div>
+</div>
+<div id="brzOutrosProdutos" style="display:none;margin:8px 0 16px"></div>
+<div class="filter-strip" id="negociosToolbar">
+<div style="display:flex;flex-direction:column;gap:8px;width:100%">
+
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<button class="btn" onclick="exportCSV('negocios')" style="font-size:11.5px">CSV</button>
+<input id="filtQ" oninput="setNegociosBuscaDebounced(this.value)" placeholder="Buscar origem, comprador, vendedor..." style="border:1px solid var(--g200);border-radius:6px;padding:6px 12px;font-size:11.5px;min-width:240px;flex:1;max-width:400px" type="text" value=""/>
+<select class="btn" onchange="setNegociosAno(this.value)" style="font-size:11.5px;min-width:130px"><option value="todos">Todos os anos</option><option value="2026">2026</option><option value="2025">2025</option></select>
+<select class="btn" onchange="setNegociosMes(this.value)" style="font-size:11.5px;min-width:140px"><option value="todos">Todos os meses</option><option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option></select>
+</div>
+
+<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+<span style="font-size:10.5px;color:var(--g500);font-weight:700;letter-spacing:.4px;text-transform:uppercase;min-width:62px">Safra:</span>
+<button class="btn small" onclick="toggleNegociosSafra('disponivel')" style="font-size:10.5px;padding:5px 9px">
+      Disponível <span style="opacity:.65;font-weight:500">(—)</span>
+</button>
+<button class="btn small" onclick="toggleNegociosSafra('24_25')" style="font-size:10.5px;padding:5px 9px">
+      Safra 24/25 <span style="opacity:.65;font-weight:500">(—)</span>
+</button>
+<button class="btn small" onclick="toggleNegociosSafra('25_26')" style="font-size:10.5px;padding:5px 9px">
+      Safra 25/26 <span style="opacity:.65;font-weight:500">(—)</span>
+</button>
+<button class="btn small" onclick="toggleNegociosSafra('26_27')" style="font-size:10.5px;padding:5px 9px">
+      Safra 26/27 <span style="opacity:.65;font-weight:500">(—)</span>
+</button>
+</div>
+
+<div style="display:flex;gap:5px;align-items:flex-start;flex-wrap:wrap">
+<span style="font-size:10.5px;color:var(--g500);font-weight:700;letter-spacing:.4px;text-transform:uppercase;min-width:62px;padding-top:6px">Corredor:</span>
+<div style="display:flex;flex-wrap:wrap;flex:1">
+<div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('AC')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de AC">
+          AC
+        </button>
+<button onclick="toggleNegociosEstado('AC')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de AC">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('BA')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Bahia">
+          BA
+        </button>
+<button onclick="toggleNegociosEstado('BA')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Bahia">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('CE')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de CE">
+          CE
+        </button>
+<button onclick="toggleNegociosEstado('CE')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de CE">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('GO')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Goiás">
+          GO
+        </button>
+<button onclick="toggleNegociosEstado('GO')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Goiás">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('MA')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Maranhão">
+          MA
+        </button>
+<button onclick="toggleNegociosEstado('MA')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Maranhão">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('MG')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Minas Gerais">
+          MG
+        </button>
+<button onclick="toggleNegociosEstado('MG')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Minas Gerais">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('MS')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Mato Grosso do Sul">
+          MS
+        </button>
+<button onclick="toggleNegociosEstado('MS')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Mato Grosso do Sul">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('MT')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Mato Grosso">
+          MT
+        </button>
+<button onclick="toggleNegociosEstado('MT')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Mato Grosso">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('PA')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Pará">
+          PA
+        </button>
+<button onclick="toggleNegociosEstado('PA')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Pará">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('PB')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de PB">
+          PB
+        </button>
+<button onclick="toggleNegociosEstado('PB')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de PB">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('PI')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Piauí">
+          PI
+        </button>
+<button onclick="toggleNegociosEstado('PI')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Piauí">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('PR')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Paraná">
+          PR
+        </button>
+<button onclick="toggleNegociosEstado('PR')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Paraná">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('RS')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Rio Grande do Sul">
+          RS
+        </button>
+<button onclick="toggleNegociosEstado('RS')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Rio Grande do Sul">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('SC')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Santa Catarina">
+          SC
+        </button>
+<button onclick="toggleNegociosEstado('SC')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Santa Catarina">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('SP')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de SP">
+          SP
+        </button>
+<button onclick="toggleNegociosEstado('SP')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de SP">
+          ▾
+        </button>
+</div>
+</div><div style="display:inline-flex;flex-direction:column;gap:5px;margin-right:4px;margin-bottom:5px;vertical-align:top">
+<div style="display:inline-flex;border:1px solid var(--g200);border-radius:6px;overflow:hidden;background:var(--card)">
+<button onclick="toggleNegociosEstadoAll('TO')" style="border:0;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:var(--g900);cursor:pointer;letter-spacing:.2px" title="Marcar/desmarcar todas as regiões de Tocantins">
+          TO
+        </button>
+<button onclick="toggleNegociosEstado('TO')" style="border:0;background:transparent;padding:5px 8px;font-size:11px;font-weight:600;color:var(--g900);cursor:pointer;border-left:1px solid var(--g200)" title="Expandir regiões de Tocantins">
+          ▾
+        </button>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+<div id="negociosStats" style="padding: 14px 24px; display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--g200); background: var(--g50);"></div>
+<div class="tableWrap">
+<table class="table">
+<thead id="negociosHead"><tr><th class="th-sort" onclick="sortDeals('visualNum')" title="Clique para ordenar">Nº</th><th class="th-sort" onclick="sortDeals('id')" title="Clique para ordenar">ID interno</th><th class="th-sort" onclick="sortDeals('data')" title="Clique para ordenar">Data</th><th class="th-sort" onclick="sortDeals('safra')" title="Clique para ordenar">Safra</th><th class="th-sort" onclick="sortDeals('origem')" title="Clique para ordenar">Origem</th><th class="th-sort" onclick="sortDeals('corredor')" title="Clique para ordenar">Corredor</th><th class="th-sort" onclick="sortDeals('retirada')" title="Clique para ordenar">Retirada</th><th class="num th-sort" onclick="sortDeals('volume')" title="Clique para ordenar">Vol. (t)</th><th class="num th-sort" onclick="sortDeals('preco')" title="Clique para ordenar">Preço</th><th class="num th-sort" onclick="sortDeals('cbot')" title="Clique para ordenar">CBOT</th><th class="num th-sort" onclick="sortDeals('cambio')" title="Clique para ordenar">Câmbio</th><th class="th-sort" onclick="sortDeals('vencCBOT')" title="Clique para ordenar">Venc</th><th class="th-sort" onclick="sortDeals('semanaNegocio')" title="Clique para ordenar">Semana negócio</th><th class="th-sort" onclick="sortDeals('bestPort')" title="Clique para ordenar">Best Port</th><th class="th-sort" onclick="sortDeals('bestModal')" title="Clique para ordenar">Modal</th><th class="num th-sort" onclick="sortDeals('freteRodo')" title="Clique para ordenar">Frete rodo</th><th class="num th-sort" onclick="sortDeals('freteFerro')" title="Clique para ordenar">Frete ferro</th><th class="num th-sort" onclick="sortDeals('freteTotal')" title="Clique para ordenar">Frete total</th><th class="th-sort" onclick="sortDeals('semanaFrete')" title="Clique para ordenar">Semana frete</th><th class="th-sort" onclick="sortDeals('fonteFrete')" title="Clique para ordenar">Fonte frete</th><th class="num th-sort" onclick="sortDeals('replacementFOB')" title="Clique para ordenar">Replacement FOB</th><th class="num th-sort" onclick="sortDeals('replacementBasis')" title="Clique para ordenar">Replacement Basis</th><th class="num th-sort" onclick="sortDeals('replacementCFR')" title="Clique para ordenar">Replacement CFR</th><th class="th-sort" onclick="sortDeals('portosComparados')" title="Clique para ordenar">Portos comparados</th><th></th></tr></thead>
+<tbody id="dealsBody"></tbody>
+</table>
+</div>
+</section>
+
+
+<section class="screen" id="mercado">
+<div class="head">
+<div><h2 data-i18n="pageTitleMercado">Curva de Mercado</h2><div class="sub" data-i18n="mercadoSub">Curvas CBOT e Dólar</div></div>
+</div>
+<div class="filter-strip row">
+<div class="toolbar" id="mercadoToolbar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%">
+<button class="btn primary" data-i18n="saveCurve" onclick="saveMarketCurve()">Salvar Curva</button>
+<div id="mercadoFreshness" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:8px"></div>
+</div>
+</div>
+<div style="padding:20px;overflow:auto;flex:1">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+<div>
+<div data-i18n="cbotSoy" style="font-size:13px;font-weight:700;color:var(--g900);margin-bottom:8px">CBOT - Soja (USc/bu)</div>
+<div data-i18n="cbotValidMonths" style="font-size:10.5px;color:var(--muted);margin-bottom:8px">Vencimentos válidos: F=Jan, H=Mar, K=Mai, N=Jul, Q=Ago, U=Set, X=Nov. <b>Não há</b> Fev/Abr/Jun/Out/Dez.</div>
+<table class="matrix">
+<thead><tr><th data-i18n="thMatHeader" style="width:110px">Vencimento</th><th data-i18n="thMonthYear">Mês/Ano</th><th>CBOT (USc/bu)</th></tr></thead>
+<tbody id="cbotBody"></tbody>
+</table>
+<div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<div class="field"><label data-i18n="fobbinsLabel">Fobbins (USD/t)</label><input id="globalFobbins" step="0.5" type="number" value="11"/></div>
+<div class="field"><label data-i18n="seaFreightLabel">Frete Marítimo (USD/t)</label><input id="globalSea" step="0.5" type="number" value="35"/><div id="seaMatrixHint" style="font-size:10px;color:var(--muted);margin-top:3px"></div></div>
+</div>
+<div style="font-size:13px;font-weight:700;color:var(--g900);margin:18px 0 8px">CBOT - Milho (USc/bu)</div>
+<div style="font-size:10.5px;color:var(--muted);margin-bottom:8px">Vencimentos padrão do milho: H=Mar, K=Mai, N=Jul, U=Set, Z=Dez.</div>
+<table class="matrix">
+<thead><tr><th style="width:110px">Vencimento</th><th>Mês/Ano</th><th>CBOT Milho (USc/bu)</th></tr></thead>
+<tbody id="cbotMilhoBody"></tbody>
+</table>
+<div style="font-size:13px;font-weight:700;color:var(--g900);margin:18px 0 8px">CBOT - Farelo (US$/short ton)</div>
+<table class="matrix"><thead><tr><th style="width:110px">Vencimento</th><th>Mês/Ano</th><th>CBOT Farelo (US$/st)</th></tr></thead><tbody id="cbotFareloBody"></tbody></table>
+<div style="font-size:13px;font-weight:700;color:var(--g900);margin:18px 0 8px">CBOT - Óleo (¢/lb)</div>
+<table class="matrix"><thead><tr><th style="width:110px">Vencimento</th><th>Mês/Ano</th><th>CBOT Óleo (¢/lb)</th></tr></thead><tbody id="cbotOleoBody"></tbody></table>
+<div style="font-size:11px;color:var(--muted);margin-top:10px">Curvas CBOT e DOL B3 de 30/10 C4 (capturas recebidas, não settlement). O DOLX26 não veio no print: Nov/26 usa USD/BRL spot às 17h como proxy identificada. Salvar Curva atualiza paridades, sem reprecificar negócios fechados.</div>
+</div>
+<div>
+<div data-i18n="dollarMonthlyCurve" style="font-size:13px;font-weight:700;color:var(--g900);margin-bottom:8px">Dólar — Curva Mensal (R$/USD)</div>
+<div data-i18n="dollarCurveHelp" style="font-size:10.5px;color:var(--muted);margin-bottom:8px">Curva completa mês a mês — usada conforme a data de pagamento do negócio.</div>
+<table class="matrix">
+<thead><tr><th data-i18n="thMonthYear" style="width:140px">Mês/Ano</th><th data-i18n="fxRateColumn">Câmbio (R$/USD)</th></tr></thead>
+<tbody id="dolarBody"></tbody>
+</table>
+<div id="brzProxyFxNotice" role="note" style="margin-top:10px;border-left:3px solid var(--amber);padding:8px 11px;font-size:11px;line-height:1.5;color:var(--g600);background:var(--g50)"></div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="screen scrollable" id="fretes">
+<div class="head">
+<div><h2>Fretes</h2><div class="sub">Rodoviário · Marítimo · Inland — base completa de fretes</div></div>
+</div>
+<div class="filter-strip row">
+<div class="toolbar" id="fretesToolbar">
+
+</div>
+</div>
+<div class="tabs" id="fretesTabsBar">
+<button class="tab active" id="fTab-rodo" onclick="setFreightSubTab('rodo')">Rodoviário</button>
+<button class="tab" id="fTab-buscar" onclick="setFreightSubTab('buscar')">Buscar Frete</button>
+<button class="tab" id="fTab-ferro" onclick="setFreightSubTab('ferro')">Ferroviário (Taci)</button>
+<button class="tab" id="fTab-ocean" onclick="setFreightSubTab('ocean')">Marítimo</button>
+<button class="tab" id="fTab-inland" onclick="setFreightSubTab('inland')">Inland (consolidado)</button><button class="tab" data-i18n="tabIndices" id="fTab-indices" onclick="setFreightSubTab('indices')">Índices</button> <button class="tab" data-i18n="tabSeries" id="fTab-series" onclick="setFreightSubTab('series')">Séries</button> <button class="tab" data-i18n="tabSazonal" id="fTab-sazonal" onclick="setFreightSubTab('sazonal')">Sazonal</button><button class="tab" id="fTab-arbns" onclick="setFreightSubTab('arbns')">Arb N×S</button><button class="tab" id="fTab-analise" onclick="setFreightSubTab('analise')">Análise</button>
+<button class="tab" id="fTab-brief" onclick="setFreightSubTab('brief')">Análise Diária</button>
+</div>
+<div class="fretes-tab-content" id="briefFreteBody" style="display:none"></div>
+
+<div class="fretes-tab-content" id="fretesTabContent-rodo" style="display:block">
+
+<div id="rodoFiltersWrap" style="padding:18px 24px 0">
+<div id="rodoStats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--g50);border:1px solid var(--g200);border-radius:6px">
+<span data-i18n="filters" style="font-size:11px;color:var(--g500);font-weight:600;letter-spacing:.3px;text-transform:uppercase">Filtros:</span>
+<select class="btn" id="rodoFiltSemana" onchange="renderFreights()" style="min-width:130px"></select>
+<select class="btn" id="rodoFiltDestino" onchange="renderFreights()" style="min-width:130px"></select>
+<input class="btn" id="rodoFiltOrigem" oninput="renderFreights()" placeholder="Buscar origem..." style="min-width:160px" type="text"/>
+<select class="btn" id="rodoSortBy" onchange="renderFreights()" style="min-width:160px">
+<option value="origem">Ordenar: Origem</option>
+<option value="destino">Ordenar: Destino</option>
+<option value="valor_asc">Ordenar: Menor R$/t</option>
+<option value="valor_desc">Ordenar: Maior R$/t</option>
+<option value="semana_desc">Ordenar: Semana mais recente</option>
+<option value="semana_asc">Ordenar: Semana mais antiga</option>
+</select>
+<button class="btn" data-i18n="clearFilters" onclick="clearRodoFilters()" style="font-size:11px">Limpar</button>
+<button class="btn" data-i18n="compareWeeks" onclick="toggleCompareWeeks()" style="font-size:11px">Comparar Semanas</button>
+</div>
+</div>
+<div class="tableWrap" id="freightWrap" style="flex:1;min-height:0">
+<div id="rodoCompareWrap" style="display:none;padding:14px 24px"></div>
+<table class="table" id="rodoTable">
+<thead><tr>
+<th data-i18n="thWeek">Semana</th>
+<th data-i18n="thOrigin">Origem</th>
+<th data-i18n="thDestination">Destino</th>
+<th class="num">R$/t</th>
+<th data-i18n="thObs">Obs.</th>
+<th></th>
+</tr></thead>
+<tbody id="rodoBody"></tbody>
+</table>
+<div id="rodoPagination" style="padding:14px;text-align:center;font-size:11.5px;color:var(--g500)"></div>
+</div>
+</div>
+
+<div class="fretes-tab-content" id="fretesTabContent-buscar" style="display:none">
+<div style="padding:18px 24px 0">
+<div class="kpi-strip" style="margin-bottom:14px">
+<div class="kpi n"><div class="nm">Buscar frete</div><div class="vl">Destino → Origem</div><div class="ch" style="color:var(--g500);font-weight:600">Escolha o destino/porto e depois a praça de origem</div></div>
+<div class="kpi b"><div class="nm">Prioridade</div><div class="vl">1º Real</div><div class="ch" style="color:var(--g500);font-weight:600">Se houver rota cadastrada, usa frete real</div></div>
+<div class="kpi a"><div class="nm">Fallback</div><div class="vl">TKU</div><div class="ch" style="color:var(--g500);font-weight:600">Se não houver rota, usa as 3 referências mais próximas</div></div>
+</div>
+<div style="display:grid;grid-template-columns:minmax(210px,260px) minmax(280px,1fr) minmax(160px,190px) auto auto;gap:8px;align-items:end;padding:12px 14px;background:var(--g50);border:1px solid var(--g200);border-radius:6px">
+<div class="field"><label>1. Destino / porto</label><select id="buscarFreteDestino" onchange="renderBuscarFrete()"></select></div>
+<div class="field"><label>2. Origem / praça</label><input id="buscarFreteOrigem" list="buscarFreteOrigemList" oninput="renderBuscarFrete()" placeholder="Digite a praça/cidade de origem..." type="text"/><datalist id="buscarFreteOrigemList"></datalist></div>
+<div class="field"><label>Semana</label><select id="buscarFreteSemana" onchange="renderBuscarFrete()"></select></div>
+<button class="btn primary" onclick="renderBuscarFrete()">Buscar</button>
+<button class="btn" onclick="clearBuscarFrete()">Limpar</button>
+</div>
+<div class="note" style="margin-top:12px">Regra: primeiro a plataforma procura frete real cadastrado para destino/origem na semana escolhida. Se não encontrar, usa a semana anterior disponível. Se ainda não houver rota direta, calcula por TKU com as 3 praças cadastradas mais próximas da origem informada.</div>
+</div>
+<div class="tableWrap" style="padding:18px 24px 12px">
+<table class="table">
+<thead><tr>
+<th>Origem consultada</th>
+<th>Origem usada</th>
+<th>Destino/porto</th>
+<th class="num">Frete R$/t</th>
+<th>Semana ref.</th>
+<th>Tipo</th>
+<th class="num">Distância/TKU</th>
+<th>Leitura</th>
+</tr></thead>
+<tbody id="buscarFreteBody"></tbody>
+</table>
+</div>
+<div id="buscarFreteChartWrap" style="padding:0 24px 24px"></div>
+</div>
+
+<div class="fretes-tab-content" id="fretesTabContent-ferro" style="display:none">
+<div id="ferroWrap" style="padding:24px"></div>
+</div>
+
+<div class="fretes-tab-content" id="oceanFreightBody" style="display:none;flex-direction:column"></div>
+
+<div class="fretes-tab-content" id="inlandFreightBody" style="display:none;flex-direction:column"></div>
+<div class="fretes-tab-content" id="indicesFreteBody" style="display:none"></div> <div class="fretes-tab-content" id="seriesFreteBody" style="display:none"></div> <div class="fretes-tab-content" id="sazonalFreteBody" style="display:none"></div><div class="fretes-tab-content" id="arbNSBody" style="display:none"></div> <div class="fretes-tab-content" id="analiseFreteBody" style="display:none;flex-direction:column"></div>
+</section>
+
+<section class="screen" id="curva">
+<div class="head">
+<div><h2 data-i18n="pageTitleCurva">Curva de Preços por Região</h2><div class="sub" data-i18n="curvaSub">Preço R$/sc por corredor</div></div>
+</div>
+<div class="filter-strip row"><div class="toolbar" id="curvaToolbar"></div></div>
+<div class="chartWrap" id="chartWrap"></div>
+<div class="tableWrap">
+<table class="table" id="curvaTable">
+<thead id="curvaHead"></thead>
+<tbody id="curvaBody"></tbody>
+</table>
+</div>
+</section>
+<section class="screen scrollable" id="premios">
+<div class="head">
+<div><h2 data-i18n="pageTitlePremios">Prêmios FOB / CFR</h2><div class="sub">Milho: FOB por porto e janela · Soja: CFR China por janela · ¢/bu</div></div>
+</div>
+<div id="premiosWrap" style="padding:18px"></div>
+</section>
+
+<section class="screen scrollable" id="portos">
+<div class="head"><div><h2>Portos</h2><div class="sub">Competitividade de escoamento · replacement FOB/CFR por porto · ¢/bu</div></div></div>
+<div id="portosWrap" style="padding:18px"></div>
+</section>
+<section class="screen scrollable" id="indicadores">
+<div class="head"><div><h2 data-i18n="pageTitleIndicadores">Indicadores</h2><div class="sub">Margem Teórica FOB BRZ · físico × exportação</div></div></div>
+<div id="indicadoresWrap" style="padding:18px"></div>
+</section>
+
+<section class="screen scrollable" id="continuo">
+<div class="head"><div><h2>Curva Contínua</h2><div class="sub">Contrato contínuo C1/C2 · histórico desde jan/25 · físico não-ajustado</div></div></div>
+<div id="continuoWrap" style="padding:18px"></div>
+</section>
+
+
+
+
+<section class="screen scrollable" id="regras"><div class="rg-wrap" id="regrasBody"></div></section>
+<section class="screen" id="auditoria"><div id="brzAudBody" style="padding:6px 24px 24px"></div></section>
+<section class="screen" id="backup">
+<div class="head"><div><h2 data-i18n="backupTitle">Exportações e Backup</h2><div class="sub" data-i18n="backupSub">Exportar e importar dados</div></div></div>
+<div style="padding:20px">
+<div class="toolbar">
+<button class="btn primary" onclick="downloadHtmlSnapshot()">Baixar HTML atualizado</button>
+<button class="btn" data-i18n="downloadJson" onclick="downloadBackup()">Baixar JSON completo</button>
+<button class="btn" data-i18n="dealsCsv" onclick="exportCSV('negocios')">Negócios CSV</button>
+<button class="btn" data-i18n="roadFreightCsv" onclick="exportCSV('fretesRodo')">Frete Rodo CSV</button>
+<button class="btn" data-i18n="railFreightCsv" onclick="exportCSV('fretesFerro')">Frete Ferro CSV</button>
+<button class="btn danger" data-i18n="resetData" onclick="resetData()">Resetar dados</button>
+</div>
+</div>
+</section>
+
+<div class="resizer" data-i18n-title="resizerTooltip" id="panelResizer" title="Arraste para redimensionar o painel"></div>
+
+<aside class="card right" id="rightPanel">
+<button class="panelHandle" data-i18n-title="tooltipCollapsePanel" onclick="toggleRightPanel()" title="Recolher painel"><span id="panelHandleIcon">⟨</span></button>
+<div class="panel" id="simPanel"></div>
+</aside>
+</div>
+<button class="floatPanelBtn" data-i18n="openSimulation" id="openPanelBtn" onclick="toggleRightPanel(false)" style="display: none;">Abrir simulação</button>
+</main>
+</div>
+
+<div class="drawerBg" id="drawerBg" onclick="closeDrawers()"></div>
+<div class="drawer" id="freightDrawer">
+<div class="head"><h2 data-i18n="newRoadFreightTitle">Novo Frete Rodoviário</h2><button class="btn ghost" data-i18n="closeBtnShort" onclick="closeDrawers()">Fechar</button></div>
+<form class="drawerBody" id="freightForm" onsubmit="saveFreight(event)"></form>
+<div class="drawerFoot"><button class="btn" data-i18n="cancelBtn" onclick="closeDrawers()">Cancelar</button><button class="btn primary" data-i18n="saveBtn" form="freightForm">Salvar</button></div>
+</div>
+<div class="drawer" id="dealDrawer">
+<div class="head"><h2 data-i18n="editDeal" id="dealDrawerTitle">Editar Negócio</h2><button class="btn ghost" data-i18n="closeBtnShort" onclick="closeDrawers()">Fechar</button></div>
+<form class="drawerBody" id="dealForm" onsubmit="saveDeal(event)"></form>
+<div class="drawerFoot"><button class="btn" onclick="closeDrawers()">Cancelar</button><button class="btn primary" form="dealForm">Salvar</button></div>
+</div>
+<script id="dataBasisFOB" type="application/json"></script><script src="assets/loaders/legacy_03.js" integrity="sha256-mYYmrX+1a9m85TBqdvjpGVr+kCB4QP1uVMS9/SAHbAI=" crossorigin="anonymous"></script>
+<script id="dataPremios" type="application/json"></script><script src="assets/loaders/legacy_04.js" integrity="sha256-SgAetOqsj5hoUruBSB22FaI02uyoJCLeg22x8tqqPjk=" crossorigin="anonymous"></script>
+<script id="dataDeals" type="application/json"></script><script src="assets/loaders/legacy_05.js" integrity="sha256-K3hbz/KHY6rVZYQrieu0U65L78lkNA7AOhE81lt0Www=" crossorigin="anonymous"></script>
+<script id="dataPrecos" type="application/json"></script><script src="assets/loaders/legacy_06.js" integrity="sha256-rTUA4JCUFAxbf70J9sh7GNdCxvdxrzxbnWlBueVjcjs=" crossorigin="anonymous"></script>
+<script id="dataRodo" type="application/json"></script><script src="assets/loaders/legacy_07.js" integrity="sha256-seTu2DX341ZpsBfIRpb7d3Rdpb1wHK10/p8BoJfnJ2I=" crossorigin="anonymous"></script>
+<script id="dataFerro" type="application/json"></script><script src="assets/loaders/legacy_08.js" integrity="sha256-EtMGTt/PF0VGC3BRRQCNjrZm8pfeGiOofrmcRHhRoJY=" crossorigin="anonymous"></script>
+<script id="dataState" type="application/json"></script><script src="assets/loaders/legacy_09.js" integrity="sha256-EAlBtiJKsT/czghD8MSNqy9OiWLnuIlW6OHATH89Kwg=" crossorigin="anonymous"></script>
+<script id="dataCurvas" type="application/json"></script><script src="assets/loaders/legacy_10.js" integrity="sha256-c0Y6bjEEvGSGehbBU3AANDRKKsBM01E6RBOCIsVit5U=" crossorigin="anonymous"></script>
+<script id="dataRules" type="application/json"></script><script src="assets/loaders/legacy_11.js" integrity="sha256-+x8eu3i5xZbi6gvgZhwuqWLsgZCUC1VZhXX8N4zR60A=" crossorigin="anonymous"></script>
+<script src="assets/js/part_06.js" integrity="sha256-0VWv4LxLAAHwZnm6WCGXatQSJsgde+nWfyP26FFk5dk=" crossorigin="anonymous"></script>
+<script id="html2canvasLib" src="assets/js/part_07.js" integrity="sha256-PokNZ11bJs8lpdmUgaMONhXO/VeMdD68HO8UD4do3SE=" crossorigin="anonymous"></script>
+<link href="assets/css/part_16.css" id="brzExportCSS" rel="stylesheet" integrity="sha256-2Y2Bq4vnhAgIOjU9eRRzHDLOBr/EvRYhl8QCipO2wbw=" crossorigin="anonymous"/>
+<script id="brzExportJS" src="assets/js/part_08.js" integrity="sha256-QbQ5wyXeZFNVzYmBGuTUz/wLJhNf4LMXwJUD3TRBzm8=" crossorigin="anonymous"></script>
+<script src="assets/js/part_09.js" integrity="sha256-FLm3YQzslIrFJAAs5I9cNWa6gdx901dBhlWNy6vjRqw=" crossorigin="anonymous"></script>
+<script src="assets/js/part_10.js" integrity="sha256-Jc81dEbQMomlFjBlqG6EeqHqsyy5j7hDOFDWnz4W4jY=" crossorigin="anonymous"></script>
+<script src="assets/js/part_11.js" integrity="sha256-WSYcy920FY+QHmNRmPN8XLQ2XFNB80PtTxLO/hD0Io0=" crossorigin="anonymous"></script>
+<script src="assets/js/part_12.js" integrity="sha256-fZE1ez6Y/9nnSoLxnCi7A2SEHYd07nBUJ+6igflT+bQ=" crossorigin="anonymous"></script>
+<script src="assets/js/part_13.js" integrity="sha256-bXmA7GdSTpOv9YL4u6g6gNxv8/ubC60GxXjFxrHbis4=" crossorigin="anonymous"></script>
+<script src="assets/js/part_14.js" integrity="sha256-JgIrjAthPVitXOZOZUx8FarYVyw4se9ZFwdN5UcMhIg=" crossorigin="anonymous"></script>
+<script src="assets/js/part_15.js" integrity="sha256-ach/TejAV0/pEnzGL+4K4roIuPc2J/HXJ5TGa5c5E0k=" crossorigin="anonymous"></script>
+<script id="brzAnalysisExportDeterministicV11" src="assets/js/part_16.js" integrity="sha256-VAHG6BcsuMbsnLGT8W7udhAunnce11TUXrr1PmuAw8k=" crossorigin="anonymous"></script>
+
+
+<script src="assets/js/part_17.js" integrity="sha256-FFu/9Uuc+Ug1U8eCPjwOfgVncE9o6J8jJu3hx+PqokQ=" crossorigin="anonymous"></script>
+<script src="assets/js/part_18.js" integrity="sha256-YK03UoDRA7c7OyPgfs9qV6uI7p7W2+YfuAYVv+gE6BM=" crossorigin="anonymous"></script>
+<link href="assets/css/part_17.css" id="brz-mobile-patch" rel="stylesheet" integrity="sha256-/lWSFyvCiPlibLFQI4CGJHjoN4XcOwt2VSHUSJ+CL0s=" crossorigin="anonymous"/>
+<link href="assets/css/part_18.css" id="brz-rpm-region" rel="stylesheet" integrity="sha256-ZBWrErd4/IKC/VkWdJseqlNVVbrhcj71QkHE5ARJAH4=" crossorigin="anonymous"/>
+<script src="assets/js/part_19.js" integrity="sha256-6tBZRwglF51YOP/KKN68gpUkIIIJLgMG0lbEmv8L+e0=" crossorigin="anonymous"></script>
+<script src="assets/js/part_20.js" integrity="sha256-gYiHuXr4LC4K72FLQieQ6INCK6HBU7FkVuOUTHhJ4c8=" crossorigin="anonymous"></script>
+<script id="brzV4ZPendingGate" src="assets/js/part_21.js" integrity="sha256-smBsjYU7YNjAeqXGVm67GjGasqveKxNN1f5Yn1okOsI=" crossorigin="anonymous"></script>
+<script id="brzTabPagedExportV4AI" src="assets/js/part_22.js" integrity="sha256-avcuah97vj7A57WWtQtm3pGjkuaXYDw4N+QaiMZRRWU=" crossorigin="anonymous"></script>
+<script id="brzPhysicalFlowV4BQ" src="assets/js/part_23.js" integrity="sha256-G0XaioGsimXtpR/gCCCxroynRyii6+SKsqEzsuIJJg8=" crossorigin="anonymous"></script>
+<script id="brz-f33-migration-homologation" src="assets/js/part_24.js" integrity="sha256-A/RUnakFTcqf82eqUf8VsnfBBxu2oJuLVJ4jjnifZDk=" crossorigin="anonymous"></script>
+<script id="brz-f34-market-homologation" src="assets/js/part_25.js" integrity="sha256-mDgoOZCBLN/IJpQDZF7eKP9Wk/Sls9VpdNspJFuDDRQ=" crossorigin="anonymous"></script>
+<script id="brz-f35-market-runtime" src="assets/js/part_26.js" integrity="sha256-ZNQMMWa4lK8T3oyZgQwsYYIQD9Oo0JVIYISEL9F1LGI=" crossorigin="anonymous"></script>
+<script id="brz-f36-operational-runtime" src="assets/js/part_27.js" integrity="sha256-ta9PNYG6jRtL+TjZNBfJHsThHNM61X0GASyABDKCgRE=" crossorigin="anonymous"></script>
+<script id="brz-f37-release-readiness" src="assets/js/part_28.js" integrity="sha256-GSgFLQG9KcKbVrXDixcv5sJVi9OBA2sQGlWEAmEgl44=" crossorigin="anonymous"></script>
+<script id="brz-f37b-integrity-manifest" src="assets/js/part_29.js" integrity="sha256-ksZqlR3k6wvXqIU50uhiw4EnPn9huVBWYACAequBJ/4=" crossorigin="anonymous"></script>
+</body></html>

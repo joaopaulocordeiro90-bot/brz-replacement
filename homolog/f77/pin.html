@@ -1,0 +1,81 @@
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0e2336">
+<link rel="preconnect" href="https://irekykmigdfvwozerkfa.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="//irekykmigdfvwozerkfa.supabase.co"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<title>BRZ Replacement · Acesso PIN</title>
+<script>
+(function(){
+ try{
+  const raw=sessionStorage.getItem('brz_replacement_tab_auth_v1');
+  if(!raw)return;
+  const x=JSON.parse(raw);
+  if(x&&typeof x.access_token==='string'&&x.access_token.length>40&&
+     typeof x.refresh_token==='string'&&x.refresh_token.length>0&&
+     Number(x.keep_until)>Date.now()){
+    document.documentElement.classList.add('brz-restoring');
+  }
+ }catch(e){}
+})();
+</script>
+<style>
+:root{font-family:Inter,Arial,Helvetica,sans-serif;color:#173249;background:#f3f6f9;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center}
+main{background:#fff;border:1px solid #dce5ed;box-shadow:0 10px 32px rgba(18,53,76,.06);border-radius:10px;max-width:490px;width:calc(100% - 28px);padding:32px}
+.brand{font-weight:800;font-size:12px;letter-spacing:.15em;color:#1a3a5c}
+h1{font-size:27px;margin:12px 0 8px;letter-spacing:-.5px}h2{font-size:14px;font-weight:500;color:#617487;margin:0 0 19px}
+p{font-size:13px;line-height:1.55;color:#576e80}
+label{display:block;font-size:12px;font-weight:700;margin:11px 0 6px}
+input{font:15px Arial,sans-serif;width:100%;color:#173249;background:#fff;padding:12px;border:1px solid #b9cad7;border-radius:6px}
+#pin{font-size:20px;letter-spacing:.22em;text-align:center}
+button{cursor:pointer;width:100%;border:0;border-radius:6px;padding:12px 15px;font:700 14px Arial,sans-serif;background:#0d8f85;color:#fff;margin-top:14px}
+button:disabled{opacity:.45;cursor:default}
+#status{margin:14px 0;font-size:12px;line-height:1.5;background:#f4f8fa;border:1px solid #d5e3eb;border-radius:6px;padding:12px;color:#4b6479;min-height:43px;white-space:pre-wrap}
+details{margin-top:19px;padding-top:15px;border-top:1px solid #d9e4ec}
+summary{color:#1a3a5c;cursor:pointer;font:600 12px Arial;line-height:1.4}
+#setupStatus{font-size:12px;line-height:1.5;min-height:15px}
+#app{display:none;width:100vw;height:100vh;border:0;background:#fff}
+body.loaded{display:block}body.loaded main{display:none}body.loaded #app{display:block}
+#resumeTitle{display:none;font-size:24px;font-weight:750;margin:10px 0}
+#resumeRetry{display:none;background:#0d8f85;color:#fff;margin-top:12px}
+html.brz-restoring #authform,html.brz-restoring #setup,
+html.brz-restoring #loginTitle,html.brz-restoring #loginSubtitle{display:none!important}
+html.brz-restoring #resumeTitle{display:block}
+html.brz-restoring #status{border-color:#c4e3de;background:#f2faf8;color:#285a58}
+html.brz-restoring.brz-resume-failed #resumeRetry{display:block}
+
+@media(max-width:500px){main{padding:25px 20px}}
+</style></head>
+<body>
+<main>
+<div class="brand">BRZ · REPLACEMENT ENGINE</div>
+<h1 id="loginTitle">Acesso à plataforma</h1>
+<h1 id="resumeTitle">Restaurando sessão</h1>
+<h2 id="loginSubtitle">PIN de entrada · negócios sincronizados no Supabase</h2>
+<form id="authform" autocomplete="off">
+<label for="pin">PIN de seis dígitos</label>
+<input id="pin" type="password" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="off" placeholder="••••••" required disabled>
+<button id="go" type="submit" disabled>Entrar na plataforma</button>
+</form>
+<div id="status" role="status" aria-live="polite">Conferindo os componentes da plataforma…</div>
+<button type="button" id="resumeRetry" onclick="location.reload()">Tentar restaurar novamente</button>
+<details id="setup">
+<summary>Primeiro acesso? Definir ou redefinir o PIN</summary>
+<p>Para configurar o PIN, confirme uma vez sua conta Supabase já autorizada. Depois disso, a entrada será somente pelo PIN.</p>
+<form id="setupForm" autocomplete="off">
+<label for="email">E-mail autorizado no Supabase</label>
+<input id="email" type="email" required autocomplete="username">
+<label for="password">Senha Supabase (somente para configurar)</label>
+<input id="password" type="password" required autocomplete="current-password">
+<label for="newPin">Novo PIN (6 números)</label>
+<input id="newPin" type="password" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" required>
+<label for="newPinConfirm">Confirmar PIN</label>
+<input id="newPinConfirm" type="password" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="new-password" required>
+<button id="pinSet" type="submit">Definir PIN</button>
+<p id="setupStatus" role="status"></p>
+</form></details>
+</main>
+
+<iframe id="app" title="BRZ Replacement" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"></iframe>
+<script type="module" src="assets/secure/pin_boot.mjs?v=20261116pend03"></script>
+</body></html>

@@ -1,0 +1,12 @@
+
+#corredores .rpp-section{margin-top:6px;margin-bottom:28px}
+#corredores .rpm-foot{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:10px;font-size:9.5px;color:#6b7280;line-height:1.35}
+#corredores .rpm-foot-right{font-weight:800;color:#102638;white-space:nowrap}
+#corredores .rpm-avg-text{font-size:9px;font-weight:700;color:#5b6473}
+#corredores .rpp-port-card .rpm-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#corredores .rpp-port-card .rpm-value-inner.rpp-vi{height:auto;min-height:20px;flex-wrap:wrap;row-gap:0;padding:2px 7px 3px}
+#corredores .rpp-port-card .rpp-mm{flex:0 0 100%;font-size:8px;font-weight:700;color:#4b5563;line-height:1.05;letter-spacing:.1px}
+#corredores .rpp-port-card .rpm-port .rpp-x{margin-left:4px}
+#corredores .rpp-port-card td.rpp-cell{position:relative}
+#corredores .rpp-port-card td.rpp-cell > .rpp-x{position:absolute;top:1px;right:2px;opacity:0;transition:opacity .12s;width:14px;height:14px;line-height:12px;font-size:11px;padding:0;border-radius:4px}
+#corredores .rpp-port-card td.rpp-cell:hover > .rpp-x{opacity:1}

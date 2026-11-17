@@ -1,0 +1,10 @@
+
+/* V2X: body zoom:.8 exige compensação da largura/altura física do painel modal. */
+@media(max-width:1100px){
+  #contentGrid:not(.panel-closed) > #rightPanel {
+    left:0 !important;right:auto !important;top:0 !important;bottom:auto !important;
+    width:125vw !important;min-width:125vw !important;max-width:125vw !important;
+    height:125vh !important;height:125dvh !important;min-height:125vh !important;
+    overflow-x:hidden !important;overflow-y:auto !important;
+  }
+}
