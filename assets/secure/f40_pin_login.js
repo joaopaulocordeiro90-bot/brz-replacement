@@ -388,7 +388,8 @@ async function start(ev){
   bootProgress(8);
   if(typeof window.__BRZ_VERIFY_FULL_STATIC!=='function')
     throw Error('F77: verificação estática integral indisponível');
-  await Promise.all([window.__BRZ_VERIFY_FULL_STATIC(),preflightModules()]);
+  await window.__BRZ_VERIFY_FULL_STATIC();
+  await preflightModules(); // import only AFTER authenticated static code SHA verification
   bootProgress(18);
   token=await restoreTabSession();
   if(!token)throw Error('Sessão expirada durante a verificação integral.');
