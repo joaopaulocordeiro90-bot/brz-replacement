@@ -336,7 +336,7 @@ export function installExcelUpload({getReference,getInternalFreightReference,con
    const freightSheet=internalSheet.value;
    if(freightSheet){
     try{
-     const mod=await import('./f77_internal_freight.mjs?v=20261117int01');
+     const mod=await import('./f77_internal_freight.mjs?v=20261117hist01');
      const base=freightWorkbook||workbook;
      const parsed=mod.parseInternalFreight(base?.sheets?.[freightSheet],{sheetName:freightSheet});
      if(parsed.errors.length)throw Error(parsed.errors.slice(0,12).join(' · '));
