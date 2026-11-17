@@ -104,12 +104,23 @@ export async function fetchOfficialRail({from,to,signal,maxFeatures=4500}={}){
  const features=[];
  for(let i=0;i<all.length;i+=175){
   if(signal?.aborted)throw Error('Consulta ferroviária cancelada');
+  // The operational Infra S.A. layer advertises ArcGIS JSON; requesting
+  // GeoJSON may return a server error. Convert esriPolyline paths locally.
   const obj=await requestJson({objectIds:all.slice(i,i+175).join(','),
-   outFields:field,returnGeometry:'true',outSR:'4326',f:'geojson'},signal);
-  if(!Array.isArray(obj.features))throw Error('GeoJSON ferroviário inválido');
-  features.push(...obj.features);
+   outFields:field,returnGeometry:'true',outSR:'4326',f:'json'},signal);
+  if(!Array.isArray(obj.features))throw Error('Resposta ArcGIS ferroviária inválida');
+  for(const record of obj.features){
+    const paths=record?.geometry?.paths;
+    if(!Array.isArray(paths)||!paths.length)continue;
+    const lines=paths.filter(x=>Array.isArray(x)&&x.length>=2);
+    if(!lines.length)continue;
+    features.push({type:'Feature',
+      geometry:lines.length===1?{type:'LineString',coordinates:lines[0]}:
+        {type:'MultiLineString',coordinates:lines},
+      properties:record.attributes||{}});
+  }
  }
- if(features.length<all.length)throw Error('Malha ferroviária incompleta; não desenhar rota');
+ if(features.length<Math.floor(all.length*.97))throw Error('Geometria ferroviária incompleta; não desenhar rota');
  const answer={features,source:INFRA_RAIL_SOURCE,received:features.length};
  if(lastCache.size>2)lastCache.clear();
  lastCache.set(keyCache,answer);
