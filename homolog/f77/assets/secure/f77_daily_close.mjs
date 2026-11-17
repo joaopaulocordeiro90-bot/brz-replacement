@@ -6,7 +6,7 @@ const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const sourceIsoWeek=v=>{const s=String(v||'');const m=s.match(/(?:20\d{2})[-/]?(?:S|W)(\d\d)|(?:20\d{2})-S\d\d/i);
  return m?s.match(/20\d{2}[-/]?[SW]\d\d/i)?.[0]||s:null;};
 export function summarizeClose({trades=[],date,cbotDate,fxDate,excelDate,
- excelAudit=null,freights=[],geo=null,tradeAudits=null}={}){
+ excelAudit=null,excelPersisted=false,freights=[],geo=null,tradeAudits=null}={}){
  if(!/^\d{4}-\d\d-\d\d$/.test(String(date||'')))throw Error('F77 fechamento: data inválida');
  const records=trades.filter(d=>d&&String(d.data||'')===date);
  let volume=0,closed=0,pending=0,missingOrigin=0,missingWindow=0,missingCoords=0;
@@ -25,12 +25,14 @@ export function summarizeClose({trades=[],date,cbotDate,fxDate,excelDate,
   dolar:String(fxDate||'')===date,
   excel:String(excelDate||'')===date,
   excelAudit:excelAudit?.ok===true,
+  excelPersisted:excelPersisted===true,
   origins:missingOrigin===0,
   windows:missingWindow===0,
   geo:!geo||missingCoords===0
  };
  for(const [k,v] of Object.entries(checks))if(!v)
-  warnings.push(k==='excelAudit'?'Excel sem auditoria final aprovada':
+  warnings.push(k==='excelPersisted'?'Excel ainda sem comprovação de reidratação do fechamento confirmado':
+   k==='excelAudit'?'Excel sem auditoria final aprovada':
    k==='cbot'?'Chicago sem captura da data':
    k==='dolar'?'Dólar sem captura da data':
    k==='excel'?'Excel não corresponde à data':
@@ -103,9 +105,16 @@ export function installDailyClose({getTrades,getState,getGeo}={}){
    Number(finance.railRows)===(state?.fretesFerro?.length||0)&&
    finance.passed===true);
   const badFinance=(finance?.counts?.eligible||0)-(finance?.counts?.conforme||0);
+  const savedExcel=state?.marketExcelStaged;
+  const excelReloadVerified=!!(savedExcel?.status==='confirmado'&&
+   savedExcel.as_of===day&&
+   /^[a-f0-9]{64}$/.test(String(savedExcel.file_sha256||''))&&
+   savedExcel.file_sha256===state?.marketExcelSHA256&&
+   savedExcel.file_sha256===state?.marketExcelAudit?.sourceSha256&&
+   state?.marketExcelAsOf===day);
   current=summarizeClose({date:day,trades:getTrades(),cbotDate:state?.timestamps?.cbot,
    fxDate:state?.timestamps?.dolar,excelDate:state?.marketExcelAsOf,
-   excelAudit:state?.marketExcelAudit,freights:state?.fretesRodo,
+   excelAudit:state?.marketExcelAudit,excelPersisted:excelReloadVerified,freights:state?.fretesRodo,
    geo:typeof getGeo==='function'?getGeo():null,
    tradeAudits:{checked:!!auditCurrent,failed:relevant.length,
     parityChecked:financialCurrent,parityFailed:badFinance}});
