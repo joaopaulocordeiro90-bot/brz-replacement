@@ -17,7 +17,7 @@
     },
     "app.html": {
       "bytes": 58672,
-      "sha256": "1dc260a76b53f27eaf7a15f5793094b10cf27a60d4074aec3e01b2e5c3914c64"
+      "sha256": "ff34f173b0c1af122661e96f3fc817271381088e93a0bebfae71441b7997b34e"
     },
     "assets/css/part_01.css": {
       "bytes": 103057,
@@ -176,8 +176,8 @@
       "sha256": "6f209887ba377c94d76a269d15d2104bcdc486424abf1c27843c56aa09be5e63"
     },
     "assets/js/part_06.js": {
-      "bytes": 1167437,
-      "sha256": "28286f9afcbb995c4d4423baca099f451f4a6c12cc7f61ac742a1ed09a47760a"
+      "bytes": 1174484,
+      "sha256": "d155afe0bc4b0001f06679ba5821976ad41226c81d7be9d67f23f6e85164e5d9"
     },
     "assets/js/part_07.js": {
       "bytes": 198691,
@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "bytes": 5492,
-      "sha256": "cee8aa15a143c72c8e26ef417be40d9b76ee3f0d8c80c253f5610150fa13e719"
+      "bytes": 6109,
+      "sha256": "52c3de548f966fb4bb85c31e22b15c7b07446c0afc670e3526001cd94f8dbf5b"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -340,16 +340,16 @@
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "bytes": 78655,
-      "sha256": "a4a2f08195d06bbb02c5a0e5f3a50ffb7c0e649f4505f054a6de90dabe5ef2e8"
+      "bytes": 81468,
+      "sha256": "28abb03de98886e5624f82ccbc7eb55f5bf8c6c550513495b3fc2d876c388c50"
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 39087,
-      "sha256": "bac6a0bce6782124d19c1a6b77d9f757bc11e34349ec3d0f69976102d13e70e1"
+      "bytes": 39202,
+      "sha256": "c048118eb6143ad6538a2ae46e128dca38f13894cf4773103cc9af7b148fdbe7"
     },
     "assets/secure/pin_boot.mjs": {
-      "bytes": 8674,
-      "sha256": "d344413d43d8272ceb0556dcfbac6b172de3e9b3d7f579102753d9dcc2f344de"
+      "bytes": 8789,
+      "sha256": "ff5a77da114d9be081c94051507b97807814037c17ee6995408e64113d541611"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
@@ -392,20 +392,28 @@
       "sha256": "44d821f857c85357573e5d10d9a8eeeafa8e641403a2e78e27190d4afee0f5b0"
     },
     "assets/secure/f77_geo_registry.mjs": {
-      "bytes": 8775,
-      "sha256": "0fb407408872f8ca1d39d849a9a8c8277c8527a4021a648f35de2d3385be7930"
+      "bytes": 8808,
+      "sha256": "63fe83bedd73e345746c0480b4d34774e25df18a0071da450ed4e0bdb3ea46a6"
     },
     "assets/secure/f77_rail_network.mjs": {
-      "bytes": 6833,
-      "sha256": "2e0f603fd49f7072b406eadf7c8407f1c74684b9a07e77a5bc446a6c97511088"
+      "bytes": 7407,
+      "sha256": "6ee6e8d8cd55ea9c484445b17da3397295fbc680a78c34738ee8a91bd141eb54"
     },
     "assets/secure/f77_xlsx_upload.mjs": {
-      "bytes": 17121,
-      "sha256": "ee5caa8367579662eb34fd76550a4c9d1895b64c41f1850514a681038b619b57"
+      "bytes": 19244,
+      "sha256": "b536d8893bc6017fcd95ccac4c40a4ecbab81398b6a72ad06d9a4f0194843bcb"
     },
     "assets/secure/f77_daily_close.mjs": {
       "bytes": 7877,
       "sha256": "9ba3c6cba86813f5ea34bf10e5080512e1cad597d630e08661d38a14819d410f"
+    },
+    "assets/secure/f77_xlsx_diff.mjs": {
+      "bytes": 4977,
+      "sha256": "949647eca40bec78c86a28f9108eeec9ebdaf0f49fb88e66ddb956cefb2e22e9"
+    },
+    "assets/data/f77_municipal_indicative.json": {
+      "bytes": 18729,
+      "sha256": "1b3079ec62b13fa08ac7e105c529c3ad3ab981504cbe330bf01d6fa72a29d0d4"
     }
   }
 }
