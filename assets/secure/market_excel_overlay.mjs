@@ -32,7 +32,7 @@ export function projectExcel(pack){
  if(!pack||!ISO.test(pack.as_of)||!/^[a-f0-9]{64}$/.test(pack.file_sha256||''))
   throw Error('Excel F64: proveniência ausente.');
  const days=normalizedDays(pack),map=new Map();
- let rawQuotes=0,rawBasis=0,rawOcean=0,rawDeriv=0;
+ let rawQuotes=0,rawBasis=0,rawOcean=0,rawDeriv=0,notQuotedMeal=0,notQuotedOil=0;
  for(const [day,rows] of Object.entries(days.prices||{})){
   if(!ISO.test(day)||!Array.isArray(rows)||day>pack.as_of)throw Error('Data física inválida.');
   for(const r of rows){
@@ -83,9 +83,14 @@ export function projectExcel(pack){
   for(const r of rows){
    if(!Array.isArray(r)||r.length!==3||!['Soymeal','Soyoil'].includes(r[2]))throw Error('CMA inválido');
    const val=acceptedValue(r[1],'CMA');
+   rawDeriv++;
+   // Original V4FS 16/11: 21 Soymeal zero cells mean N/D, not R$ 0/t.
+   // Keep the source-row count for SHA/count reconciliation, but exclude
+   // unavailable prices from numeric charts, replacement and last-price displays.
+   if(val===0){if(r[2]==='Soymeal')notQuotedMeal++;else notQuotedOil++;continue;}
    // CMA may have multiple distinct quotations for one city/product/day.
    // Preserve each source observation and its order, never collapse by location.
-   derivatives.push({d:day,o:r[0],v:[val],p:r[2],_brzExcelF64:true,_brzExcelSeq:++seqCma});rawDeriv++;
+   derivatives.push({d:day,o:r[0],v:[val],p:r[2],_brzExcelF64:true,_brzExcelSeq:++seqCma});
   }
  }
  const ocean=[],seenOcean=new Set();
@@ -104,7 +109,9 @@ export function projectExcel(pack){
  return {as_of:pack.as_of,sourceFile:pack.source_file,sourceSha:pack.file_sha256,
    physical,physicalRaw,basis,derivatives,ocean,
    counts:{physicalBidOffer:rawQuotes,physicalMid:physical.length,basis:rawBasis,
-     ocean:rawOcean,derivatives:rawDeriv,sourceTotal:rawQuotes+rawBasis+rawOcean+rawDeriv}};
+     ocean:rawOcean,derivatives:rawDeriv,
+     derivativesQuoted:derivatives.length,soymealNotQuoted:notQuotedMeal,soyoilNotQuoted:notQuotedOil,
+     sourceTotal:rawQuotes+rawBasis+rawOcean+rawDeriv}};
 }
 export async function decodeExcelArchive(archive){
  if(!archive?.available)return null;

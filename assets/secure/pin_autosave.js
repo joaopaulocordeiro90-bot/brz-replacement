@@ -308,7 +308,7 @@
  async function loadExcelMarketOverlay(){
   const reply=await req('/rest/v1/rpc/brz_pin_market_excel_archive',{});
   if(!reply?.available)return;
-  const mod=await import('./market_excel_overlay.mjs?v=20261116f66');
+  const mod=await import('./market_excel_overlay.mjs?v=20261116f69');
   const reconciler=await import('./market_excel_reconcile.mjs?v=20261116f67');
   const auditor=await import('./market_excel_audit.mjs?v=20261116f67');
   const patch=await mod.decodeExcelArchive(reply);
@@ -435,8 +435,8 @@
       ' · Soja '+q.Soja.withFinancials+'/'+q.Soja.total+
       ' · Milho '+q.Milho.withFinancials+'/'+q.Milho.total+
       ' · Basis FOB '+quality.totals.basisFOB+
-      ' · Farelo '+quality.totals.soymealCMA+
-      ' · Óleo '+quality.totals.soyoilCMA+
+      ' · Farelo '+(patch.counts.soymealNotQuoted?'N/D ('+patch.counts.soymealNotQuoted+' sem cotação)':quality.totals.soymealCMA)
+      +' · Óleo '+quality.totals.soyoilCMA
       ' · CBOT/B3 C'+effectiveCapture.capture_no+
       ' · '+(quality.ok?'AUDITADO':'ATENÇÃO: '+quality.warnings.join('; '));
     stamp.style.color=quality.ok?'#176a61':'#8a4a00';

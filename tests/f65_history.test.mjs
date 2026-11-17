@@ -8,7 +8,7 @@ const pack={as_of:'2026-11-16',source_file:'synthetic.xlsx',file_sha256:'a'.repe
  'frete maritimo':[]
 }};
 const r=projectExcel(pack);
-assert.deepEqual(r.counts,{physicalBidOffer:2,physicalMid:1,basis:2,ocean:0,derivatives:2,sourceTotal:6});
+assert.deepEqual(r.counts,{physicalBidOffer:2,physicalMid:1,basis:2,ocean:0,derivatives:2,derivativesQuoted:2,soymealNotQuoted:0,soyoilNotQuoted:0,sourceTotal:6});
 assert.equal(r.physical[0].preco,52);
 assert.equal(r.physical[0].janelaFisica,'N/D');
 assert.equal(r.physical[0].embarque,null);
