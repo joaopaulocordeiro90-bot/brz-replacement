@@ -1059,7 +1059,7 @@
     // F73: audit calculations only after all authenticated source and trade
     // overlays are active; the button runs on demand, without any write.
     try{
-      const audit=await import('./f73_replacement_audit.mjs?v=20261117f75');
+      const audit=await import('./f73_replacement_audit.mjs?v=20261117f76');
       audit.installReplacementAudit(window,()=>state.negocios);
     }catch(e){console.warn('BRZ F73 auditoria opcional indisponível',e)}
     installSystemToolsTab();
