@@ -117,7 +117,7 @@ function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
 // Bounded concurrency protects Supabase from memory-heavy simultaneous reads.
 // One market stream plus one road/trade stream avoids the Postgres timeouts
 // observed on 16/11 when multiple 1.500/4.000-row JSON aggregates competed.
-const MAX_HEAVY_READS=2;
+const MAX_HEAVY_READS=1;
 let activeHeavyReads=0;
 const heavyWaiters=[];
 async function heavyReadFetch(url,options,heavy){
@@ -160,93 +160,12 @@ async function splitReadPage(path,body,token){
 // pagination without OFFSET, disk caching or changing any source checksum.
 // Three concurrent SQL reads globally; the original SHA ledgers still attest
 // every page after assembly in its canonical order.
-const MARKET_WINDOWS=Object.freeze({
- physical:{first:32059,total:59758},
- curves:{first:1,total:16418},
- derivatives:{first:17824,total:14235},
- basis_points:{first:91817,total:107184}
-});
-const eagerMarket=new Map();
-let eagerRoad=null;
-function concurrentPages(count,workerCount,loadPage){
- const promises=[],resolvers=[];
- for(let i=0;i<count;i++){
-  const p=new Promise((resolve,reject)=>resolvers.push({resolve,reject}));
-  // Each is intentionally observed immediately, even if a later page fails
-  // before its upstream sequential consumer has reached that page.
-  p.catch(()=>{});
-  promises.push(p);
- }
- for(let k=0;k<Math.min(workerCount,count);k++)(async()=>{
-  for(let i=k;i<count;i+=workerCount){
-   try{resolvers[i].resolve(await loadPage(i));}
-   catch(e){resolvers[i].reject(e);}
-  }
- })();
- return promises;
-}
-function readMarketAhead(path,body,token){
- const domain=body?.p_domain,meta=MARKET_WINDOWS[domain],size=Number(body?.p_limit);
- if(!meta||size!==1500||body.p_from_date!=null)return null;
- const cursor=Number(body.p_after_row_no);
- let index=0;
- if(cursor!==0){
-  const offset=cursor-(meta.first-1);
-  if(offset<=0||offset%size!==0)return null;
-  index=offset/size;
- }
- const pages=Math.ceil(meta.total/size);
- if(index>=pages)return null;
- let task=eagerMarket.get(domain);
- if(!task){
-  task=concurrentPages(pages,1,i=>request(path,{
-    method:'POST',token,body:{...body,p_after_row_no:i===0?0:meta.first-1+i*size},
-    skipAhead:true
-  }));
-  eagerMarket.set(domain,task);
- }
- return task[index];
-}
-async function readRoadAhead(path,body,token){
- if(!body||Number(body.p_limit)!==4000)return null;
- if(!eagerRoad){
-  eagerRoad=(async()=>{
-   const reply=await request('/rest/v1/rpc/brz_pin_fast_road_cursors',{
-     method:'POST',token,body:{p_limit:4000},skipAhead:true});
-   const cursors=reply?.cursors;
-   if(!Array.isArray(cursors)||cursors.length!==44||Number(reply.total)!==177687||
-      Number(reply.page_size)!==4000)throw Error('Índice protegido de fretes incompleto');
-   const anchors=[null,...cursors];
-   const pages=concurrentPages(anchors.length,3,i=>{
-    const c=anchors[i];
-    return request(path,{method:'POST',token,skipAhead:true,body:{
-      p_after_origin:c?.origin??null,p_after_destination:c?.destination??null,
-      p_after_week:c?.week??null,p_limit:4000
-    }});
-   });
-   return {anchors,pages};
-  })();
- }
- const {anchors,pages}=await eagerRoad;
- let index=0;
- if(body.p_after_origin!==null){
-  index=anchors.findIndex(c=>c?.origin===body.p_after_origin&&
-   c?.destination===body.p_after_destination&&c?.week===body.p_after_week);
- }
- return index>=0?pages[index]:null;
-}
+// F70: historical prefetch deliberately removed. F34/F40/F44/F46 use
+// demand-driven keyset reads, one authenticated PostgreSQL page at a time.
+// Former eager tasks continued querying after failure, amplifying timeouts.
 async function request(path,{method='GET',body=null,token=null,attempt=0,skipAhead=false}={}){
  if(path==='/rest/v1/rpc/brz_api_f34_market_counts'&&marketStatsCached)
    return marketStatsCached;
- if(!skipAhead&&body&&token&&attempt===0){
-  if(path==='/rest/v1/rpc/brz_api_f34_market_page'){
-   const ahead=readMarketAhead(path,body,token);
-   if(ahead)return ahead;
-  }
-  // F69: the 44-anchor query was repeatedly timing out under real PIN loads.
-  // The immutable F46 source is already keyset-paged; fetch it sequentially
-  // with the existing pkey and cryptographic verification instead.
- }
  // Fast read-only JSON envelope RPCs keep authorized RLS and original source fields;
  // one scalar result avoids the PostgREST 1,000-row cap on SETOF results.
  const route={
@@ -452,7 +371,6 @@ async function start(ev){
  // Every PIN attempt starts a fresh authenticated hydration.
  // A failed prior parallel request must not poison F55 on retry.
  aborted=false;
- eagerMarket.clear();eagerRoad=null;
  marketStatsCached=null;
  const loginBegan=performance.now();
  loading=true;$('go').disabled=true;
@@ -533,55 +451,57 @@ async function start(ev){
     status('Históricos já validados recuperados. Sincronizando alterações recentes…');
   }else{
     window.__BRZ_SOURCE_CACHE='MISS';
-  const tradeWork=(async()=>{
-    const frozenTrades=await loadFrozenTrades(token,()=>{});
-    const privateOrder=await request('/rest/v1/rpc/brz_api_f42_deal_order',{
-      method:'POST',token,body:{}});
-    if(typeof window.__BRZF42_HYDRATE!=='function')
-      throw Error('F42: hidratador da seleção indisponível');
-    const orderedDeals=await window.__BRZF42_HYDRATE(privateOrder,frozenTrades,sha256);
-    return {frozenTrades,orderedDeals};
-  })();
-  const derivativesWork=(async()=>{
-    const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs?v=20261116dbrelief01');
-    return hydrateF43Derivatives({request,token,sha256,isAborted:()=>aborted});
-  })();
-  const marketWork=(async()=>{
-    const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs?v=20261116dbrelief01');
-    return hydrateF44Market({request,token,sha256,
-      manifest:window.__BRZF44_META,isAborted:()=>aborted});
-  })();
-  const railWork=(async()=>{
-    const {hydrateF45Rail}=await import('../f45/f45_rail_source_gate.mjs');
-    return hydrateF45Rail({request,token,sha256});
-  })();
-  const roadWork=(async()=>{
-    const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs?v=20261116dbrelief01');
-    return hydrateF46Road({request,token,sha256,
-      manifest:window.__BRZF46_PRIVATE_META,isAborted:()=>aborted});
-  })();
-  const premiumWork=(async()=>{
-    const {hydrateF47Premiums}=await import('../f47/f47_premiums_gate.mjs');
-    return hydrateF47Premiums({request,token,sha256});
-  })();
-  const sourceWork=(async()=>{
-    const {hydrateF48Legacy}=await import('../f48/f48_source_gate.mjs');
-    return hydrateF48Legacy({request,token,sha256,isAborted:()=>aborted});
-  })();
-  const priceWork=loadPrices(token,()=>{});
-  // Wait for all in-flight reads before declaring a failed attempt: otherwise
-  // old requests and a stale global abort flag contaminate the next PIN login.
-  const names=['F41/F42 negócios','F43 derivados','F44 curvas/basis',
-    'F45 ferroviário','F46 rodoviário','F47 prêmios','F48 históricos','F40 físico'];
-  const settled=await Promise.allSettled([tradeWork,derivativesWork,marketWork,railWork,
-    roadWork,premiumWork,sourceWork,priceWork]);
-  const failed=settled.findIndex(item=>item.status==='rejected');
-  if(failed!==-1){
-    const reason=settled[failed].reason;
-    throw Error(names[failed]+': '+(reason?.message||String(reason)));
-  }
-    [tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows]=
-      settled.map(item=>item.value);
+  // F70: instantiate each authenticated source only after the preceding
+  // source passes its count and SHA. Failed requests leave no background pages.
+  const {runHydrationStages}=await import('./f70_hydration_scheduler.mjs?v=20261117f70');
+  const hydrated=await runHydrationStages([
+    {key:'rows',label:'F40 físico',run:()=>
+      loadPrices(token,count=>{
+        if(count%6000<1500||count===59758)status('F40 físico · '+count+' / 59.758 cotações');
+      })},
+    {key:'resultF44',label:'F44 Chicago, dólar e basis',run:async()=>{
+      const {hydrateF44Market}=await import('../f44/f44_market_gate.mjs?v=20261116dbrelief01');
+      return hydrateF44Market({request,token,sha256,
+        manifest:window.__BRZF44_META,isAborted:()=>aborted});
+    }},
+    {key:'road',label:'F46 fretes rodoviários',run:async()=>{
+      const {hydrateF46Road}=await import('../f46/f46_road_source_gate.mjs?v=20261116dbrelief01');
+      return hydrateF46Road({request,token,sha256,
+        manifest:window.__BRZF46_PRIVATE_META,isAborted:()=>aborted,
+        onProgress:(count,total)=>{if(count%20000<4000||count===total)
+          status('F46 fretes rodoviários · '+count+' / '+total);}});
+    }},
+    {key:'derivativesResult',label:'F43 derivados',run:async()=>{
+      const {hydrateF43Derivatives}=await import('../f43/f43_derivatives_gate.mjs?v=20261116dbrelief01');
+      return hydrateF43Derivatives({request,token,sha256,isAborted:()=>aborted});
+    }},
+    {key:'tradeBundle',label:'F41/F42 negócios',run:async()=>{
+      const frozenTrades=await loadFrozenTrades(token,()=>{});
+      const privateOrder=await request('/rest/v1/rpc/brz_api_f42_deal_order',{
+        method:'POST',token,body:{}});
+      if(typeof window.__BRZF42_HYDRATE!=='function')
+        throw Error('F42: hidratador da seleção indisponível');
+      const orderedDeals=await window.__BRZF42_HYDRATE(privateOrder,frozenTrades,sha256);
+      return {frozenTrades,orderedDeals};
+    }},
+    {key:'rail',label:'F45 ferroviário',run:async()=>{
+      const {hydrateF45Rail}=await import('../f45/f45_rail_source_gate.mjs');
+      return hydrateF45Rail({request,token,sha256});
+    }},
+    {key:'premiums',label:'F47 prêmios',run:async()=>{
+      const {hydrateF47Premiums}=await import('../f47/f47_premiums_gate.mjs');
+      return hydrateF47Premiums({request,token,sha256});
+    }},
+    {key:'restored',label:'F48 históricos',run:async()=>{
+      const {hydrateF48Legacy}=await import('../f48/f48_source_gate.mjs');
+      return hydrateF48Legacy({request,token,sha256,isAborted:()=>aborted});
+    }}
+  ],{
+    onStage:({label,index,total})=>status('Restaurando '+label+' · etapa '+index+' de '+total),
+    isAborted:()=>aborted
+  });
+  ({tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows}=hydrated);
+
     if(diskCache&&cacheContext){
       cacheAfterOpen={tradeBundle,derivativesResult,resultF44,rail,road,
         premiums,restored,rows};
