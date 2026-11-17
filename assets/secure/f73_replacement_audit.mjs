@@ -46,6 +46,19 @@ export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isA
  onProgress({current:deals.length,total:deals.length,issues:issues.length});
  return {total:deals.length,considered:computed+issues.length,computed,skipped,issues,byType};
 }
+// F74: export the COMPLETE pending list from the authenticated session.
+export function exportAuditCsv(report){
+ if(!report||!Array.isArray(report.issues))throw Error('F74: diagnóstico ausente');
+ const cell=value=>{
+   let v=String(value??'');
+   // Defend spreadsheet tools from CSV formula injection in upstream deal IDs.
+   if(/^[\t\r\n ]*[=+@-]/.test(v))v="'"+v;
+   return '"'+v.replaceAll('"','""')+'"';
+ };
+ const header=['ID','Data','Produto','Categoria','Motivo'];
+ const lines=report.issues.map(x=>[x.id,x.date,x.product,x.type,x.details].map(cell).join(';'));
+ return '\uFEFFsep=;\r\n'+header.map(cell).join(';')+'\r\n'+lines.join('\r\n')+'\r\n';
+}
 const el=(d,t,text,cls)=>{
  const x=d.createElement(t);if(text!==undefined)x.textContent=String(text);
  if(cls)x.className=cls;return x;
@@ -63,9 +76,20 @@ export function installReplacementAudit(root,getDeals){
    panel.style.cssText='padding:9px 14px;border-top:1px solid #ccd9dd;background:#f5f9fa;max-width:100%;font-size:12px';
    const btn=el(doc,'button','Auditar replacements (somente leitura)','btn small');
    btn.type='button';btn.style.cssText='width:auto;margin:0 8px 0 0';
+   const csv=el(doc,'button','Exportar todas as pendências (CSV)','btn small');
+   csv.type='button';csv.disabled=true;
+   csv.style.cssText='width:auto;margin:0 8px 0 0';
    const text=el(doc,'span','Identifica referências e erros por negócio; não altera preços nem fretes.');
    const container=el(doc,'div');container.style.cssText='max-height:240px;overflow:auto;margin-top:8px';
-   panel.append(btn,text,container);host.appendChild(panel);
+   panel.append(btn,csv,text,container);host.appendChild(panel);
+   csv.onclick=()=>{
+     if(!result)return;
+     const blob=new Blob([exportAuditCsv(result)],{type:'text/csv;charset=utf-8'});
+     const url=URL.createObjectURL(blob),a=doc.createElement('a');
+     a.href=url;a.download='BRZ_auditoria_replacements_'+new Date().toISOString().slice(0,10)+'.csv';
+     a.style.display='none';doc.body.appendChild(a);a.click();a.remove();
+     setTimeout(()=>URL.revokeObjectURL(url),3000);
+   };
    const renderResult=()=>{
      container.replaceChildren();
      if(!result)return;
@@ -96,6 +120,7 @@ export function installReplacementAudit(root,getDeals){
            text.textContent='Auditoria '+current+'/'+total+' · '+issues+' pendências identificadas';}
        });
        root.__BRZ_F73_REPLACEMENT_DIAGNOSTICS=result;
+       csv.disabled=false;
        renderResult();
      }catch(error){
        text.textContent='Auditoria interrompida: '+String(error?.message||error).slice(0,180);

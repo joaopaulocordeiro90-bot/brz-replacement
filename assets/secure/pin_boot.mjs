@@ -59,6 +59,7 @@ async function load(){
     'assets/f42/f42_hydrate.js',
     'assets/secure/f40_pin_login.js',
     'assets/secure/f73_fast_market.mjs',
+    'assets/secure/f74_history_pager.mjs',
     'assets/secure/market_excel_overlay.mjs'
   ]);
   for(const path of immediate)if(!manifest.files[path])
@@ -114,7 +115,7 @@ async function load(){
   window.__BRZF58_PREFLIGHT=Object.freeze({verified:false,quickVerified:true,readOnly:true,
     productionApproved:false,verifiedResources:done});
   const script=document.createElement('script');
-  script.src='./assets/secure/f40_pin_login.js?v=20261117f73';
+  script.src='./assets/secure/f40_pin_login.js?v=20261117f74';
   script.async=false;
   script.onerror=()=>{controls.forEach(x=>x.disabled=true);status('Não foi possível carregar o login protegido.');};
   document.body.appendChild(script);
