@@ -52,6 +52,7 @@ export function installDealsRenderIsolation(root) {
   };
   root.bestRouteAudit=function(deal){
     const id=stringifyId(deal);
+    if(!root.__BRZ_F68_DEALS_RENDER_ACTIVE) return originalAudit.call(this,deal);
     lastEvaluated=id;
     try{
       const audit=originalAudit.call(this,deal);
@@ -67,6 +68,7 @@ export function installDealsRenderIsolation(root) {
     failures.clear();
     warnedCount=0;
     lastEvaluated=null;
+    root.__BRZ_F68_DEALS_RENDER_ACTIVE=true;
     try {
       const result=originalRender.apply(this,args);
       panel(false);
@@ -88,6 +90,8 @@ export function installDealsRenderIsolation(root) {
       }
       panel(true);
       return undefined;
+    } finally {
+      root.__BRZ_F68_DEALS_RENDER_ACTIVE=false;
     }
   };
   root.__BRZ_F68_DEALS_ISOLATED=true;
