@@ -54,6 +54,6 @@ assert.match(carto,/tileload/);
 assert.match(carto,/tileerror/);
 assert.match(carto,/cdn.jsdelivr.net\/npm\/leaflet@1\.9\.4/);
 assert.match(carto,/cdnjs.cloudflare.com\/ajax\/libs\/leaflet/);
-assert.match(app,/assets\/secure\/f61_map_patch\.js\?v=20261117f71/);
+assert.match(app,/assets\/secure\/f61_map_patch\.js\?v=20261117f72/);
 assert(!/L\.map\(/.test(carto),'No duplicate cartographic canvas');
 console.log('F71: price index regression, 3 pagination sizes, last page, Leaflet CDN/tile fallback OK.');
