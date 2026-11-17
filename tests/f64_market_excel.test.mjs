@@ -20,7 +20,7 @@ const sha='a'.repeat(64),pack={as_of:'2026-11-16',source_file:'synthetic.xlsx',f
    ['São Paulo - SP','7300','Soyoil']]
  }};
 const plan=projectExcel(pack);
-assert.deepEqual(plan.counts,{physicalBidOffer:4,physicalMid:2,basis:2,ocean:2,derivatives:2,sourceTotal:10});
+assert.deepEqual(plan.counts,{physicalBidOffer:4,physicalMid:2,basis:2,ocean:2,derivatives:2,derivativesQuoted:2,soymealNotQuoted:0,soyoilNotQuoted:0,sourceTotal:10});
 assert.equal(plan.physical.find(x=>x.produto==='Soja').preco,138);
 assert.equal(plan.physical.find(x=>x.produto==='Soja').embarque,'Mar-27');
 assert.equal(plan.physicalRaw[0].Bid,134);
