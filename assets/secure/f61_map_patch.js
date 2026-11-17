@@ -56,7 +56,7 @@ function patchLeaflet(){
  };
  // Leaflet map is initialized in the existing replacement engine.
  // Reuse it: never create a competing canvas or recompute routes.
- L.Map.addInitHook(function(){
+ if(typeof L.Map?.addInitHook==='function') L.Map.addInitHook(function(){
   if(this._container?.id!=='mapaContainer')return;
   const map=this;
   if(typeof ResizeObserver==='function'){
@@ -126,5 +126,6 @@ function rescueLeaflet(){
 }
 if(window.L)patchLeaflet();else rescueLeaflet();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mountPanels,{once:true});else mountPanels();
-window.__BRZ_F71_MAP_PATCH__=Object.freeze({status:()=>({baseOverrides,tileFallbacks,panelsProtected,libraryFailures,leafletLoaded:!!window.L,railModified:false})});
+window.__BRZ_F71_MAP_PATCH__=Object.freeze({status:()=>({baseOverrides,esriTileOverrides:baseOverrides,tileFallbacks,failovers:tileFallbacks,panelsProtected,libraryFailures,leafletLoaded:!!window.L,railModified:false})});
+window.__BRZ_F61_MAP_PATCH__=window.__BRZ_F71_MAP_PATCH__;
 })();
