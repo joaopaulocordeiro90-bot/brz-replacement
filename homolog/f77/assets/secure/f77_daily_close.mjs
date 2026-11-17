@@ -117,7 +117,7 @@ export function installDailyClose({getTrades,getState,getGeo}={}){
    '<table><thead><tr><th>Produto</th><th>Negócios</th><th>Volume (t)</th></tr></thead><tbody>'+rows+'</tbody></table>'+
    '<p><b>'+ (current.ready?'FECHAMENTO AUDITADO':'PENDENTE DE AUDITORIA')+'</b></p>'+
    '<ul>'+current.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>'+
-   '<small>A conferência financeira por ID requer executar a auditoria de replacement. A existência de cotação ou frete não comprova paridade.</small>';
+   '<small>Somente leitura: o fechamento exige auditoria F73 por ID e auditoria financeira independente F77 para a mesma data, além das referências CBOT, dólar, Excel e frete válidas. Derivados e gravação de tabelas requerem validação complementar.</small>';
  }
  $('brz-f77-close-day').onchange=review;$('brz-f77-close-review').onclick=review;
  $('brz-f77-close-export').onclick=()=>{
