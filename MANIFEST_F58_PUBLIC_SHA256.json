@@ -332,16 +332,16 @@
       "sha256": "21f7fa21c0e8a3b0701fbbec2889980ab49ad822a401a53b0904bdbcc93118fb"
     },
     "assets/secure/rodoviario_tku.mjs": {
-      "bytes": 13926,
-      "sha256": "567501e347649468474b2a4ef00d4be41b08db01ee3fcd184df9178819caf51e"
+      "bytes": 15369,
+      "sha256": "6fabec113350afabbe461005f85c1a3be9ef7c14eb1c9891a0df4becc27ffb9c"
     },
     "assets/secure/f61_map_patch.js": {
       "bytes": 6252,
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "bytes": 67183,
-      "sha256": "b28c5449482bbee716b75a4f35f55a31de340c990c29acdc622e6b5d4f69d243"
+      "bytes": 77367,
+      "sha256": "da63d0895a201b1c565bff446b2380f538c3332373644ae933ee9941e956b319"
     },
     "assets/secure/f40_pin_login.js": {
       "bytes": 38007,
@@ -390,6 +390,22 @@
     "assets/secure/f77_regional_flows.mjs": {
       "bytes": 7145,
       "sha256": "44d821f857c85357573e5d10d9a8eeeafa8e641403a2e78e27190d4afee0f5b0"
+    },
+    "assets/secure/f77_geo_registry.mjs": {
+      "bytes": 8689,
+      "sha256": "6a62de5a8d08d08bc86a11f68d78eb07ee0681c61cc59acbad702879446f758c"
+    },
+    "assets/secure/f77_rail_network.mjs": {
+      "bytes": 6833,
+      "sha256": "2e0f603fd49f7072b406eadf7c8407f1c74684b9a07e77a5bc446a6c97511088"
+    },
+    "assets/secure/f77_xlsx_upload.mjs": {
+      "bytes": 17121,
+      "sha256": "ee5caa8367579662eb34fd76550a4c9d1895b64c41f1850514a681038b619b57"
+    },
+    "assets/secure/f77_daily_close.mjs": {
+      "bytes": 7404,
+      "sha256": "ec2c6f8c1ec884d7728dc5916b94e8d6f154f662c1bbc0499d6e7d5c7d3d8777"
     }
   }
 }
