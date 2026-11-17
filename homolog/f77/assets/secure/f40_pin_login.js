@@ -580,7 +580,7 @@ async function start(ev){
       // PIN operator session: attach the independent, versioned F33 autosave.
       // Frozen source rows are hydrated first; edits are persisted as overlays.
       const script=iframe.contentDocument.createElement('script');
-      script.src='./assets/secure/pin_autosave.js?v=20261117pair01';
+      script.src='./assets/secure/pin_autosave.js?v=20261117fin01';
       await new Promise((resolve,reject)=>{
         script.onload=resolve;
         script.onerror=()=>reject(Error('Gravação centralizada não carregada'));
@@ -646,7 +646,7 @@ async function start(ev){
     }
   },{once:true});
   // F77: immutable preview build URL prevents F76 HTML reuse from a stale browser cache.
-  iframe.src='app.html?v=F77_HOMOLOG_20261117G';
+  iframe.src='app.html?v=F77_HOMOLOG_20261117H';
   // JWT held only in this closure until iframe inventory attestation completes.
 
  }catch(e){
