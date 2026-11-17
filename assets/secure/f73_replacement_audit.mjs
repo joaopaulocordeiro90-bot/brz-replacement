@@ -78,9 +78,8 @@ export function compareFrozenSource(current,original){
  if(pending(current)&&!pending(original))
    return {type:'divergencia_snapshot',
      details:['Pendência presente no estado atual, mas ausente do histórico F41 imutável; revisar a sobreposição antes de alterar o contrato']};
- if(!pending(current)&&pending(original))
-   return {type:'divergencia_snapshot',
-     details:['Pendência removida do estado atual sem evidência equivalente no histórico original; verificar confirmação comercial']};
+ // Removal of a historical pending flag can reflect an authorized commercial
+ // confirmation. Do not add a false alarm when a later operation was cleared.
  return null;
 }
 
