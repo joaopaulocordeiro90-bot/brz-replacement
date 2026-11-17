@@ -75,7 +75,7 @@ test('Fechamento: falta de frete, auditoria, CBOT e Excel impedem aprovação',(
   cbotDate:date,fxDate:date,excelDate:date,excelAudit:{ok:true},
   freights:[{semana:'2026-S47'}],
   geo:{entries:new Map([['a',{geo:{lat:-17.8,lon:-51.7}}]])},
-  tradeAudits:{checked:true,failed:0}};
+  tradeAudits:{checked:true,failed:0,parityChecked:true,parityFailed:0}};
  assert.equal(summarizeClose(payload).ready,true);
  assert.equal(summarizeClose({...payload,freights:[]}).ready,false);
  assert.equal(summarizeClose({...payload,tradeAudits:{checked:false,failed:0}}).ready,false);
