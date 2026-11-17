@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "sha256": "54889fc103075467132e62179f167d03d042e2668e9af212f2b89868245792ec",
-      "bytes": 6124
+      "bytes": 6125,
+      "sha256": "320ac1cd9e04dcf07fe69054114ba8a41755237333a230bc882fa3246d8d5ac8"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -340,16 +340,16 @@
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "sha256": "54189c36b8252f256fdc5f159a3762fb1f624ced86ff123e96f44e9280dfeeb6",
-      "bytes": 82012
+      "bytes": 82178,
+      "sha256": "247d1c4638e16f195b898db2095ccb567603d3b0d73fc21a03bcf402d84f31c5"
     },
     "assets/secure/f40_pin_login.js": {
-      "sha256": "bee99ea95f9fd02ebf98ab25e79e487a4c8925726e92509f5c83497c93be8a42",
-      "bytes": 39317
+      "bytes": 39318,
+      "sha256": "8937ae75cd15c0ec095f67d9068beb8cb025113e10d51433af26bdb37f3162fc"
     },
     "assets/secure/pin_boot.mjs": {
-      "sha256": "e49001b81375ac4c6341a5075874bf1416e9973373ec658aa5c149760b4465b4",
-      "bytes": 8790
+      "bytes": 8791,
+      "sha256": "0330e10974ce081d10e63ca019858297fe9865454d5109ddd9d23b60cc14ba04"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
@@ -400,8 +400,8 @@
       "sha256": "6ee6e8d8cd55ea9c484445b17da3397295fbc680a78c34738ee8a91bd141eb54"
     },
     "assets/secure/f77_xlsx_upload.mjs": {
-      "bytes": 19244,
-      "sha256": "b536d8893bc6017fcd95ccac4c40a4ecbab81398b6a72ad06d9a4f0194843bcb"
+      "bytes": 23276,
+      "sha256": "a64a13e4fc1bcb62844750e31e7c298bbdd953597d78b4557f115ce3b7e109f6"
     },
     "assets/secure/f77_daily_close.mjs": {
       "sha256": "a8df0daf7cfa6ebc3218fc33ed06171ac01b4b9f25efa2426d3e79ecc4badd91",
@@ -418,6 +418,10 @@
     "assets/secure/f77_deals_filters.mjs": {
       "sha256": "d3818905258a651d7a8bfe9aa011bb38b6edfb0b1cbe94c6cca79562b6f6b965",
       "bytes": 9051
+    },
+    "assets/secure/f77_internal_freight.mjs": {
+      "bytes": 6789,
+      "sha256": "9febb2b7ab2b77a0ace6afc9859b9cf3c1449c22981b49bc780d808cdd3c5ede"
     }
   }
 }

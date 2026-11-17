@@ -1153,7 +1153,7 @@
  }
  async function initDailyExcelUpload(){
   try{
-   const xlsx=await import('./f77_xlsx_upload.mjs?v=20261117f77');
+   const xlsx=await import('./f77_xlsx_upload.mjs?v=20261117int01');
    xlsx.installExcelUpload({
     getReference:async pack=>{
       const base={curveDay:String(state.timestamps?.cbot||''),
@@ -1176,6 +1176,8 @@
         return {...base,diff:result};
       }catch(error){return {...base,diffError:String(error?.message||error)};}
     },
+    getInternalFreightReference:()=>({road:Array.isArray(state.fretesRodo)?state.fretesRodo:[],
+      rail:Array.isArray(state.fretesFerro)?state.fretesFerro:[]}),
     confirmUpload:confirmMarketExcelStage,
     rollbackUpload:rollbackMarketExcelStage
    });

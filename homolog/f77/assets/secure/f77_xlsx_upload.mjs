@@ -203,7 +203,7 @@ export function buildDailyPack(workbook,day,mapping){
  return {pack,total,errors:problems,counts:Object.fromEntries(
   Object.entries(records).map(([k,v])=>[k,v[day].length]))};
 }
-export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={}){
+export function installExcelUpload({getReference,getInternalFreightReference,confirmUpload,rollbackUpload}={}){
  if(typeof document==='undefined'||typeof confirmUpload!=='function')return null;
  const screen=document.getElementById('sistema')||document.getElementById('mercado');
  if(!screen||document.getElementById('brz-f77-xlsx'))return null;
@@ -212,11 +212,16 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
  '<p>Arquivo processado neste navegador. Primeiro confira as abas e totais; nenhuma cotação será publicada sem sua confirmação.</p>'+
  '<div class="brz-f77-xlsx-grid"><label>Planilha XLSX <input type="file" id="brz-f77-xlsx-file" accept=".xlsx"></label>'+
  '<label>Data-base <input type="date" id="brz-f77-xlsx-date" required></label></div>'+
- '<div id="brz-f77-xlsx-mapping"></div>'+
+ '<div id="brz-f77-xlsx-mapping"></div>'+ 
+'<fieldset id="brz-f77-internal-fields"><legend>5 · Frete interno (R$/t) · rodoviário e ferroviário</legend>'+ 
+'<p>Selecione a aba do Excel acima ou outro arquivo .xlsx com frete interno. Estrutura: Modal, Origem/UF, Destino, Semana ISO ou Mês/Ano, Valor R$/t.</p>'+ 
+'<label>Arquivo separado (opcional) <input type="file" id="brz-f77-internal-file" accept=".xlsx"></label>'+ 
+'<label>Aba de frete interno <select id="brz-f77-internal-sheet"><option value="">Selecione a aba</option></select></label>'+ 
+'<small>Prévia e comparação somente leitura. Fretes internos NÃO serão gravados nem aplicados ao replacement nesta homologação.</small></fieldset>'+
  '<button type="button" id="brz-f77-xlsx-preview">Validar e pré-visualizar</button>'+
  '<button type="button" id="brz-f77-xlsx-diff-download" disabled>Exportar diferenças completas (JSON)</button>'+
  '<div id="brz-f77-xlsx-report" role="status" aria-live="polite"></div>'+
- '<button type="button" id="brz-f77-xlsx-confirm" disabled>Confirmar importação após conferência</button>'+'<button type="button" id="brz-f77-xlsx-rollback">Desfazer último fechamento Excel</button>';
+ '<button type="button" id="brz-f77-xlsx-confirm" disabled>Confirmar somente mercado (não inclui frete interno)</button>'+'<button type="button" id="brz-f77-xlsx-rollback">Desfazer último fechamento Excel</button>';
  screen.appendChild(panel);
  const css=document.createElement('style');css.id='brz-f77-xlsx-css';
  css.textContent='#brz-f77-xlsx{margin:14px 0;padding:13px;border:1px solid var(--g200,#cbd9e2);border-radius:5px;background:var(--card,#fff);color:var(--g900,#173249);font:12px/1.5 Inter,Arial,sans-serif}'+
@@ -226,12 +231,38 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
  '#brz-f77-xlsx select,#brz-f77-xlsx input{padding:8px;min-width:140px;max-width:100%;font:12px Arial;border:1px solid #cbd9e2;background:var(--card,#fff);color:var(--g900,#173249)}'+
  '#brz-f77-xlsx button{padding:9px 12px;border:1px solid #087d76;background:white;color:#087d76;cursor:pointer;margin-right:8px;font-weight:700}'+
  '#brz-f77-xlsx button:disabled{opacity:.4;cursor:not-allowed}'+
+'#brz-f77-internal-fields{border:1px solid var(--g200,#cad6df);padding:10px 12px;margin:10px 0}'+
+'#brz-f77-internal-fields legend{font-weight:750}'+
+'#brz-f77-internal-fields label{display:inline-flex;vertical-align:top;margin:7px 10px 7px 0}'+
  '#brz-f77-xlsx-report{white-space:pre-wrap;margin:10px 0;max-height:350px;overflow:auto}';
  document.head.appendChild(css);
  const $=id=>panel.querySelector('#'+id);
  $('brz-f77-xlsx-date').value=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
- let workbook=null,review=null,fullDiff=null;
+ let workbook=null,freightWorkbook=null,internalDiff=null,review=null,fullDiff=null;
  const mapping={};
+ const internalSheet=$('brz-f77-internal-sheet');
+ const showInternalSheets=()=>{
+  const wb=freightWorkbook||workbook;
+  const names=Object.keys(wb?.sheets||{});
+  const previous=internalSheet.value;
+  const suggested=names.find(x=>/frete\s*(interno|rodovi|ferrovi)|freight\s*(inland|road|rail)/i.test(x))||'';
+  internalSheet.innerHTML='<option value="">Selecione a aba</option>'+
+   names.map(x=>'<option value="'+esc(x)+'">'+esc(x)+' ('+wb.sheets[x].length+' linhas)</option>').join('');
+  internalSheet.value=names.includes(previous)?previous:suggested;
+ };
+ $('brz-f77-internal-file').onchange=async()=>{
+  freightWorkbook=null;internalDiff=null;review=null;fullDiff=null;
+  $('brz-f77-xlsx-confirm').disabled=true;$('brz-f77-xlsx-diff-download').disabled=true;
+  const file=$('brz-f77-internal-file').files?.[0];
+  if(!file){showInternalSheets();return;}
+  $('brz-f77-xlsx-report').textContent='Lendo frete interno…';
+  try{freightWorkbook=await parseXlsx(file);showInternalSheets();
+   $('brz-f77-xlsx-report').textContent='Frete interno lido: '+Object.keys(freightWorkbook.sheets).join(', ')+
+   '\nConfira o mapeamento da aba e valide a prévia.';}
+  catch(error){$('brz-f77-xlsx-report').textContent='Falha no frete interno: '+error.message;}
+ };
+ internalSheet.addEventListener('change',()=>{review=null;internalDiff=null;
+  $('brz-f77-xlsx-confirm').disabled=true;$('brz-f77-xlsx-diff-download').disabled=true;});
  const updatePreview=()=>{
   if(!workbook)return;
   const names=Object.keys(workbook.sheets);
@@ -249,25 +280,50 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
   workbook=null;review=null;fullDiff=null;$('brz-f77-xlsx-diff-download').disabled=true;$('brz-f77-xlsx-confirm').disabled=true;
   const file=$('brz-f77-xlsx-file').files?.[0];if(!file)return;
   $('brz-f77-xlsx-report').textContent='Conferindo estrutura ZIP e lendo abas…';
-  try{workbook=await parseXlsx(file);updatePreview();
+  try{workbook=await parseXlsx(file);updatePreview();showInternalSheets();
    $('brz-f77-xlsx-report').textContent='Planilha lida: '+Object.keys(workbook.sheets).join(', ')+
    '\nSHA-256: '+workbook.file_sha256+'\nSelecione a data e valide antes de gravar.';
   }catch(error){$('brz-f77-xlsx-report').textContent='Falha no XLSX: '+error.message;}
  };
  $('brz-f77-xlsx-preview').onclick=async()=>{
-  review=null;fullDiff=null;$('brz-f77-xlsx-diff-download').disabled=true;$('brz-f77-xlsx-confirm').disabled=true;
+  review=null;fullDiff=null;internalDiff=null;$('brz-f77-xlsx-diff-download').disabled=true;$('brz-f77-xlsx-confirm').disabled=true;
   if(!workbook){$('brz-f77-xlsx-report').textContent='Escolha um XLSX válido.';return;}
   for(const sel of $('brz-f77-xlsx-mapping').querySelectorAll('select'))mapping[sel.dataset.part]=sel.value;
   try{
    const built=buildDailyPack(workbook,$('brz-f77-xlsx-date').value,mapping);
    if(built.errors.length){$('brz-f77-xlsx-report').textContent='NÃO VALIDADO\n'+built.errors.join('\n');return;}
+   let internalSummary='FRETE INTERNO: não informado — nenhum frete será alterado.';
+   const freightSheet=internalSheet.value;
+   if(freightSheet){
+    try{
+     const mod=await import('./f77_internal_freight.mjs?v=20261117int01');
+     const base=freightWorkbook||workbook;
+     const parsed=mod.parseInternalFreight(base?.sheets?.[freightSheet],{sheetName:freightSheet});
+     if(parsed.errors.length)throw Error(parsed.errors.slice(0,12).join(' · '));
+     const refs=typeof getInternalFreightReference==='function'?
+      await getInternalFreightReference():{road:[],rail:[]};
+     internalDiff=mod.compareInternalFreight(parsed.records,refs);
+     const cs=internalDiff.counts;
+     internalSummary='FRETE INTERNO — PRÉVIA SEM GRAVAÇÃO\n'+
+      'Rodoviário: '+parsed.counts.rodoviario+' · Ferroviário: '+parsed.counts.ferroviario+
+      ' · Comparáveis: '+cs.comparado+' · Alterados: '+cs.alterado+
+      ' · Sem referência: '+cs.sem_referencia+'\n'+
+      internalDiff.changes.slice(0,16).map(d=>d.modal+' · '+d.origem+' → '+d.destino+
+       ' · '+d.periodo+' · '+(d.anterior??'N/D')+' → '+d.novo+' R$/t').join('\n')+
+      '\nATENÇÃO: nenhuma cotação de frete interno será publicada pelo Excel F77.';
+    }catch(error){
+     $('brz-f77-xlsx-report').textContent='FRETE INTERNO NÃO VALIDADO\n'+error.message+
+      '\nImportação bloqueada. Corrija o formato ou a seleção da aba.';
+     return;
+    }
+   }
    const reference=typeof getReference==='function'?await getReference(built.pack):null;
    const message='Fonte: '+built.pack.source_file+' · data '+built.pack.as_of+
     '\n'+Object.entries(built.counts).map(([k,v])=>k+': '+v+' registros').join('\n')+
     '\nTotal: '+built.total+' observações. Arquivo intacto; ausência de preço é N/D.'+
     '\nCurva da mesma data: '+(reference?.curveDay===built.pack.as_of&&reference?.fxDay===built.pack.as_of?'CONFIRMADA':'NÃO CONFIRMADA — precisa atualizar CBOT/DOL antes de publicar.');
    if(reference?.diffError){
-     $('brz-f77-xlsx-report').textContent=message+'\nDiferenças não conciliadas: '+reference.diffError+'\nPublicação bloqueada.';
+     $('brz-f77-xlsx-report').textContent=message+'\n\n'+internalSummary+'\nDiferenças não conciliadas: '+reference.diffError+'\nPublicação bloqueada.';
      return;
    }
    if(!reference?.diff||reference.diff.counts?.total!==built.total-(built.counts.prices||0)/2){
@@ -278,7 +334,7 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
        return;
      }
    }
-   fullDiff=reference.diff;
+   fullDiff={...reference.diff,freteInterno:internalDiff};
    $('brz-f77-xlsx-diff-download').disabled=false;
    const diff=fullDiff,format=v=>v===null||v===undefined?'N/D':String(v);
    const stats=Object.entries(diff.byTab).map(([k,v])=>k+': '+v.total+
@@ -307,7 +363,7 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
  $('brz-f77-xlsx-confirm').onclick=async()=>{
   if(!review)return;
   const expected=review.pack.file_sha256;
-  if(!confirm('Confirmar '+review.total+' observações de '+review.pack.as_of+
+  if(!confirm('ATENÇÃO: o frete interno NÃO será gravado. Confirmar SOMENTE as '+review.total+' observações de mercado de '+review.pack.as_of+
     '? O registro será salvo com versionamento, sem sobrescrever snapshots imutáveis.'))return;
   $('brz-f77-xlsx-confirm').disabled=true;
   $('brz-f77-xlsx-report').textContent='Confirmando no banco autenticado…';
