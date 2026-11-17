@@ -306,7 +306,7 @@
       'oceanFreightCornMonthly','oceanFreightAnoAnterior','oceanFreightRotasExcel','barcaca'],
    rail:['fretesFerro'],
    premiums:['premiosMilho'],
-   settings:['precosEdits','farmerSelling','r3Hidden','simulacoes','roadGeoRoutes']
+   settings:['precosEdits','farmerSelling','r3Hidden','simulacoes','roadGeoRoutes','originGeoOverrides']
  });
  let remoteModules=new Map(),roadBaseline=new Map(),moduleBooting=false;
  let excelBasisReferences=[],excelMarketStatus=null;
@@ -997,6 +997,61 @@
      throw error;
    }
  }
+
+ // F77: independently versioned origin pinpoint, no change to original trade,
+ // road quote, dated CBOT/FX, port route or replacement margin.
+ async function saveOriginGeoOverride(input){
+   if(!connected||applying||saving||blocked||dirty||moduleBooting)
+     throw Error('Finalize a sincronização pendente antes de confirmar a origem.');
+   if(!input||typeof input.id!=='string'||!/^nf\d{6}_\d{2,4}$/.test(input.id)||
+       input.precision!=='ponto_confirmado'||input.source!=='manual_map_pin'||
+       !Number.isFinite(Number(input.lat))||!Number.isFinite(Number(input.lon))||
+       Number(input.lat)<-35||Number(input.lat)>6||Number(input.lon)<-75||Number(input.lon)>-32)
+     throw Error('Ponto geográfico inválido: nenhuma informação foi gravada.');
+   const trade=state.negocios?.find(x=>x.id===input.id);
+   if(!trade||String(trade.origem||'')!==String(input.origin||''))
+     throw Error('Negócio ou origem alterados; revise a marcação antes de salvar.');
+   const current=state.originGeoOverrides&&typeof state.originGeoOverrides==='object'&&!Array.isArray(state.originGeoOverrides)
+     ?state.originGeoOverrides:{};
+   if(Object.keys(current).length>15000)throw Error('Inventário geográfico acima da capacidade permitida.');
+   const next={...current,[input.id]:{
+     origin:trade.origem,lat:Number(input.lat),lon:Number(input.lon),
+     precision:'ponto_confirmado',source:'manual_map_pin',
+     confirmedAt:new Date().toISOString()
+   }};
+   const previous=remoteModules.get('settings')||{revision:0,snapshot:null};
+   const old=state.originGeoOverrides;
+   state.originGeoOverrides=next;
+   try{
+     const result=await req('/rest/v1/rpc/brz_pin_module_save',{
+       p_module:'settings',p_payload:groupSnapshot('settings'),
+       p_expected_revision:previous.revision});
+     const ack=Array.isArray(result)?result[0]:result;
+     if(ack?.module!=='settings'||Number(ack.revision)!==previous.revision+1)
+       throw Error('Localização não confirmada no Supabase.');
+     remoteModules.set('settings',{revision:Number(ack.revision),
+       snapshot:stable(groupSnapshot('settings'))});
+     window.BRZGeoRegistry?.refresh?.();
+     setStatus('Origem geográfica sincronizada · '+input.id);
+     return Object.freeze({saved:true,id:input.id,revision:Number(ack.revision)});
+   }catch(error){state.originGeoOverrides=old;throw error;}
+ }
+ async function initGeoRegistry(){
+   try{
+     const geo=await import('./f77_geo_registry.mjs?v=20261117f77');
+     // Scope: preexisting map source; read-only until operator confirms an exact pin.
+     window.__BRZ_F77_MAP_GETTER=()=>typeof _leafletMap!=='undefined'?_leafletMap:null;
+     geo.installGeoRegistry({
+       getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
+       getCoord:city=>typeof getCityCoord==='function'?getCityCoord(city):null,
+       extractCity:raw=>typeof extractCidadeBase==='function'?extractCidadeBase(raw):raw,
+       regionOf:deal=>typeof brzF77OriginRegion==='function'?brzF77OriginRegion(deal):deal.corredor,
+       getOverrides:()=>state.originGeoOverrides||{},
+       saveOverride:saveOriginGeoOverride
+     });
+   }catch(error){console.warn('[BRZ F77] origem geográfica:',error?.message);}
+ }
+
  async function initPendingWorkspace(){
   if(window.BRZPendencias)return;
   try{
@@ -1064,6 +1119,7 @@
     }catch(e){console.warn('BRZ F73 auditoria opcional indisponível',e)}
     installSystemToolsTab();
     await initPendingWorkspace();
+    await initGeoRegistry();
     // F77: analytical classification only; contracted destination vs eligible
     // corridor candidates. No writes, inferred export volume, or route changes.
     try{
@@ -1301,6 +1357,6 @@
  });
  window.BRZPinAutoSave=Object.freeze({
    connect,status:()=>({connected,dirty,saving,blocked,records:remote.size}),
-   save:()=>save(),saveRoadGeoRoute
+   save:()=>save(),saveRoadGeoRoute,saveOriginGeoOverride
  });
 })();
