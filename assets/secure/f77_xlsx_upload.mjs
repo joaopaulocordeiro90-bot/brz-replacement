@@ -267,7 +267,7 @@ export function installExcelUpload({getReference,confirmUpload}={}){
     '\nCurva da mesma data: '+(reference?.curveDay===built.pack.as_of&&reference?.fxDay===built.pack.as_of?'CONFIRMADA':'NÃO CONFIRMADA — precisa atualizar CBOT/DOL antes de publicar.');
    $('brz-f77-xlsx-report').textContent=message;
    if(reference?.curveDay!==built.pack.as_of||reference?.fxDay!==built.pack.as_of)return;
-   review=built;review.sourceFile=file?.name;
+   review=built;
    $('brz-f77-xlsx-confirm').disabled=false;
   }catch(error){$('brz-f77-xlsx-report').textContent='Falha de validação: '+error.message;}
  };
