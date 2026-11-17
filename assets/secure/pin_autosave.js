@@ -308,7 +308,7 @@
  async function loadExcelMarketOverlay(){
   const reply=await req('/rest/v1/rpc/brz_pin_market_excel_archive',{});
   if(!reply?.available)return;
-  const mod=await import('./market_excel_overlay.mjs?v=20261116f66');
+  const mod=await import('./market_excel_overlay.mjs?v=20261116f69');
   const reconciler=await import('./market_excel_reconcile.mjs?v=20261116f67');
   const auditor=await import('./market_excel_audit.mjs?v=20261116f67');
   const patch=await mod.decodeExcelArchive(reply);
