@@ -19,6 +19,7 @@ const ghPages=()=>location.protocol==='https:'
  && ['/brz-replacement/','/brz-replacement/index.html','/brz-replacement/pin.html'].includes(location.pathname);
 const stageEdge=()=>location.protocol==='https:' && location.hostname==='irekykmigdfvwozerkfa.supabase.co' && (location.pathname==='/functions/v1/brz-replacement-homologacao/' || location.pathname==='/functions/v1/brz-replacement-homologacao/index.html');
 const status=msg=>{ $('status').textContent=msg; };
+const bootProgress=value=>{const x=$('brz-boot-progress');if(x){x.value=Math.max(0,Math.min(100,Number(value)||0));x.setAttribute('aria-valuenow',String(x.value));}};
 // F57: server-side SQL EXECUTE grants also deny F33 mutation/restore.
 window.__BRZF57_READ_ONLY_STAGING=true; // isolate legacy F33 UI; PIN autosave uses its own bridge
 let loading=false,aborted=false;
@@ -376,67 +377,21 @@ async function start(ev){
  loading=true;$('go').disabled=true;
  let token=null;
  try{
-  gate();status('F73 · verificando acesso autenticado à consulta diária…');
+  gate();status('F77 · autenticando acesso ao BRZ Replacement completo…');
+  bootProgress(3);
   status(restoring?'Restaurando sessão segura desta aba…':'Autenticando sessão mesa/admin…');
   token=restoring?await restoreTabSession():await signIn($('pin').value.trim());
   if(!token)throw Error('Sessão de uma hora expirada. Informe o PIN para entrar.');
   $('pin').value='';
-  // F73: the PIN now opens a real authenticated daily-market view first.
-  // Historical F40/F44/F46/F41 checks run ONLY when the user asks to open the
-  // full legacy engine; do not signal historical readiness from this view.
-  const fastTarget=$('brz-f73-market'),fastContinue=$('brz-open-full');
-  if(fastTarget&&fastContinue){
-    try{
-      status('PIN validado · consultando Excel mais recente (sem históricos)…');
-      const fast=await import('./f73_fast_market.mjs?v=20261117f73');
-      const preview=await fast.loadFastMarket({request,token});
-      fast.renderFastMarket(fastTarget,preview);
-      // F74: historic quotes fetched from PostgreSQL ONLY when a user requests a
-      // date, domain and page; the legacy full-engine hydrate remains opt-in.
-      try{
-        const history=await import('./f74_history_pager.mjs?v=20261117f74');
-        const container=$('brz-f74-history');
-        if(container)history.installHistoryPanel({root:container,request,token,asOf:preview.date});
-      }catch(error){
-        console.warn('[BRZ F74] Histórico paginado indisponível',error);
-        const panel=$('brz-f74-history');
-        if(panel)panel.textContent='Consulta histórica indisponível: '+String(error?.message||error).slice(0,140);
-      }
-      window.__BRZ_F73_FAST_STATUS=Object.freeze({
-        excelDay:preview.date,counts:preview.counts,
-        historicalLoaded:false,authenticated:true});
-      $('loginTitle').textContent='Mercado diário · acesso confirmado';
-      $('loginSubtitle').textContent='Consulta operacional rápida, autenticada e sem replacement estimado';
-      $('brz-f73-error').textContent='';
-    }catch(fastError){
-      console.error('[BRZ F73] Consulta diária indisponível:',fastError);
-      $('loginTitle').textContent='Acesso confirmado · visão diária indisponível';
-      $('loginSubtitle').textContent='O motor completo permanece disponível';
-      $('brz-f73-error').textContent='A prévia não pôde ser validada: '+String(fastError?.message||fastError).slice(0,180);
-      window.__BRZ_F73_FAST_STATUS=Object.freeze({authenticated:true,historicalLoaded:false,
-        previewError:String(fastError?.message||fastError).slice(0,150)});
-    }
-    document.body.classList.add('brz-f73-quick');
-    document.documentElement.classList.remove('brz-restoring','brz-resume-failed');
-    status('Sessão autenticada · preços de fonte disponíveis sem baixar as bases históricas.');
-    await new Promise(resolve=>{
-      fastContinue.disabled=false;
-      fastContinue.onclick=()=>{
-        fastContinue.disabled=true;
-        document.body.classList.remove('brz-f73-quick');
-        status('Abrindo motor completo · validando históricos, curvas e fretes…');
-        resolve();
-      };
-    });
-    // The quick session may have been idle. Renew it just before the costly
-    // full engine load; keep the original one-hour tab-session boundary.
-    if(typeof window.__BRZ_F73_VERIFY_FULL_STATIC!=='function')
-      throw Error('F73: verificação do motor não inicializada');
-    await window.__BRZ_F73_VERIFY_FULL_STATIC();
-    await preflightModules();
-    token=await restoreTabSession();
-    if(!token)throw Error('Sessão expirou. Atualize o site e faça login novamente.');
-  }
+  // F77: PIN opens the full verified replacement engine, never a quick preview.
+  status('PIN confirmado · verificando todo o motor e suas dependências…');
+  bootProgress(8);
+  if(typeof window.__BRZ_F73_VERIFY_FULL_STATIC!=='function')
+    throw Error('F77: verificação estática integral indisponível');
+  await Promise.all([window.__BRZ_F73_VERIFY_FULL_STATIC(),preflightModules()]);
+  bootProgress(18);
+  token=await restoreTabSession();
+  if(!token)throw Error('Sessão expirada durante a verificação integral.');
   status('Verificando metadados e fontes confidenciais em paralelo…');
   // F55 and F56 are independent authenticated read-only sources.
   // Concurrent retrieval saves one server round trip without touching data.
@@ -554,7 +509,7 @@ async function start(ev){
       return hydrateF48Legacy({request,token,sha256,isAborted:()=>aborted});
     }}
   ],{
-    onStage:({label,index,total})=>status('Restaurando '+label+' · etapa '+index+' de '+total),
+    onStage:({label,index,total})=>{status('Restaurando '+label+' · etapa '+index+' de '+total);bootProgress(18+Math.round((index-1)/total*65));},
     isAborted:()=>aborted
   });
   ({tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows}=hydrated);
@@ -564,6 +519,7 @@ async function start(ev){
         premiums,restored,rows};
     }
   }
+  bootProgress(85);
   const {frozenTrades,orderedDeals}=tradeBundle;
   status('Históricos e fretes conciliados. Abrindo a interface…');
   // Only the immutable, SHA-validated source bundles may be cached AES-GCM encrypted for this tab. Mutable overlays and credentials are never written to IDB.
@@ -619,6 +575,7 @@ async function start(ev){
       window.__BRZ_PIN_OPERATIONAL=true;
       window.__BRZ_SESSION_LOAD_MS=Math.round(performance.now()-loginBegan);
       console.info('BRZ: PIN e cargas autenticadas',window.__BRZ_SESSION_LOAD_MS,'ms');
+      bootProgress(100);
       document.body.classList.add('loaded');
       // First entry: write validated immutable source snapshots in the
       // background, after the working platform is visible. Never store live
@@ -707,7 +664,7 @@ $('go').disabled=true;
 $('pin').disabled=false;
 (async()=>{
  try{
-  gate();status('F73 · componentes essenciais autenticados, pronto para PIN.');
+  gate();status('F77 · verificação de entrada concluída; pronto para PIN.');
   $('pin').disabled=false;$('go').disabled=false;
   let cached=null;
   try{cached=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}catch(e){}
@@ -716,7 +673,7 @@ $('pin').disabled=false;
    await start({preventDefault(){},restore:true});
   }else{
    if(cached)forgetTabSession();
-   status('Acesso preparado. Informe o PIN para consultar o Excel mais recente.');
+   status('Acesso preparado. Informe o PIN para abrir a plataforma completa.');
   }
  }catch(e){
   status('BLOQUEADO F49: '+e.message);
