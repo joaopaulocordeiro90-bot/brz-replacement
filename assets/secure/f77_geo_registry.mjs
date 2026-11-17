@@ -71,10 +71,12 @@ export function installGeoRegistry({getTrades,getCoord,extractCity,regionOf,getO
  let registry=null,pin=null,marker=null;
  const map=()=>typeof window.__BRZ_F77_MAP_GETTER==='function'?window.__BRZ_F77_MAP_GETTER():null;
  // Avoid direct references to lexical _leafletMap from an ESM module.
+ const compute=()=>createGeoRegistry({trades:getTrades(),getCoord,extractCity,regionOf,
+  overrides:typeof getOverrides==='function'?getOverrides():{}});
+ const ensure=()=>registry||(registry=compute());
  const show=()=>{
    if(!container.open)return;
-   registry=createGeoRegistry({trades:getTrades(),getCoord,extractCity,regionOf,
-    overrides:typeof getOverrides==='function'?getOverrides():{}});
+   registry=compute();
    const c=registry.counts;
    $('brz-f77-geo-stats').textContent=c.total+' negócios · '+c.confirmed+' pontos confirmados · '+c.municipal+
     ' sedes municipais indicativas · '+c.missing+' sem coordenada confiável';
@@ -128,7 +130,7 @@ export function installGeoRegistry({getTrades,getCoord,extractCity,regionOf,getO
   });
  };
  container.addEventListener('toggle',show);
- const api=Object.freeze({refresh:show,getById:id=>registry?.entries.get(String(id))||null,
-  getStats:()=>registry?.counts||null,version:'F77-georegistry-v1'});
+ const api=Object.freeze({refresh:show,getById:id=>ensure().entries.get(String(id))||null,
+  getStats:()=>ensure().counts,getIndex:ensure,version:'F77-georegistry-v1'});
  window.BRZGeoRegistry=api;return api;
 }
