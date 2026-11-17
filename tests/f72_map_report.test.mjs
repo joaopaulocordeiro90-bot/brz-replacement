@@ -28,5 +28,9 @@ assert.match(main,/safePanel\('Tabela','mapaTableBody'/,'Table cannot break map'
 assert.match(report,/IntersectionObserver/,'Report lazy-loads hidden heavy tables');
 assert.match(report,/function repF72RenderSection\(which\)/);
 assert.match(report,/Tentar carregar novamente/,'Lazy errors recoverable');
+assert.match(main,/var rpmF72MatrixObserver=null;/,'Porto matrix observer');
+assert.match(main,/const reportVisible=document.getElementById\('report'\)\?\.classList.contains\('active'\)/,'Report can request the matrix immediately');
+assert.match(main,/Matriz por estado.*carregamento sob demanda/,'Render matrix is on-demand');
+assert.match(main,/if\(reportVisible\)renderMatrix\(\)/,'Report mirroring still has real matrix data');
 assert.doesNotMatch(patch,/subdomains:undefined/);
 console.log('F72: Leaflet subdomains, tile fallback, incremental map, isolated analytics, lazy Report passed.');
