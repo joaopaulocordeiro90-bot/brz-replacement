@@ -7328,6 +7328,7 @@ function rpmBuildMatrix(src,prod,date){
   return h;
 }
 
+var rpmF72MatrixObserver=null;
 function renderReplacementPorto(){
   var host=document.getElementById('corredores'); if(!host)return;
   var src=rpcSource(), prod=getActiveProduto(), isM=prod==='Milho';
@@ -7413,10 +7414,43 @@ function renderReplacementPorto(){
     ?'No modo <b>Todos os portos</b>, cada registro entra <b>uma única vez</b>, no porto vencedor da liquidação FOB. A tabela consolida uma linha por <b>porto + embarque</b>; portanto, a soma das amostras não duplica o mesmo registro entre corredores.'
     :'São exibidos somente os registros cujo porto vencedor da liquidação FOB é <b>'+rpcEsc(rpcPort)+'</b>. Cada registro entra uma única vez e as origens são consolidadas por embarque.')
     +' A <b>Logística</b> mostra o frete médio usado na formação do replacement. Mínimo, máximo, média e moda pertencem somente ao replacement; a moda considera o basis arredondado em 1 ¢/bu. O <b>FOB Paper é um input manual por porto e embarque</b> (valores antigos sem porto não são propagados entre terminais) e alimenta a margem: FOB Paper informado − replacement FOB médio. DoD usa somente pregão anterior exato, sem fallback; WoW compara com a <b>média</b> dos registros D-9 a D-5; MoM compara com a <b>média</b> dos registros D-35 a D-25, sempre no mesmo produto, base, porto e embarque. A qualidade da comparação permanece informada no tooltip. Positivo = custo maior; negativo = custo menor.';
-  var matrixHtml=rpmBuildMatrix(src,prod,rpcDate);
+  // F72: montar matriz somente quando visualizada. A tabela de Porto acima
+  // continua calculada com os dados completos e as regras comerciais vigentes.
+  var matrixHtml='<div id="rpm-f72-matrix" class="a-card" style="padding:12px"><strong>Matriz por estado</strong> · carregamento sob demanda <button class="btn small" type="button" id="rpm-f72-load">Carregar matriz</button></div>';
   host.innerHTML='<div class="rpc-wrap"><div class="rpc-head"><div><div class="rpc-h1">Replacement por Porto</div><div class="rpc-h2">Custo de originação consolidado pelo porto vencedor da liquidação FOB, sem duplicar registros entre corredores.</div></div>'+ctrls+'</div>'+kpis
     +'<div class="a-card"><div class="a-card-t">'+prod+' · '+rpcEsc(corridorLabel)+' <span class="rpc-badge">'+(pdays===1?'dia':pdays+' dias')+'</span></div><div class="p-card-s">'+(rpcPort==='all'?'Portos e embarques nas linhas':'Embarques nas linhas')+' · logística após o embarque · FOB Paper manual</div><div class="rpc-table-wrap">'+h+'</div><div class="rpc-note">'+note+'</div></div>'+matrixHtml+'</div>';
   try{if(typeof brzAddCamButtons==='function')brzAddCamButtons(host);}catch(e){}
+  if(rpmF72MatrixObserver){rpmF72MatrixObserver.disconnect();rpmF72MatrixObserver=null;}
+  const matrix=document.getElementById('rpm-f72-matrix');
+  if(!matrix)return;
+  const renderMatrix=()=>{
+    if(matrix.dataset.brzLoaded==='1'||matrix.dataset.brzLoading==='1')return;
+    matrix.dataset.brzLoading='1';
+    try{
+      matrix.innerHTML=rpmBuildMatrix(src,prod,rpcDate);
+      matrix.dataset.brzLoaded='1';
+      if(typeof brzAddCamButtons==='function')brzAddCamButtons(matrix);
+    }catch(e){
+      console.error('[BRZ F72] Matriz por estado',e);
+      matrix.replaceChildren();
+      const note=document.createElement('p');
+      note.textContent='Matriz indisponível: '+String(e?.message||e).slice(0,180);
+      const retry=document.createElement('button');
+      retry.type='button';retry.className='btn small';retry.textContent='Tentar novamente';
+      retry.onclick=renderMatrix;
+      matrix.append(note,retry);
+    }finally{delete matrix.dataset.brzLoading}
+  };
+  const load=document.getElementById('rpm-f72-load');
+  if(load)load.onclick=renderMatrix;
+  const reportVisible=document.getElementById('report')?.classList.contains('active');
+  if(reportVisible)renderMatrix();
+  else if(typeof IntersectionObserver==='function'){
+    rpmF72MatrixObserver=new IntersectionObserver(entries=>{
+      if(entries.some(e=>e.isIntersecting)){rpmF72MatrixObserver?.disconnect();rpmF72MatrixObserver=null;renderMatrix()}
+    },{rootMargin:'280px 0px'});
+    rpmF72MatrixObserver.observe(matrix);
+  }
 }
 
 function renderScreenSafe(screenId){
@@ -13138,6 +13172,22 @@ function renderInlandFreight(){
     +ctrls
     +'<div style="overflow-x:auto;overflow-y:auto;max-height:600px;border-radius:8px;border:1px solid var(--g200)"><table class="matrix" style="min-width:100%;font-size:12px;border-radius:8px;overflow:hidden"><thead><tr style="position:sticky;top:0;z-index:3">'+header+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+((inlandMode==='valor')?('<div style="margin-top:8px;font-size:10.5px;color:var(--g500)">Cor = percentil do valor na pr\u00f3pria rota: <span style="background:#DCFCE7;border-radius:4px;padding:1px 6px">\u2264p10 barato</span> <span style="background:var(--greenbg);border-radius:4px;padding:1px 6px">\u2264p30</span> <span style="background:var(--amberbg);border-radius:4px;padding:1px 6px">\u2265p70</span> <span style="background:var(--redbg);border-radius:4px;padding:1px 6px">\u2265p90 caro</span></div>'):'')+'</div></div>'; try{ if(typeof brzAddCamButtons==='function') brzAddCamButtons(body); }catch(e){}
 }
+// F72: isolate incomplete legacy operations in READ-ONLY map analytics.
+// Never create an indicative replacement when the calculation is unavailable.
+let brzMapCalculationIssues=0;
+let brzMapCalculationExample=[];
+function brzMapSafePortComparison(d){
+  try {
+    const c=computePortComparison(d);
+    if(!c||!Array.isArray(c.results))throw Error('Comparação de portos não disponível');
+    return c;
+  }catch(e){
+    brzMapCalculationIssues++;
+    if(brzMapCalculationExample.length<8)brzMapCalculationExample.push(String(d?.id||'sem ID'));
+    if(brzMapCalculationIssues<=3)console.warn('[BRZ F72] negócio sem replacement de mapa:',d?.id,e);
+    return {bestPort:null,results:[]};
+  }
+}
 function renderMapa(){
   if(typeof L === 'undefined'){
     const c = document.getElementById('mapaContainer');
@@ -13292,8 +13342,21 @@ function renderMapa(){
   // Para cada negócio: melhor porto → rep.basis.
   // Se volume real existir, média ponderada por volume. Se volume = 0, média simples por negócio.
   const agg = {};  // corredor → {basisVolSum, precoVolSum, volSum, calcWeightSum, count, deals[], modais{}, portos{}}
-  dealsFiltro.forEach(d => {
-    const cmp = computePortComparison(d);
+  brzMapCalculationIssues=0; brzMapCalculationExample=[];
+  // Mostra o mapa imediatamente, antes de cálculos de milhares de negócios.
+  function showMapLayer(data,col){
+    try{renderMapaLeaflet(data,col)}catch(e){console.error('[BRZ F72] Leaflet',e);
+      const target=document.getElementById('mapaContainer');
+      if(target)target.setAttribute('data-brz-map-error',String(e?.message||e).slice(0,180));
+    }
+  }
+  showMapLayer({},()=> '#bfc8c4');
+  const renderSequence=window.__BRZ_MAP_RENDER_SEQUENCE=(window.__BRZ_MAP_RENDER_SEQUENCE||0)+1;
+  const progress=document.getElementById('mapaSub');
+  if(progress)progress.textContent='Calculando corredores · 0 / '+dealsFiltro.length;
+  const batchSize=40;
+  function handleMapDeal(d){
+    const cmp = brzMapSafePortComparison(d);
     const best = cmp.results.find(r => r.porto === cmp.bestPort)?.best;
     if(!best) return;
     const k = d.corredor;
@@ -13309,8 +13372,10 @@ function renderMapa(){
     a.deals.push({id:d.id, data:d.data, origem:d.origem, comprador:d.comprador, vendedor:d.vendedor, vol:v, preco:n(d.preco), basis:best.replacementBasis, porto:cmp.bestPort, modal:best.modal});
     a.portos[cmp.bestPort] = (a.portos[cmp.bestPort]||0) + calcWeight;
     a.modais[best.modal] = (a.modais[best.modal]||0) + calcWeight;
-  });
+  }
 
+  function finalizeMap(){
+    if(renderSequence!==window.__BRZ_MAP_RENDER_SEQUENCE)return;
   // === Calcular escala de cor ===
   const vals = Object.values(agg).map(a => {
     if(mapaMetric === 'basis') return a.basisVolSum / (a.calcWeightSum || a.volSum || 1);
@@ -13344,23 +13409,26 @@ function renderMapa(){
     return `rgb(${r},${g},${b})`;
   }
 
-  // === Renderiza Mapa Leaflet ===
-  renderMapaLeaflet(agg, colorFor);
+  // === Desenho final Leaflet ===
+  showMapLayer(agg, colorFor);
 
   // === Card "O QUE ACONTECEU" no período ===
-  renderMapaSummary(dealsFiltro, agg);
-
-  // === Corredor selecionado (drill-down) ===
-  renderMapaCorredorDetail(agg);
-
-  // === Tabela VPL — Replacement por Corredor Comercial × Dia ===
-  renderMapaVplTabela(dealsFiltro);
-
-  // === Card-Narrativa do período (decomposição em 5 drivers) ===
-  renderMapaNarrativa(dealsFiltro, agg);
-
-  // === Tabela de mudanças por corredor ===
-  renderMapaTable(agg);
+  // A falha de uma análise não derruba as outras nem apaga o mapa.
+  const safePanel=(label,element,render)=>{
+    try{return render()}catch(e){
+      console.error('[BRZ F72] '+label,e);
+      const node=document.getElementById(element);
+      if(node){const notice=document.createElement('div');notice.className='note';
+        notice.setAttribute('role','status');
+        notice.textContent='Dados insuficientes para '+label+'. '+String(e?.message||e).slice(0,180);
+        node.replaceChildren(notice);}
+    }
+  };
+  safePanel('Resumo','mapaSummary',()=>renderMapaSummary(dealsFiltro,agg));
+  safePanel('Corredor','mapaCorredorDetail',()=>renderMapaCorredorDetail(agg));
+  safePanel('VPL','mapaVplTabela',()=>renderMapaVplTabela(dealsFiltro));
+  safePanel('Análise','mapaNarrativa',()=>renderMapaNarrativa(dealsFiltro,agg));
+  safePanel('Tabela','mapaTableBody',()=>renderMapaTable(agg));
 
   // === Subtitle dinâmico ===
   const sub = [];
@@ -13369,8 +13437,21 @@ function renderMapa(){
   if(mapaVenc !== 'todos') sub.push(`${t('windowSing')} ${mapaVenc}`);
   if(mapaDataUnica) sub.push(`${t('snapshotOfDayPrefix')} ${mapaDataUnica}`);
   else if(mapaDataInicio || mapaDataFim) sub.push(`${t('periodPrefix')} ${mapaDataInicio||'…'} ${t('to')} ${mapaDataFim||'…'}`);
+  if(brzMapCalculationIssues)sub.push(brzMapCalculationIssues+' operações sem cálculo (não estimadas)');
   document.getElementById('mapaSub').textContent = sub.join(' · ');
+  }
+  function nextBatch(offset){
+    if(renderSequence!==window.__BRZ_MAP_RENDER_SEQUENCE)return;
+    const stop=Math.min(offset+batchSize,dealsFiltro.length);
+    for(let i=offset;i<stop;i++)handleMapDeal(dealsFiltro[i]);
+    if(progress)progress.textContent='Calculando corredores · '+stop+' / '+dealsFiltro.length;
+    if(stop<dealsFiltro.length){
+      setTimeout(()=>nextBatch(stop),0);
+    }else finalizeMap();
+  }
+  nextBatch(0);
 }
+
 
 /* Singleton — o mapa Leaflet só pode ser criado uma vez */
 let _leafletMap = null;
@@ -13589,7 +13670,7 @@ function renderMapaSummary(deals, agg){
     if(dealsAnt.length){
       let bAnt=0, pAnt=0, cAnt=0, xAnt=0, wAnt=0;
       dealsAnt.forEach(d=>{
-        const cmp = computePortComparison(d);
+        const cmp = brzMapSafePortComparison(d);
         const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
         const v = n(d.volume);
         const ww = v > 0 ? v : 1;
@@ -13620,7 +13701,7 @@ function renderMapaSummary(deals, agg){
   let cfrChinaW = 0, cfrChinaV = 0;
   let freteMaritimoMedio = 0, freteMaritimoVol = 0;
   deals.forEach(d=>{
-    const cmp = computePortComparison(d);
+    const cmp = brzMapSafePortComparison(d);
     const pgua = cmp.results.find(r=>r.porto==='Paranaguá')?.best;
     if(pgua){
       const vol = n(d.volume);
@@ -13931,7 +14012,7 @@ function calcReplacementVPL(deal, portoFixo){
 
   // 2) Recalcula replacement com preço descontado
   const dealVPL = {...deal, preco:precoVPL};
-  const cmp = computePortComparison(dealVPL);
+  const cmp = brzMapSafePortComparison(dealVPL);
 
   // 3) Escolhe o porto: se portoFixo, usa ele; senão, melhor porto da comparação
   let porto;
@@ -13998,7 +14079,7 @@ function renderMapaVplTabela(dealsFiltro){
 
     // Prêmio FOB PGA: forçar cálculo via Paranaguá pra todos os negócios
     const {preco:precoVPL} = aplicaVPL(deal);
-    const cmp = computePortComparison({...deal, preco:precoVPL});
+    const cmp = brzMapSafePortComparison({...deal, preco:precoVPL});
     const pgua = cmp.results.find(r=>r.porto==='Paranaguá')?.best;
     if(pgua){
       if(!fobPgaPorDia[dia]) fobPgaPorDia[dia] = {fobW:0, cbotW:0, vol:0, count:0};
@@ -14293,7 +14374,7 @@ function renderMapaNarrativaSnapshot(dealsAtu, aggAtu, box){
   let w=0, wBest=0;
   let countComBest = 0, countSemBest = 0;
   dealsAtu.forEach(d=>{
-    const cmp = computePortComparison(d);
+    const cmp = brzMapSafePortComparison(d);
     const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
     const v = n(d.volume);
     if(best){
@@ -14322,7 +14403,7 @@ function renderMapaNarrativaSnapshot(dealsAtu, aggAtu, box){
   // CFR China ponderado por deal (cada deal usa ocean freight da sua janela)
   let cfrW = 0, cfrV = 0, seaW = 0;
   dealsAtu.forEach(d=>{
-    const cmp = computePortComparison(d);
+    const cmp = brzMapSafePortComparison(d);
     const pgua = cmp.results.find(r=>r.porto==='Paranaguá')?.best;
     if(pgua){
       const v = n(d.volume);
@@ -14358,11 +14439,11 @@ function renderMapaNarrativaSnapshot(dealsAtu, aggAtu, box){
 
   // Quantos negócios escoaram efetivamente por Paranaguá (no melhor porto)
   const negViaParanagua = dealsAtu.filter(d=>{
-    const cmp = computePortComparison(d);
+    const cmp = brzMapSafePortComparison(d);
     return cmp.bestPort === 'Paranaguá';
   }).length;
   const negComFretePga = dealsAtu.filter(d=>{
-    const cmp = computePortComparison(d);
+    const cmp = brzMapSafePortComparison(d);
     return cmp.results.find(r=>r.porto==='Paranaguá')?.best;
   }).length;
 
@@ -14416,7 +14497,7 @@ function renderMapaNarrativaPeriodo(dealsAtu, aggAtu, box){
   // Médias atual
   let cbotW=0, camW=0, prW=0, frW=0, fbW=0, basisW=0, fobPgaW=0, fobPgaVol=0, wAtu=0;
   dealsAtu.forEach(d=>{
-    const cmp = computePortComparison(d);
+    const cmp = brzMapSafePortComparison(d);
     const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
     const v = n(d.volume);
     if(best){
@@ -14437,7 +14518,7 @@ function renderMapaNarrativaPeriodo(dealsAtu, aggAtu, box){
   // CFR Atu ponderado por deal (cada um usa ocean freight da janela)
   let cfrAtuW = 0, cfrAtuV = 0, seaAtuW = 0;
   dealsAtu.forEach(d=>{
-    const cmp = computePortComparison(d);
+    const cmp = brzMapSafePortComparison(d);
     const pgua = cmp.results.find(r=>r.porto==='Paranaguá')?.best;
     if(pgua){
       const v = n(d.volume);
@@ -14458,7 +14539,7 @@ function renderMapaNarrativaPeriodo(dealsAtu, aggAtu, box){
   if(dealsAnt.length){
     let cbW=0, cmW=0, prAW=0, frAW=0, bsW=0, fpW=0, fpV=0, wA=0;
     dealsAnt.forEach(d=>{
-      const cmp = computePortComparison(d);
+      const cmp = brzMapSafePortComparison(d);
       const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
       const v = n(d.volume);
       if(best){
@@ -14478,7 +14559,7 @@ function renderMapaNarrativaPeriodo(dealsAtu, aggAtu, box){
     // CFR Ant ponderado por deal (igual ao atual)
     let cfrAntW = 0, cfrAntV = 0;
     dealsAnt.forEach(d=>{
-      const cmp = computePortComparison(d);
+      const cmp = brzMapSafePortComparison(d);
       const pgua = cmp.results.find(r=>r.porto==='Paranaguá')?.best;
       if(pgua){
         const v = n(d.volume);
@@ -14508,7 +14589,7 @@ function renderMapaNarrativaPeriodo(dealsAtu, aggAtu, box){
     if(!dealsAntC.length) return;
     let bs=0, wA=0;
     dealsAntC.forEach(d=>{
-      const cmp = computePortComparison(d);
+      const cmp = brzMapSafePortComparison(d);
       const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
       const v = n(d.volume);
       if(best) bs += best.replacementBasis*v;
@@ -14630,7 +14711,7 @@ function renderMapaTable(agg){
         a.deals.forEach(d=>{
           const dl = getActiveDealsReplacement().find(x=>String(x.id)===String(d.id));
           if(!dl) return;
-          const cmp = computePortComparison(dl);
+          const cmp = brzMapSafePortComparison(dl);
           const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
           if(best){
             _prAtu += best._priceCbu * d.vol;
@@ -14656,7 +14737,7 @@ function renderMapaTable(agg){
         a.deals.forEach(d=>{
           const dl = getActiveDealsReplacement().find(x=>String(x.id)===String(d.id));
           if(!dl) return;
-          const cmp = computePortComparison(dl);
+          const cmp = brzMapSafePortComparison(dl);
           const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
           if(best){
             _prAtu += best._priceCbu * d.vol;
@@ -14672,7 +14753,7 @@ function renderMapaTable(agg){
         // E no ANTERIOR
         let bAnt=0, pAnt=0, prAnt=0, frAnt=0, fbAnt=0, cbotAnt=0, camAnt=0, wAnt=0;
         dealsAnt.forEach(d=>{
-          const cmp = computePortComparison(d);
+          const cmp = brzMapSafePortComparison(d);
           const best = cmp.results.find(r=>r.porto===cmp.bestPort)?.best;
           const v = n(d.volume);
           if(best){
