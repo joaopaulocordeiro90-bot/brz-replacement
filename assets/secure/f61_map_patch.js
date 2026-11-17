@@ -37,7 +37,7 @@ function patchLeaflet(){
    return baseInit.call(this,url,opts);
   baseOverrides++;
   const layer=this;let index=0,errors=0,loaded=false,clock=null;
-  const options={...(opts||{}),attribution:ATTR,maxZoom:19,maxNativeZoom:17,minZoom:3,subdomains:undefined,crossOrigin:false};
+  const options={...(opts||{}),attribution:ATTR,maxZoom:19,maxNativeZoom:17,minZoom:3,subdomains:'abc',crossOrigin:false};
   const result=baseInit.call(layer,BASES[0][1],options);
   function stopTimer(){if(clock)clearTimeout(clock);clock=null;}
   function next(){
@@ -51,7 +51,7 @@ function patchLeaflet(){
   layer.on('add',()=>{if(loaded)return;status('Carregando mapa real…');clock=setTimeout(next,8500)});
   layer.on('remove',stopTimer);
   layer.on('tileload',()=>{if(!loaded){loaded=true;stopTimer();status('')}});
-  layer.on('tileerror',()=>{if(!loaded&&++errors>=5)next()});
+  layer.on('tileerror',()=>{if(!loaded&&++errors>=2)next()});
   return result;
  };
  // Leaflet map is initialized in the existing replacement engine.
