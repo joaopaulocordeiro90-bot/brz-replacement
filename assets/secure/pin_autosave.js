@@ -411,7 +411,9 @@
       frozen.__brzF66Frozen=true;window.brzSyncPrecoMarketCurves=frozen;
     }
   }
-  if(typeof _brzPrecosIdx!=='undefined')_brzPrecosIdx=null;
+  // F71: invalidate the data cache, NEVER clobber its callable accessor.
+  // F66 wrote null to _brzPrecosIdx (a function), breaking every port table.
+  if(typeof _brzF71PrecoIndexCache!=='undefined')_brzF71PrecoIndexCache=null;
   if(typeof _r3MealCurveCache!=='undefined')_r3MealCurveCache=null;
   if(typeof _r3SpotCache!=='undefined')_r3SpotCache=null;
   if(typeof _r3PhysicalCache!=='undefined')_r3PhysicalCache=null;
