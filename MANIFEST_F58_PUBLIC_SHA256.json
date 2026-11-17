@@ -17,7 +17,7 @@
     },
     "app.html": {
       "bytes": 58672,
-      "sha256": "ceeae36cb076073daa397abbf28d934527a4ae6a1aa0527bab5eccc46567065d"
+      "sha256": "eeb9e365a170d83f699423642cdece6fbb973eba7a6d0081192c959079b06728"
     },
     "assets/css/part_01.css": {
       "bytes": 102207,
@@ -176,8 +176,8 @@
       "sha256": "6f209887ba377c94d76a269d15d2104bcdc486424abf1c27843c56aa09be5e63"
     },
     "assets/js/part_06.js": {
-      "bytes": 1162470,
-      "sha256": "369c0f9ef4673e5ec65398bde68711b0e2949f3e82fa57f1d9e4dd6354f57bbd"
+      "bytes": 1165051,
+      "sha256": "e025dab616e8b2e031c214829caf1660394155a1f373573036684a2e2b57e39d"
     },
     "assets/js/part_07.js": {
       "bytes": 198691,
@@ -220,8 +220,8 @@
       "sha256": "5401c6e8172cb8c6ec9cb193f16eee76102e9e771ed754d45ebaf53e6b80c3c9"
     },
     "assets/js/part_17.js": {
-      "bytes": 27671,
-      "sha256": "c187bb863c8d08b8587d50f989fd8c840161ccdc52811f35fb754dc4813066ce"
+      "bytes": 30237,
+      "sha256": "145bbff54b9cf9483553c7823e3c0e7e0567704f68e89f2326ede1c7e3eaa244"
     },
     "assets/js/part_18.js": {
       "bytes": 2045,
@@ -317,7 +317,7 @@
     },
     "index.html": {
       "bytes": 5078,
-      "sha256": "9e7e963b117c8d2e8a8cee3f8af5f86c13e343bf59d869012cf1f985c9715a32"
+      "sha256": "2224d0eef0988637cb297589a1af64d44b6657c3957920e39a2928a398e26dcd"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -336,8 +336,8 @@
       "sha256": "872702c2064fd84a85cb6d2eaa0734e0adb2625dc43e2a367e728fa7279b996e"
     },
     "assets/secure/f61_map_patch.js": {
-      "bytes": 6256,
-      "sha256": "f2e95603bbabfbd4213572177f8911febcf534ee9e1d312a91b583da92238745"
+      "bytes": 6252,
+      "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
       "bytes": 65839,
@@ -345,11 +345,11 @@
     },
     "assets/secure/f40_pin_login.js": {
       "bytes": 36294,
-      "sha256": "4d4437908abbfa5a66c2bafb89e0ae0e59a4e76304a1293acd9bf1ace9cc948a"
+      "sha256": "1377b70bcdad8ad2fc4cc66e8f6b3026e505d6a092ff03a3623164c695f3672a"
     },
     "assets/secure/pin_boot.mjs": {
       "bytes": 7013,
-      "sha256": "8f54cbc5891ac1b6428f071186e75759735cb7d6369fe2514c9d70b624a7fbe5"
+      "sha256": "abb896630bfcac41429101e083aad5b9d61fd2f8559dc5eea963d11c69225f63"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
