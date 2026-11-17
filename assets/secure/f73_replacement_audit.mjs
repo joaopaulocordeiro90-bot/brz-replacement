@@ -2,27 +2,71 @@
  * Does not synthesize CBOT/FX/freight/FOB data, change trades, or save.
  * Bounded chunks keep the UI usable even with thousands of closed trades.
  */
+// F75: contracts with valid leg-level references do NOT require a synthetic
+// single CBOT contract/price at the header level. Explicitly pending deals and
+// Paraguayan-origin operations must not be assigned an invented Brazilian FOB.
+export function analyzeShipmentLegs(deal){
+ const legs=deal?.lotesEmbarque;
+ if(!Array.isArray(legs)||legs.length<2)return {multi:false,valid:false,reasons:[]};
+ const reasons=[];
+ const count=Number(deal.volume);
+ let sum=0;
+ const ids=new Set();
+ for(const [i,leg] of legs.entries()){
+   if(!leg||typeof leg!=='object'){reasons.push('Lote '+(i+1)+' ausente');continue;}
+   const id=String(leg.idLote||i);
+   if(ids.has(id))reasons.push('ID de lote duplicado: '+id);
+   ids.add(id);
+   const volume=Number(leg.volume);
+   if(!Number.isFinite(volume)||volume<=0)reasons.push('Volume inválido no lote '+(i+1));
+   else sum+=volume;
+   if(!leg.embarquePorto || !leg.embarqueOrigem)
+     reasons.push('Embarque de origem/porto não informado no lote '+(i+1));
+   if(!leg.vencCBOT||!Number.isFinite(Number(leg.cbot))||Number(leg.cbot)<=0)
+     reasons.push('CBOT não confirmado no lote '+(i+1));
+   if(!(leg.vencCambio||deal.vencCambio)||
+      !Number.isFinite(Number(leg.cambio??deal.cambio))||Number(leg.cambio??deal.cambio)<=0)
+     reasons.push('Câmbio não confirmado no lote '+(i+1));
+ }
+ if(!Number.isFinite(count)||count<=0||Math.abs(sum-count)>0.001)
+   reasons.push('Soma dos volumes por lote diferente do volume do contrato');
+ return {multi:true,valid:reasons.length===0,reasons,volume:sum,count:legs.length};
+}
 export function auditReason(deal,calc,error){
  const flags=[];
- if(!deal || typeof deal!=='object')return {type:'registro_invalido',details:['Registro ausente']};
- if(deal.replacementPendente===true || deal.marketSnapshotPending===true)
-   flags.push('Pendente comercial/financeiro');
+ if(!deal||typeof deal!=='object')return {type:'registro_invalido',details:['Registro ausente']};
+ const legs=analyzeShipmentLegs(deal);
+ const pending=deal.replacementPendente===true||deal.replacementPendente==='true'||
+     deal.marketSnapshotPending===true||deal.marketSnapshotPending==='true';
+ const foreign=/paraguai|paraguay/i.test(String(deal.corredor||'')+' '+String(deal.origem||''));
+ if(foreign) return {type:'fora_paridade_domestica',
+   details:['Origem/transação ligada ao Paraguai: não aplicar FOB doméstico sem parametrização comercial específica']};
+ if(pending) return {type:'pendencia_comercial',
+   details:['Replacement explicitamente pendente: exigir confirmação antes do cálculo']};
  if(!deal.produto)flags.push('Produto ausente');
  if(!deal.origem)flags.push('Origem ausente');
  if(!deal.corredor)flags.push('Corredor ausente');
- if(!deal.embarque && !deal.retirada)flags.push('Janela ausente');
- if(!Number.isFinite(Number(deal.preco))||Number(deal.preco)<=0)flags.push('Preço físico inválido');
- if(!deal.vencCBOT||!Number.isFinite(Number(deal.cbot))||Number(deal.cbot)<=0)
-   flags.push('CBOT/vencimento não confirmado');
- if(!deal.vencCambio||!Number.isFinite(Number(deal.cambio))||Number(deal.cambio)<=0)
-   flags.push('Câmbio/vencimento não confirmado');
+ if(!deal.embarque&&!deal.retirada&&!legs.valid)flags.push('Janela ausente');
+ if(deal.preco==null||!Number.isFinite(Number(deal.preco))||Number(deal.preco)<=0)
+   flags.push('Preço físico inválido');
+ if(legs.multi){
+   if(!legs.valid)flags.push(...legs.reasons);
+ }else{
+   if(!deal.vencCBOT||deal.cbot==null||
+      !Number.isFinite(Number(deal.cbot))||Number(deal.cbot)<=0)
+     flags.push('CBOT/vencimento não confirmado');
+   if(!deal.vencCambio||deal.cambio==null||
+      !Number.isFinite(Number(deal.cambio))||Number(deal.cambio)<=0)
+     flags.push('Câmbio/vencimento não confirmado');
+ }
  if(error)return {type:'erro_motor',details:[...flags,String(error?.message||error).slice(0,180)]};
  if(flags.length)return {type:'referencia_incompleta',details:flags};
- if(!calc || !Array.isArray(calc.portosComparados) || !calc.portosComparados.length ||
-    !calc.bestPort || calc.bestPort==='Pendente')
+ if(!calc||!Array.isArray(calc.portosComparados)||!calc.portosComparados.length||
+    !calc.bestPort||['Pendente','—','-'].includes(calc.bestPort))
    return {type:'sem_rota_calculavel',details:['Nenhuma rota com replacement calculável']};
  return {type:'calculado',details:[]};
 }
+
 export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isAborted=()=>false,chunk=25}){
  if(!Array.isArray(deals)||typeof calculate!=='function'||typeof onProgress!=='function'||
     typeof isAborted!=='function'||!Number.isInteger(chunk)||chunk<1||chunk>100)
@@ -31,7 +75,9 @@ export async function runReplacementAudit({deals,calculate,onProgress=()=>{},isA
  for(let i=0;i<deals.length;i++){
    if(isAborted())throw Error('F73: auditoria interrompida');
    const d=deals[i];
-   if(d?.foraMercado||d?.foraEscopo||d?.naoAbrirMercado||d?.status!=='FECHADO'){
+   // This analysis only covers grain replacement, not feed/oil cash trades.
+   if(d?.foraMercado||d?.foraEscopo||d?.naoAbrirMercado||d?.status!=='FECHADO'||
+      !['Soja','Milho','Sorgo'].includes(d?.produto)){
      skipped++;continue;
    }
    let result=null,exception=null;
