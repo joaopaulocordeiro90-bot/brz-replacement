@@ -33,7 +33,7 @@ export function createGeoRegistry({trades,getCoord,extractCity,regionOf,override
    try{municipal=(place.uf?(getCoord(place.city+' - '+place.uf)||getCoord(place.city+'/'+place.uf)):null)||getCoord(place.city);}catch{}
    if(valid(municipal)){
     geo={lat:Number(municipal[0]),lon:Number(municipal[1]),precision:'sede_municipal_indicativa',
-     source:'CITY_COORDS legado, conferir referência',confirmedAt:null};
+     source:String(municipal.source||'CITY_COORDS legado · sede municipal indicativa'),confirmedAt:null};
     counts.municipal++;
    }else{
     unresolved.push({id,origem:String(d.origem),cidade:place.city,uf:place.uf,corredor:String(d.corredor||'')});
