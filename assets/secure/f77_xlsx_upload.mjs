@@ -203,7 +203,7 @@ export function buildDailyPack(workbook,day,mapping){
  return {pack,total,errors:problems,counts:Object.fromEntries(
   Object.entries(records).map(([k,v])=>[k,v[day].length]))};
 }
-export function installExcelUpload({getReference,confirmUpload}={}){
+export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={}){
  if(typeof document==='undefined'||typeof confirmUpload!=='function')return null;
  const screen=document.getElementById('sistema')||document.getElementById('mercado');
  if(!screen||document.getElementById('brz-f77-xlsx'))return null;
@@ -215,7 +215,7 @@ export function installExcelUpload({getReference,confirmUpload}={}){
  '<div id="brz-f77-xlsx-mapping"></div>'+
  '<button type="button" id="brz-f77-xlsx-preview">Validar e pré-visualizar</button>'+
  '<div id="brz-f77-xlsx-report" role="status" aria-live="polite"></div>'+
- '<button type="button" id="brz-f77-xlsx-confirm" disabled>Confirmar importação após conferência</button>';
+ '<button type="button" id="brz-f77-xlsx-confirm" disabled>Confirmar importação após conferência</button>'+'<button type="button" id="brz-f77-xlsx-rollback">Desfazer último fechamento Excel</button>';
  screen.appendChild(panel);
  const css=document.createElement('style');css.id='brz-f77-xlsx-css';
  css.textContent='#brz-f77-xlsx{margin:14px 0;padding:13px;border:1px solid var(--g200,#cbd9e2);border-radius:5px;background:var(--card,#fff);color:var(--g900,#173249);font:12px/1.5 Inter,Arial,sans-serif}'+
@@ -284,6 +284,16 @@ export function installExcelUpload({getReference,confirmUpload}={}){
     '\nSHA-256: '+expected+'\nRegistro com revisão '+ack.revision+'. Recarregue para aplicar somente após conciliação integral.';
   }catch(error){$('brz-f77-xlsx-report').textContent='Importação NÃO aplicada: '+error.message;
    $('brz-f77-xlsx-confirm').disabled=false;}
+ };
+ $('brz-f77-xlsx-rollback').onclick=async()=>{
+  if(typeof rollbackUpload!=='function')return;
+  if(!confirm('Desfazer somente o último Excel F77 confirmado? Histórico imutável e negócios serão preservados.'))return;
+  $('brz-f77-xlsx-rollback').disabled=true;
+  try{
+   const ack=await rollbackUpload();
+   $('brz-f77-xlsx-report').textContent='Rollback confirmado na revisão '+ack.revision+'. Recarregue o site para restaurar a fonte anterior.';
+  }catch(error){$('brz-f77-xlsx-report').textContent='Rollback bloqueado: '+error.message;}
+  finally{$('brz-f77-xlsx-rollback').disabled=false;}
  };
  return Object.freeze({version:'F77-XLSX-review-v1'});
 }
