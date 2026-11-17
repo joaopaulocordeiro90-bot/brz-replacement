@@ -17,11 +17,11 @@
     },
     "app.html": {
       "bytes": 58672,
-      "sha256": "d84e853b4018c95b999a2511a149b5dfcc84244110433389a4cfffa233cee036"
+      "sha256": "90ff9ce0b8a434c102f6dd4db1f5ae3557767f8068cee2feb4e35e65868ba73d"
     },
     "assets/css/part_01.css": {
-      "bytes": 102207,
-      "sha256": "ffb4b47d624b4fe0263571788b8ea6b13375eb54dd43f3899a9b70dce8b28540"
+      "bytes": 103057,
+      "sha256": "b7921dcb423afd61f6a2fe161dd0b4b4b51498f29004b57fa120fe7be4989fb1"
     },
     "assets/css/part_02.css": {
       "bytes": 3223,
@@ -176,8 +176,8 @@
       "sha256": "6f209887ba377c94d76a269d15d2104bcdc486424abf1c27843c56aa09be5e63"
     },
     "assets/js/part_06.js": {
-      "bytes": 1166924,
-      "sha256": "5ac4e4cd22a001cb271e960c73e77303130c9b81b75a87d1ff4ee9ec8e75822e"
+      "bytes": 1165884,
+      "sha256": "ea8a8c2e777a036503de506d12774321c7b6087eacff639bab89d800b70195c7"
     },
     "assets/js/part_07.js": {
       "bytes": 198691,
@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "bytes": 7476,
-      "sha256": "118440a56b6480005254e6ac1a7431fe724c95a5cf164a0cce2bb1ee227520d4"
+      "bytes": 5492,
+      "sha256": "cee8aa15a143c72c8e26ef417be40d9b76ee3f0d8c80c253f5610150fa13e719"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -332,8 +332,8 @@
       "sha256": "21f7fa21c0e8a3b0701fbbec2889980ab49ad822a401a53b0904bdbcc93118fb"
     },
     "assets/secure/rodoviario_tku.mjs": {
-      "bytes": 12878,
-      "sha256": "872702c2064fd84a85cb6d2eaa0734e0adb2625dc43e2a367e728fa7279b996e"
+      "bytes": 13926,
+      "sha256": "567501e347649468474b2a4ef00d4be41b08db01ee3fcd184df9178819caf51e"
     },
     "assets/secure/f61_map_patch.js": {
       "bytes": 6252,
@@ -344,12 +344,12 @@
       "sha256": "3efe053a25ffd991897b40c9c4d34f361d92b3972bba737ca9aa4b7cbe748322"
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 40410,
-      "sha256": "d79e2d465560de85791ea62e0a66a8c57ccb98280ba4506206df70f77d9398d8"
+      "bytes": 37949,
+      "sha256": "1e963cc3d12a99bf1ef4411a92c620ddfe3f607ca8813c9b607fbe061a521282"
     },
     "assets/secure/pin_boot.mjs": {
-      "bytes": 8280,
-      "sha256": "2cac7d8bd4071287c4e90b2a0f620dcba488d60f68c4948bf0c48e695e47f542"
+      "bytes": 8039,
+      "sha256": "3f25f55a54f50e41cdf8b071477a3d162d6438701bc63576f35a432e9fcfc9e8"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
