@@ -50,7 +50,7 @@ const el=(d,t,text,cls)=>{
  const x=d.createElement(t);if(text!==undefined)x.textContent=String(text);
  if(cls)x.className=cls;return x;
 };
-export function installReplacementAudit(root){
+export function installReplacementAudit(root,getDeals){
  if(!root||root.__BRZ_F73_REPLACEMENT_AUDIT_INSTALLED)return false;
  if(typeof root.renderDeals!=='function'||typeof root.bestRouteAudit!=='function')return false;
  const originalRender=root.renderDeals;
@@ -88,7 +88,8 @@ export function installReplacementAudit(root){
    btn.onclick=async()=>{
      if(running)return;running=true;btn.disabled=true;
      try{
-       const deals=Array.isArray(root.state?.negocios)?root.state.negocios.slice():[];
+       const source=typeof getDeals==='function'?getDeals():root.state?.negocios;
+       const deals=Array.isArray(source)?source.slice():[];
        text.textContent='Conferindo '+deals.length+' registros…';
        result=await runReplacementAudit({deals,calculate:deal=>root.bestRouteAudit(deal),
          onProgress:({current,total,issues})=>{
