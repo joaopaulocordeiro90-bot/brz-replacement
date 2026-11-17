@@ -13,7 +13,7 @@ import {parseInternalFreight,compareInternalFreight} from '../homolog/f77/assets
 import {parseOfficialRoadFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
 import {buildDailyPack} from '../homolog/f77/assets/secure/f77_xlsx_upload.mjs';
 import {compareDailyXlsx} from '../homolog/f77/assets/secure/f77_xlsx_diff.mjs';
-import {auditRouteParity,auditDealParity,auditDayParity,isoWeekDay} from '../homolog/f77/assets/secure/f77_financial_parity.mjs';
+import {auditRouteParity,auditDealParity,auditDayParity,isoWeekDay,buildRoadReferenceIndex} from '../homolog/f77/assets/secure/f77_financial_parity.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const folder=path.join(root,'homolog/f77');
 const r=file=>readFileSync(path.join(folder,file),'utf8');
@@ -387,4 +387,30 @@ test('F77 fin: conciliação cobre todo o dia, bloqueia sem negocio e conserva f
   'Auditoria antiga não pode aprovar fechamento sem paridade F77');
  assert.equal(summarizeClose({...base,
   tradeAudits:{checked:true,failed:0,parityChecked:true,parityFailed:0}}).ready,true);
+});
+
+
+test('F77 fin: frete rodoviario exige correspondencia da rota e semana (R$/t)',()=>{
+ const date='2026-11-16',old=buildRoadReferenceIndex([
+  {tipo:'Rodoviário',origem:'Jataí/GO',destino:'Santos',semana:'2026-S46',valor:215},
+  {tipo:'Rodoviário',origem:'Jataí/GO',destino:'Santos',semana:'2026-S48',valor:9999},
+  {tipo:'Rodoviário',origem:'Jataí/GO',destino:'Santos',semana:'2024-S45',valor:90}
+ ],date);
+ assert.equal(old.size,1,'não aceitar cotação futura ou com mais de oito semanas');
+ const d={id:'frete-real',data:date,produto:'Milho',origem:'Jataí/GO',
+  embarque:'Dec-26',preco:57,cbot:480,cambio:5.4};
+ const fac=2.3621,base=215,fr=100*(base*.06/5.4)/fac,
+  p=100*(57/5.4)/fac,fb=100*(11*.06)/fac,fob=fr+p+fb;
+ const route={modal:'Rodoviário',freteRodo:215,freteFerro:0,freteBarcaca:0,
+  freteTotal:215,freteRodoBase:215,freteSemana:'2026-S46',
+  fonteFrete:'semana_anterior',fobbins:11,seaFreight:0,
+  replacementFOB:fob,replacementBasis:fob-480,replacementCFR:fob,
+  replacementCFRBasis:fob-480,_priceCbu:p,_freightCbu:fr,
+  _fobbinsCbu:fb,_seaCbu:0,_factor:fac};
+ assert.equal(auditRouteParity(d,route,{port:'Santos',freightIndex:old}).status,'conforme');
+ assert.ok(auditRouteParity(d,{...route,freteRodoBase:220},{port:'Santos',freightIndex:old})
+   .issues.some(x=>x.code==='RODO_BASE_DIVERGENTE'));
+ assert.equal(auditRouteParity(d,route,{port:'Paranaguá',freightIndex:old}).status,'indicativo');
+ assert.equal(auditRouteParity(d,{...route,freteProjSafraNova:true},
+   {port:'Santos',freightIndex:old}).status,'indicativo');
 });
