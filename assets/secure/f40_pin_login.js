@@ -386,9 +386,9 @@ async function start(ev){
   // F77: PIN opens the full verified replacement engine, never a quick preview.
   status('PIN confirmado · verificando todo o motor e suas dependências…');
   bootProgress(8);
-  if(typeof window.__BRZ_F73_VERIFY_FULL_STATIC!=='function')
+  if(typeof window.__BRZ_VERIFY_FULL_STATIC!=='function')
     throw Error('F77: verificação estática integral indisponível');
-  await Promise.all([window.__BRZ_F73_VERIFY_FULL_STATIC(),preflightModules()]);
+  await Promise.all([window.__BRZ_VERIFY_FULL_STATIC(),preflightModules()]);
   bootProgress(18);
   token=await restoreTabSession();
   if(!token)throw Error('Sessão expirada durante a verificação integral.');
