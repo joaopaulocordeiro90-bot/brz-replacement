@@ -16,8 +16,8 @@
       "sha256": "3a69d3ed8aba9d96491ceb1c990e464b27809cf4406e184308e6b00efa127f09"
     },
     "app.html": {
-      "bytes": 58672,
-      "sha256": "ff34f173b0c1af122661e96f3fc817271381088e93a0bebfae71441b7997b34e"
+      "sha256": "b2f892db1f997a8363a215d00ea099602d84ff4c0f2010db864a0c21454b6195",
+      "bytes": 59030
     },
     "assets/css/part_01.css": {
       "bytes": 103057,
@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "bytes": 6109,
-      "sha256": "52c3de548f966fb4bb85c31e22b15c7b07446c0afc670e3526001cd94f8dbf5b"
+      "sha256": "4077f35165356a608d3a6f226abc37e934c68ffd5235a10f0c7fc564f9355309",
+      "bytes": 6123
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -340,12 +340,12 @@
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "bytes": 81468,
-      "sha256": "28abb03de98886e5624f82ccbc7eb55f5bf8c6c550513495b3fc2d876c388c50"
+      "sha256": "3f975ac3d927fcde330a8830da232bdf3f7306b8d500457d764498d9ffe094c3",
+      "bytes": 81489
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 39202,
-      "sha256": "c048118eb6143ad6538a2ae46e128dca38f13894cf4773103cc9af7b148fdbe7"
+      "sha256": "31a81bda305cb6b65dbc28ad5d4ebb8b7c40effa60978f5d86a75386be003c48",
+      "bytes": 39316
     },
     "assets/secure/pin_boot.mjs": {
       "bytes": 8789,

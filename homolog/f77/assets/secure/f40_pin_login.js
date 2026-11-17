@@ -645,7 +645,8 @@ async function start(ev){
       $('go').disabled=true;loading=false;
     }
   },{once:true});
-  iframe.src='app.html';
+  // F77: immutable preview build URL prevents F76 HTML reuse from a stale browser cache.
+  iframe.src='app.html?v=F77_HOMOLOG_20261117B';
   // JWT held only in this closure until iframe inventory attestation completes.
 
  }catch(e){
