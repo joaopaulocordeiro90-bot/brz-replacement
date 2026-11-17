@@ -7328,6 +7328,7 @@ function rpmBuildMatrix(src,prod,date){
   return h;
 }
 
+var rpmF72MatrixObserver=null;
 function renderReplacementPorto(){
   var host=document.getElementById('corredores'); if(!host)return;
   var src=rpcSource(), prod=getActiveProduto(), isM=prod==='Milho';
@@ -7413,10 +7414,43 @@ function renderReplacementPorto(){
     ?'No modo <b>Todos os portos</b>, cada registro entra <b>uma única vez</b>, no porto vencedor da liquidação FOB. A tabela consolida uma linha por <b>porto + embarque</b>; portanto, a soma das amostras não duplica o mesmo registro entre corredores.'
     :'São exibidos somente os registros cujo porto vencedor da liquidação FOB é <b>'+rpcEsc(rpcPort)+'</b>. Cada registro entra uma única vez e as origens são consolidadas por embarque.')
     +' A <b>Logística</b> mostra o frete médio usado na formação do replacement. Mínimo, máximo, média e moda pertencem somente ao replacement; a moda considera o basis arredondado em 1 ¢/bu. O <b>FOB Paper é um input manual por porto e embarque</b> (valores antigos sem porto não são propagados entre terminais) e alimenta a margem: FOB Paper informado − replacement FOB médio. DoD usa somente pregão anterior exato, sem fallback; WoW compara com a <b>média</b> dos registros D-9 a D-5; MoM compara com a <b>média</b> dos registros D-35 a D-25, sempre no mesmo produto, base, porto e embarque. A qualidade da comparação permanece informada no tooltip. Positivo = custo maior; negativo = custo menor.';
-  var matrixHtml=rpmBuildMatrix(src,prod,rpcDate);
+  // F72: montar matriz somente quando visualizada. A tabela de Porto acima
+  // continua calculada com os dados completos e as regras comerciais vigentes.
+  var matrixHtml='<div id="rpm-f72-matrix" class="a-card" style="padding:12px"><strong>Matriz por estado</strong> · carregamento sob demanda <button class="btn small" type="button" id="rpm-f72-load">Carregar matriz</button></div>';
   host.innerHTML='<div class="rpc-wrap"><div class="rpc-head"><div><div class="rpc-h1">Replacement por Porto</div><div class="rpc-h2">Custo de originação consolidado pelo porto vencedor da liquidação FOB, sem duplicar registros entre corredores.</div></div>'+ctrls+'</div>'+kpis
     +'<div class="a-card"><div class="a-card-t">'+prod+' · '+rpcEsc(corridorLabel)+' <span class="rpc-badge">'+(pdays===1?'dia':pdays+' dias')+'</span></div><div class="p-card-s">'+(rpcPort==='all'?'Portos e embarques nas linhas':'Embarques nas linhas')+' · logística após o embarque · FOB Paper manual</div><div class="rpc-table-wrap">'+h+'</div><div class="rpc-note">'+note+'</div></div>'+matrixHtml+'</div>';
   try{if(typeof brzAddCamButtons==='function')brzAddCamButtons(host);}catch(e){}
+  if(rpmF72MatrixObserver){rpmF72MatrixObserver.disconnect();rpmF72MatrixObserver=null;}
+  const matrix=document.getElementById('rpm-f72-matrix');
+  if(!matrix)return;
+  const renderMatrix=()=>{
+    if(matrix.dataset.brzLoaded==='1'||matrix.dataset.brzLoading==='1')return;
+    matrix.dataset.brzLoading='1';
+    try{
+      matrix.innerHTML=rpmBuildMatrix(src,prod,rpcDate);
+      matrix.dataset.brzLoaded='1';
+      if(typeof brzAddCamButtons==='function')brzAddCamButtons(matrix);
+    }catch(e){
+      console.error('[BRZ F72] Matriz por estado',e);
+      matrix.replaceChildren();
+      const note=document.createElement('p');
+      note.textContent='Matriz indisponível: '+String(e?.message||e).slice(0,180);
+      const retry=document.createElement('button');
+      retry.type='button';retry.className='btn small';retry.textContent='Tentar novamente';
+      retry.onclick=renderMatrix;
+      matrix.append(note,retry);
+    }finally{delete matrix.dataset.brzLoading}
+  };
+  const load=document.getElementById('rpm-f72-load');
+  if(load)load.onclick=renderMatrix;
+  const reportVisible=document.getElementById('report')?.classList.contains('active');
+  if(reportVisible)renderMatrix();
+  else if(typeof IntersectionObserver==='function'){
+    rpmF72MatrixObserver=new IntersectionObserver(entries=>{
+      if(entries.some(e=>e.isIntersecting)){rpmF72MatrixObserver?.disconnect();rpmF72MatrixObserver=null;renderMatrix()}
+    },{rootMargin:'280px 0px'});
+    rpmF72MatrixObserver.observe(matrix);
+  }
 }
 
 function renderScreenSafe(screenId){
