@@ -27,6 +27,8 @@ jobs:
           node --check assets/secure/market_excel_reconcile.mjs
           node --check assets/secure/market_excel_audit.mjs
           node --check assets/secure/f68_deals_render_guard.mjs
+          node --check assets/secure/f61_map_patch.js
+          node --check assets/js/part_06.js
           node --check assets/secure/f70_hydration_scheduler.mjs
           node --check assets/secure/pin_autosave.js
           node --check assets/secure/f40_pin_login.js
@@ -44,6 +46,7 @@ jobs:
           node tests/f68_deals_render_guard.test.mjs
           node tests/f69_load_meal_parity.test.mjs
           node tests/f70_hydration_scheduler.test.mjs
+          node tests/f71_render_map_pagination.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'
