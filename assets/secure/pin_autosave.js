@@ -306,20 +306,27 @@
       'oceanFreightCornMonthly','oceanFreightAnoAnterior','oceanFreightRotasExcel','barcaca'],
    rail:['fretesFerro'],
    premiums:['premiosMilho'],
-   settings:['precosEdits','farmerSelling','r3Hidden','simulacoes','roadGeoRoutes','originGeoOverrides']
+   settings:['precosEdits','farmerSelling','r3Hidden','simulacoes','roadGeoRoutes','originGeoOverrides','marketExcelStaged','marketExcelPrevious']
  });
  let remoteModules=new Map(),roadBaseline=new Map(),moduleBooting=false;
  let excelBasisReferences=[],excelMarketStatus=null;
  async function loadExcelMarketOverlay(){
   const reply=await req('/rest/v1/rpc/brz_pin_market_excel_archive',{});
-  if(!reply?.available)return;
+  // F77 signed-off XLSX stage supersedes the old immutable daily archive;
+  // source snapshots and quoted CBOT/FX histories are never overwritten.
+  const candidate=state.marketExcelStaged;
+  const useStage=candidate&&candidate.status==='confirmado'&&
+    /^20\d\d-\d\d-\d\d$/.test(candidate.as_of||'')&&
+    (!reply?.available||candidate.as_of>reply.snapshot_day);
+  if(!reply?.available&&!useStage)return;
   const mod=await import('./market_excel_overlay.mjs?v=20261116f69');
   const reconciler=await import('./market_excel_reconcile.mjs?v=20261116f67');
   const auditor=await import('./market_excel_audit.mjs?v=20261116f67');
-  const patch=await mod.decodeExcelArchive(reply);
+  const patch=useStage?mod.projectExcel(candidate):await mod.decodeExcelArchive(reply);
   if(!patch)return;
-  if(!reply.curve_capture||reply.curve_capture.source_date!==patch.as_of||
-     !reply.curve_capture.curves?.cbot||!reply.curve_capture.curves?.dolar)
+  const activeCapture=useStage?candidate.curve_capture:reply.curve_capture;
+  if(!activeCapture||activeCapture.source_date!==patch.as_of||
+     !activeCapture.curves?.cbot||!activeCapture.curves?.dolar)
     throw Error('Captura CBOT/B3 de '+patch.as_of+' ausente; não aplicar cotação sem câmbio do dia.');
   if(typeof getPrecosBase!=='function'||typeof ppeData!=='function'||typeof r3Data!=='function')
     throw Error('Motor físico/FOB/CMA ainda não está inicializado.');
@@ -331,7 +338,7 @@
   if(!Array.isArray(originalPrices)||originalPrices.length<59000)
     throw Error('Arquivo histórico de preços incompleto.');
   // A later PIN curve edit takes precedence over an earlier desk capture.
-  const capture=reply.curve_capture;
+  const capture=activeCapture;
   const newerSavedCurve=curveUpdatedAt&&
     Date.parse(curveUpdatedAt)>Date.parse(capture.inserted_at);
   const effectiveCapture=newerSavedCurve?{
@@ -359,7 +366,7 @@
   const nextCMA=mod.mergeCMA(r3Data(),patch.derivatives);
   const nextOcean=mod.mergeOcean(state,patch.ocean);
   const quality=auditor.auditDailyMarketOverlay(patch,enriched,nextBasis,nextCMA,nextOcean);
-  if(quality.errors.length)throw Error('Falha na conferência do Excel: '+quality.errors.join('; '));
+  if(quality.errors.length||(useStage&&!quality.ok))throw Error('Falha na conferência do Excel: '+[...quality.errors,...quality.warnings].join('; '));
   // All validations finished: apply UI-visible market values atomically.
   if(!newerSavedCurve){
     for(const group of ['cbot','cbotMilho','cbotFarelo','cbotOleo','dolar']){
@@ -379,7 +386,7 @@
       timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
   }
   state.timestamps={...(state.timestamps||{}),cbot:patch.as_of,dolar:patch.as_of};
-  state._marketSnapshotId='Excel '+patch.as_of+' · CBOT/B3 C'+effectiveCapture.capture_no;
+  state._marketSnapshotId='Excel '+patch.as_of+' · CBOT/B3 '+effectiveCapture.capture_no+(useStage?' · F77 aprovado':'');
   PRECOS_BASE_CACHE=nextPrices;
   _basisFOB=nextBasis;
   // The older soybean-paper basis adapter uses a separate series cache.
