@@ -110,7 +110,7 @@ window.__BRZ_END_TAB_SESSION=()=>{
    .finally(()=>location.reload());
 };
 let marketStatsCached=null;
-function gate(){if(window.__BRZF58_PREFLIGHT?.verified!==true)
+function gate(){if(window.__BRZF58_PREFLIGHT?.quickVerified!==true && window.__BRZF58_PREFLIGHT?.verified!==true)
  throw Error('F58: pacote público ainda não conferido');
  if((!localHost&&!ghPages()&&!stageEdge())||window.top!==window||!window.isSecureContext)
  throw Error('F59: origem nao autorizada');}
@@ -376,12 +376,56 @@ async function start(ev){
  loading=true;$('go').disabled=true;
  let token=null;
  try{
-  gate();status('F49 · verificando oito módulos locais antes da autenticação…');
-  await preflightModules();
+  gate();status('F73 · verificando acesso autenticado à consulta diária…');
   status(restoring?'Restaurando sessão segura desta aba…':'Autenticando sessão mesa/admin…');
   token=restoring?await restoreTabSession():await signIn($('pin').value.trim());
   if(!token)throw Error('Sessão de uma hora expirada. Informe o PIN para entrar.');
   $('pin').value='';
+  // F73: the PIN now opens a real authenticated daily-market view first.
+  // Historical F40/F44/F46/F41 checks run ONLY when the user asks to open the
+  // full legacy engine; do not signal historical readiness from this view.
+  const fastTarget=$('brz-f73-market'),fastContinue=$('brz-open-full');
+  if(fastTarget&&fastContinue){
+    try{
+      status('PIN validado · consultando Excel mais recente (sem históricos)…');
+      const fast=await import('./f73_fast_market.mjs?v=20261117f73');
+      const preview=await fast.loadFastMarket({request,token});
+      fast.renderFastMarket(fastTarget,preview);
+      window.__BRZ_F73_FAST_STATUS=Object.freeze({
+        excelDay:preview.date,counts:preview.counts,
+        historicalLoaded:false,authenticated:true});
+      $('loginTitle').textContent='Mercado diário · acesso confirmado';
+      $('loginSubtitle').textContent='Consulta operacional rápida, autenticada e sem replacement estimado';
+      $('brz-f73-error').textContent='';
+    }catch(fastError){
+      console.error('[BRZ F73] Consulta diária indisponível:',fastError);
+      $('loginTitle').textContent='Acesso confirmado · visão diária indisponível';
+      $('loginSubtitle').textContent='O motor completo permanece disponível';
+      $('brz-f73-error').textContent='A prévia não pôde ser validada: '+String(fastError?.message||fastError).slice(0,180);
+      window.__BRZ_F73_FAST_STATUS=Object.freeze({authenticated:true,historicalLoaded:false,
+        previewError:String(fastError?.message||fastError).slice(0,150)});
+    }
+    document.body.classList.add('brz-f73-quick');
+    document.documentElement.classList.remove('brz-restoring','brz-resume-failed');
+    status('Sessão autenticada · preços de fonte disponíveis sem baixar as bases históricas.');
+    await new Promise(resolve=>{
+      fastContinue.disabled=false;
+      fastContinue.onclick=()=>{
+        fastContinue.disabled=true;
+        document.body.classList.remove('brz-f73-quick');
+        status('Abrindo motor completo · validando históricos, curvas e fretes…');
+        resolve();
+      };
+    });
+    // The quick session may have been idle. Renew it just before the costly
+    // full engine load; keep the original one-hour tab-session boundary.
+    if(typeof window.__BRZ_F73_VERIFY_FULL_STATIC!=='function')
+      throw Error('F73: verificação do motor não inicializada');
+    await window.__BRZ_F73_VERIFY_FULL_STATIC();
+    await preflightModules();
+    token=await restoreTabSession();
+    if(!token)throw Error('Sessão expirou. Atualize o site e faça login novamente.');
+  }
   status('Verificando metadados e fontes confidenciais em paralelo…');
   // F55 and F56 are independent authenticated read-only sources.
   // Concurrent retrieval saves one server round trip without touching data.
@@ -548,7 +592,7 @@ async function start(ev){
       // PIN operator session: attach the independent, versioned F33 autosave.
       // Frozen source rows are hydrated first; edits are persisted as overlays.
       const script=iframe.contentDocument.createElement('script');
-      script.src='./assets/secure/pin_autosave.js?v=20261117f72';
+      script.src='./assets/secure/pin_autosave.js?v=20261117f73';
       await new Promise((resolve,reject)=>{
         script.onload=resolve;
         script.onerror=()=>reject(Error('Gravação centralizada não carregada'));
@@ -636,8 +680,7 @@ $('go').disabled=true;
 $('pin').disabled=false;
 (async()=>{
  try{
-  gate();status('F49 · verificando a integridade dos oito módulos locais…');
-  await preflightModules();
+  gate();status('F73 · componentes essenciais autenticados, pronto para PIN.');
   $('pin').disabled=false;$('go').disabled=false;
   let cached=null;
   try{cached=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}catch(e){}
@@ -646,7 +689,7 @@ $('pin').disabled=false;
    await start({preventDefault(){},restore:true});
   }else{
    if(cached)forgetTabSession();
-   status('Oito módulos verificados. Aguardando autenticação mesa/admin.');
+   status('Acesso preparado. Informe o PIN para consultar o Excel mais recente.');
   }
  }catch(e){
   status('BLOQUEADO F49: '+e.message);

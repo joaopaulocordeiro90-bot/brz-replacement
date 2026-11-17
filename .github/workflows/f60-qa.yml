@@ -31,6 +31,8 @@ jobs:
           node --check assets/js/part_06.js
           node --check assets/js/part_17.js
           node --check assets/secure/f70_hydration_scheduler.mjs
+          node --check assets/secure/f73_fast_market.mjs
+          node --check assets/secure/f73_replacement_audit.mjs
           node --check assets/secure/pin_autosave.js
           node --check assets/secure/f40_pin_login.js
           node --check assets/secure/pin_boot.mjs
@@ -49,6 +51,7 @@ jobs:
           node tests/f70_hydration_scheduler.test.mjs
           node tests/f71_render_map_pagination.test.mjs
           node tests/f72_map_report.test.mjs
+          node tests/f73_fast_boot_audit.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'

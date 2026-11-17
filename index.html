@@ -36,6 +36,34 @@ summary{color:#1a3a5c;cursor:pointer;font:600 12px Arial;line-height:1.4}
 #setupStatus{font-size:12px;line-height:1.5;min-height:15px}
 #app{display:none;width:100vw;height:100vh;border:0;background:#fff}
 body.loaded{display:block}body.loaded main{display:none}body.loaded #app{display:block}
+/* F73: secure daily market preview before historical hydration. */
+#brz-f73-quick{display:none}
+body.brz-f73-quick{display:block;padding:15px 0}
+body.brz-f73-quick main{max-width:1190px;width:calc(100% - 30px);padding:24px}
+body.brz-f73-quick #brz-f73-quick{display:block}
+body.brz-f73-quick #authform,body.brz-f73-quick #setup{display:none!important}
+body.brz-f73-quick #loginTitle{font-size:23px;margin-bottom:8px}
+body.brz-f73-quick #loginSubtitle{margin-bottom:11px}
+.brz-fast-wrap{font-size:12px;color:#173249}
+.brz-fast-header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;margin:10px 0;color:#173249}
+.brz-fast-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.brz-fast-tabs button{width:auto;margin:0;padding:8px 10px;background:#e7f0f3;color:#26465c}
+.brz-fast-tabs button.selected{background:#0d8f85;color:white}
+.brz-fast-tools{display:flex;gap:12px;align-items:center;margin:10px 0}
+.brz-fast-search{flex:1;width:auto;min-width:100px}
+.brz-fast-size{padding:10px;border:1px solid #a7bdc5;border-radius:5px}
+.brz-fast-table{width:100%;border-collapse:collapse;table-layout:auto}
+.brz-fast-table th{background:#e7eff2;font-size:11px;color:#274052;text-align:left}
+.brz-fast-table th,.brz-fast-table td{border-bottom:1px solid #d8e1e5;padding:7px 9px}
+.brz-fast-table tr:nth-child(even){background:#f8fafb}
+.brz-fast-table td:nth-child(2){min-width:160px;overflow-wrap:anywhere}
+.brz-fast-pager{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0}
+.brz-fast-pager button{width:auto;margin:0;padding:9px 13px}
+.brz-fast-note{font-size:12px;color:#617487;background:#f4f8fa;padding:10px;margin:10px 0}
+#brz-f73-error{font-size:12px;color:#a44c26;white-space:pre-wrap}
+#brz-open-full{margin:8px 0;max-width:420px;background:#1a3a5c}
+@media(max-width:750px){.brz-fast-table{font-size:10px}.brz-fast-table th,.brz-fast-table td{padding:6px 4px}.brz-fast-header{display:block}}
+
 #resumeTitle{display:none;font-size:24px;font-weight:750;margin:10px 0}
 #resumeRetry{display:none;background:#0d8f85;color:#fff;margin-top:12px}
 html.brz-restoring #authform,html.brz-restoring #setup,
@@ -58,6 +86,12 @@ html.brz-restoring.brz-resume-failed #resumeRetry{display:block}
 <button id="go" type="submit" disabled>Entrar na plataforma</button>
 </form>
 <div id="status" role="status" aria-live="polite">Conferindo os componentes da plataforma…</div>
+<section id="brz-f73-quick" aria-label="Consulta rápida de mercado autenticada">
+<div id="brz-f73-market"></div>
+<p id="brz-f73-error" role="alert"></p>
+<p>Esta visão consulta apenas o Excel mais recente, com SHA validado. Para cálculos de replacement, negócios históricos e fretes, abra o motor completo.</p>
+<button id="brz-open-full" type="button">Abrir BRZ Replacement completo (carrega histórico)</button>
+</section>
 <button type="button" id="resumeRetry" onclick="location.reload()">Tentar restaurar novamente</button>
 <details id="setup">
 <summary>Primeiro acesso? Definir ou redefinir o PIN</summary>
@@ -77,5 +111,5 @@ html.brz-restoring.brz-resume-failed #resumeRetry{display:block}
 </main>
 
 <iframe id="app" title="BRZ Replacement" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-downloads"></iframe>
-<script type="module" src="assets/secure/pin_boot.mjs?v=20261117f72"></script>
+<script type="module" src="assets/secure/pin_boot.mjs?v=20261117f73"></script>
 </body></html>
