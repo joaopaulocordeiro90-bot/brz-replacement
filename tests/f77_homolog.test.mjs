@@ -12,6 +12,7 @@ import {validatedRailPath} from '../homolog/f77/assets/secure/f77_rail_network.m
 import {parseInternalFreight,compareInternalFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
 import {parseOfficialRoadFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
 import {buildDailyPack} from '../homolog/f77/assets/secure/f77_xlsx_upload.mjs';
+import {compareDailyXlsx} from '../homolog/f77/assets/secure/f77_xlsx_diff.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const folder=path.join(root,'homolog/f77');
 const r=file=>readFileSync(path.join(folder,file),'utf8');
@@ -22,10 +23,10 @@ test('F77: PIN direto sem tela Mercado diário e arquivos assinados',()=>{
  assert.match(pin,/__BRZ_VERIFY_FULL_STATIC/);
  assert.match(pin,/full verified replacement engine/);
  assert.match(app,/id="brz-f77-build"/);
- assert.match(index,/pin_boot\.mjs\?v=20261117real01/);
- assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117real01/);
- assert.match(pin,/pin_autosave\.js\?v=20261117real01/);
- assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117E/);
+ assert.match(index,/pin_boot\.mjs\?v=20261117hist01/);
+ assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117hist01/);
+ assert.match(pin,/pin_autosave\.js\?v=20261117hist01/);
+ assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117F/);
  const m=JSON.parse(r('MANIFEST_F58_PUBLIC_SHA256.json'));
  assert.ok(Object.keys(m.files).length>100);
  for(const [name,record] of Object.entries(m.files)){
@@ -115,7 +116,7 @@ test('Frete interno: 5o campo, leitura separada e nenhuma mutacao de referencia'
  assert.deepEqual(parsed.errors,[]);
  assert.equal(parsed.counts.rodoviario,1);
  assert.equal(parsed.counts.ferroviario,1);
- const base={road:[{tipo:'Rodoviário',origem:'Jataí/GO',destino:'Santos',semana:'2026-S47',valor:210}],
+ const base={road:[{tipo:'Rodoviário',origem:'Jataí/GO',destino:'Santos',semana:'2026-S46',valor:210}],
   rail:[{origem:'Rondonópolis/MT',destino:'Santos',meses:{Nov:193}}]};
  const snapshot=JSON.stringify(base);
  const diff=compareInternalFreight(parsed.records,base);
@@ -197,4 +198,67 @@ test('Leitura historica incremental requerida e sem dados privados no repositori
  assert.match(code,/rows\.length>50000/);
  assert.match(r('assets/secure/f77_xlsx_upload.mjs'),/officialDaily/);
  assert.match(r('assets/secure/f77_xlsx_upload.mjs'),/f77_official_daily_xlsx\.mjs/);
+});
+
+test('F77 diff: dados do proprio dia nao podem mascarar variacao anterior',()=>{
+ const asOf='2026-11-16',key='Soybean|Santos|F|02-2027|bid';
+ const projected={as_of:asOf,sourceSha:'a'.repeat(64),
+  physical:[{produto:'Soja',origem:'Jataí - GO',janelaFisica:'Feb-27',bid:136,offer:138}],
+  basis:[{key,value:120}],
+  derivatives:[{d:asOf,o:'Jataí - GO',p:'Soyoil',v:[6200]}],
+  ocean:[{day:asOf,route:'Santos>China',shipment:'2027-02-01',value:37}]};
+ const reference={
+  physicalHistory:[
+   {data:'2026-11-13',produto:'Soja',origem:'Jataí - GO',janelaFisica:'Feb-27',bid:130,offer:132},
+   {data:asOf,produto:'Soja',origem:'Jataí - GO',janelaFisica:'Feb-27',bid:136,offer:138}],
+  basisHistory:{series:{[key]:[[20261113,110],[20261116,120]]}},
+  derivativeHistory:[
+   {d:'2026-11-13',o:'Jataí - GO',p:'Soyoil',v:[6000]},
+   {d:asOf,o:'Jataí - GO',p:'Soyoil',v:[6200]}],
+  oceanHistory:{
+   '2026-11-13':[['Santos>China','2027-02-01',32]],
+   [asOf]:[['Santos>China','2027-02-01',37]]}};
+ const result=compareDailyXlsx(projected,reference);
+ assert.equal(result.comparisonRule,'strictly_previous_date');
+ assert.equal(result.counts.total,4);
+ assert.equal(result.counts.alterado,4);
+ assert.equal(result.counts.sem_alteracao,0);
+ assert.ok(result.changes.every(x=>String(x.oldDate).replaceAll('-','')<'20261116'));
+ assert.equal(result.changes[0].bidDelta,6);
+ assert.equal(result.changes[1].delta,10);
+ assert.equal(result.changes[2].delta,200);
+ assert.equal(result.changes[3].delta,5);
+});
+
+test('F77 diff: sem historico anterior vira N/D e nunca autocomparacao',()=>{
+ const day='2026-11-16';
+ const projected={as_of:day,physical:[{produto:'Soja',origem:'Jataí - GO',janelaFisica:'Feb-27',bid:136,offer:138}],basis:[],derivatives:[],ocean:[]};
+ const got=compareDailyXlsx(projected,{physicalHistory:[{data:day,produto:'Soja',origem:'Jataí - GO',janelaFisica:'Feb-27',bid:136,offer:138}]});
+ assert.equal(got.counts.sem_referencia,1);
+ assert.equal(got.counts.comparado,0);
+ assert.equal(got.changes[0].oldDate,null);
+ assert.equal(got.changes[0].bidDelta,null);
+});
+
+test('F77 frete interno: comparar ultima semana do MESMO XLSX',()=>{
+ const records=[
+  {modal:'Rodoviário',origem:'Jataí/GO',destino:'São Simão/SP',periodo:'2026-S46',valor:79},
+  {modal:'Rodoviário',origem:'Redenção/PA',destino:'Santos/SP',periodo:'2026-S46',valor:490},
+ ];
+ const previousRoad=[
+  {modal:'Rodoviário',origem:'Jataí/GO',destino:'São Simão/SP',periodo:'2026-S45',valor:75},
+  {modal:'Rodoviário',origem:'Redenção/PA',destino:'Santos/SP',periodo:'2026-S45',valor:490}];
+ const result=compareInternalFreight(records,{previousRoad,road:[
+  {tipo:'Rodoviário',origem:'Jataí/GO',destino:'São Simão/SP',semana:'2026-S46',valor:79}
+ ]});
+ assert.equal(result.counts.total,2);
+ assert.equal(result.counts.comparado,2);
+ assert.equal(result.counts.alterado,1);
+ assert.equal(result.counts.sem_alteracao,1);
+ assert.equal(result.counts.sem_referencia,0);
+ assert.equal(result.changes[0].anteriorPeriodo,'2026-S45');
+ assert.equal(result.changes[0].delta,4);
+ assert.equal(result.changes[0].referencia,'xlsx_semana_anterior');
+ assert.equal(result.changes[1].delta,0);
+ assert.match(r('assets/secure/f77_official_daily_xlsx.mjs'),/previousSheets/);
 });

@@ -116,7 +116,7 @@ export async function parseXlsx(file,onProgress=()=>{}){
  // Real desk exports exceed 24 MB and contain >1 million historical rows.
  // Stream the entire XML, verify counts and retain ONLY each sheet's latest date.
  if(file.size>12*1024*1024){
-  const {parseOfficialDailyXlsx}=await import('./f77_official_daily_xlsx.mjs?v=20261117real01');
+  const {parseOfficialDailyXlsx}=await import('./f77_official_daily_xlsx.mjs?v=20261117hist01');
   return parseOfficialDailyXlsx(file,onProgress);
  }
  if(file.size<50||file.size>MAX_FILE)throw Error('XLSX maior que 24 MB ou vazio');
@@ -336,13 +336,19 @@ export function installExcelUpload({getReference,getInternalFreightReference,con
    const freightSheet=internalSheet.value;
    if(freightSheet){
     try{
-     const mod=await import('./f77_internal_freight.mjs?v=20261117int01');
+     const mod=await import('./f77_internal_freight.mjs?v=20261117hist01');
      const base=freightWorkbook||workbook;
      const parsed=mod.parseInternalFreight(base?.sheets?.[freightSheet],{sheetName:freightSheet});
      if(parsed.errors.length)throw Error(parsed.errors.slice(0,12).join(' · '));
      const refs=typeof getInternalFreightReference==='function'?
       await getInternalFreightReference():{road:[],rail:[]};
-     internalDiff=mod.compareInternalFreight(parsed.records,refs);
+     let previousRoad=[];
+     if(base?.officialDaily&&Array.isArray(base.previousSheets?.[freightSheet])){
+      const previous=mod.parseInternalFreight(base.previousSheets[freightSheet],{sheetName:freightSheet});
+      if(previous.errors.length)throw Error('Frete anterior inválido: '+previous.errors.slice(0,4).join(' · '));
+      previousRoad=previous.records;
+     }
+     internalDiff=mod.compareInternalFreight(parsed.records,{...refs,previousRoad});
      const cs=internalDiff.counts;
      internalSummary='FRETE INTERNO — PRÉVIA SEM GRAVAÇÃO\n'+
       'Rodoviário: '+parsed.counts.rodoviario+' · Ferroviário: '+parsed.counts.ferroviario+
@@ -358,6 +364,9 @@ export function installExcelUpload({getReference,getInternalFreightReference,con
     }
    }
    const reference=typeof getReference==='function'?await getReference(built.pack):null;
+   if(reference?.diff?.changes?.some(x=>x.oldDate&&
+      String(x.oldDate).replaceAll('-','')>=built.pack.as_of.replaceAll('-','')))
+    throw Error('Histórico inválido: comparação contra o próprio dia ou data posterior. Importação bloqueada.');
    const message='Fonte: '+built.pack.source_file+' · data '+built.pack.as_of+
     '\n'+Object.entries(built.counts).map(([k,v])=>k+': '+v+' registros').join('\n')+
     '\nTotal: '+built.total+' observações. Arquivo intacto; ausência de preço é N/D.'+

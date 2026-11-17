@@ -90,7 +90,7 @@ function rowCells(xml,shared){
 async function dailySheet(zip,filename,shared,onProgress){
  const {stream,entry}=part(zip,filename);
  const reader=stream().getReader(),decoder=new TextDecoder();
- let buffer='',rows=[],header=null,maxDay=null,read=0,total=0,dimension=null,invalidDate=0,priorDay=null,outOfOrder=0;
+ let buffer='',rows=[],prevRows=[],header=null,maxDay=null,prevDate=null,read=0,total=0,dimension=null,invalidDate=0,priorDay=null,outOfOrder=0;
  async function consume(raw){
   const cells=rowCells(raw,shared);
   total++;
@@ -101,7 +101,9 @@ async function dailySheet(zip,filename,shared,onProgress){
   priorDay=day;
   if(maxDay===null||day>maxDay){maxDay=day;rows=[cells]}
   else if(day===maxDay){rows.push(cells)}
-  if(rows.length>50000)throw Error('Fechamento com mais de 50 mil linhas: fracionamento obrigatório');
+  else if(prevDate===null||day>prevDate){prevDate=day;prevRows=[cells]}
+  else if(day===prevDate){prevRows.push(cells)}
+  if(rows.length>50000||prevRows.length>50000)throw Error('Fechamento com mais de 50 mil linhas: fracionamento obrigatório');
   if(total%20000===0){
    onProgress?.({sheet:filename,read:total,latest:maxDay,latestCount:rows.length});
    await new Promise(resolve=>setTimeout(resolve,0));
@@ -135,7 +137,8 @@ async function dailySheet(zip,filename,shared,onProgress){
     (dimension!==null&&dimension!==total))
   throw Error('Histórico Excel incompleto ou fora da ordem por data: '+filename+
     ' (linhas='+total+', datas inválidas='+invalidDate+', inversões='+outOfOrder+')');
- return {rows:[header,...rows],date:maxDay,latest:rows.length,historic:total-1};
+ return {rows:[header,...rows],date:maxDay,latest:rows.length,historic:total-1,
+  previousRows:[header,...prevRows],previousDate:prevDate};
 }
 export async function parseOfficialDailyXlsx(file,onProgress=()=>{}){
  if(!file||!/\.xlsx$/i.test(file.name||'')||file.size>MAX_FILE||file.size<100)
@@ -160,10 +163,11 @@ export async function parseOfficialDailyXlsx(file,onProgress=()=>{}){
  }
  for(const name of REQUIRED)if(!targets.has(name))
   throw Error('Aba obrigatória ausente no Excel diário: '+name);
- const sheets={},dates={},history={},latestCount={};
+ const sheets={},dates={},history={},latestCount={},previousSheets={},previousDateBySheet={};
  for(const name of REQUIRED){
   const result=await dailySheet(zip,targets.get(name),shared,onProgress);
   sheets[name]=result.rows;dates[name]=result.date;
+  previousSheets[name]=result.previousRows;previousDateBySheet[name]=result.previousDate;
   history[name]=result.historic;latestCount[name]=result.latest;
   onProgress({sheet:name,done:true,latest:result.date,latestCount:result.latest,historic:result.historic});
  }
@@ -172,5 +176,6 @@ export async function parseOfficialDailyXlsx(file,onProgress=()=>{}){
   if(dates[name]!==marketDate)throw Error('Datas de mercado divergentes: '+name);
  return {sheets,file_sha256:digest,source_file:file.name,
   officialDaily:true,dateBySheet:dates,historyRows:history,latestCount,
+  previousSheets,previousDateBySheet,
   asOf:marketDate,roadSourceDate:dates['frete rodoviario']};
 }

@@ -135,36 +135,59 @@ export function parseInternalFreight(rows,{sheetName='Frete interno'}={}){
   ferroviario:result.filter(x=>x.modal==='Ferroviário').length
  }};
 }
-export function compareInternalFreight(records,{road=[],rail=[]}={}){
+export function compareInternalFreight(records,{road=[],rail=[],previousRoad=[]}={}){
  if(!Array.isArray(records))throw Error('Frete interno: registros inválidos');
- const relevantRoad=new Set(records.filter(r=>r.modal==='Rodoviário').map(key));
- const histories=new Map();
- for(const r of Array.isArray(road)?road:[]){
-  if(!r||r.tipo!=='Rodoviário'||!r.semana||!r.origem||!r.destino)continue;
-  const item={modal:'Rodoviário',origem:r.origem,destino:r.destino,periodo:r.semana};
-  const k=key(item);if(!relevantRoad.has(k))continue;
-  const n=digits(r.valor);
-  if(n!==null&&n>0&&!histories.has(k))histories.set(k,n);
+ const routeKey=item=>[norm(item.modal),norm(item.origem).replace(/\s*[-/]\s*([a-z]{2})$/,'/$1'),
+   norm(item.destino).replace(/\s*[-/]\s*([a-z]{2})$/,'/$1')].join('|');
+ const quotedRoutes=new Set(records.filter(x=>x.modal==='Rodoviário').map(routeKey));
+ const historic=new Map(),fromSource=new Map();
+ // Official XLSX includes last week's exact route quotation; that is the
+ // preferred dated baseline. Never reuse the same week's price as previous.
+ for(const row of Array.isArray(previousRoad)?previousRoad:[]){
+  if(row?.modal!=='Rodoviário'||!row.periodo||digits(row.valor)===null)continue;
+  const k=routeKey(row),prior=fromSource.get(k);
+  if(!prior||row.periodo>prior.periodo)fromSource.set(k,row);
+ }
+ // Fallback: fully qualified same origin/destination and strictly older
+ // ISO week from the authenticated road archive. No city-only aliasing.
+ for(const row of Array.isArray(road)?road:[]){
+  if(!row||row.tipo!=='Rodoviário'||!row.semana||!row.origem||!row.destino)continue;
+  const item={modal:'Rodoviário',origem:row.origem,destino:row.destino};
+  const k=routeKey(item);if(!quotedRoutes.has(k))continue;
+  const value=digits(row.valor);
+  if(value===null||value<=0)continue;
+  const arr=historic.get(k)||[];
+  arr.push({periodo:String(row.semana),valor:value});historic.set(k,arr);
  }
  const changes=[],status={total:records.length,comparado:0,alterado:0,sem_alteracao:0,sem_referencia:0,ferro_sem_ano:0};
  for(const item of records){
-  let before=null,reference='historico_exato';
-  if(item.modal==='Rodoviário')before=histories.get(key(item))??null;
-  else {
-   // F45 rail tariff has Jan–Dez but NO year. Comparing it against
-   // 2026/2027 would falsely assert dated continuity; keep baseline N/D.
-   reference='ferro_sem_ano';
-   status.ferro_sem_ano++;
+  let before=null,previousPeriod=null,reference='historico_semanal_anterior';
+  if(item.modal==='Rodoviário'){
+   const fromExcel=fromSource.get(routeKey(item));
+   if(fromExcel&&fromExcel.periodo<item.periodo){
+    before=digits(fromExcel.valor);previousPeriod=fromExcel.periodo;
+    reference='xlsx_semana_anterior';
+   }else{
+    const quotes=historic.get(routeKey(item))||[];
+    const prior=quotes.filter(x=>x.periodo<item.periodo)
+      .sort((a,b)=>b.periodo.localeCompare(a.periodo))[0];
+    if(prior){before=prior.valor;previousPeriod=prior.periodo;reference='historico_semanal_anterior';}
+   }
+  }else{
+   // F45 monthly rail quotation has NO source year.
+   reference='ferro_sem_ano';status.ferro_sem_ano++;
   }
   const delta=before===null?null:+(item.valor-before).toFixed(2);
   const tag=before===null?'sem_referencia':delta===0?'sem_alteracao':'alterado';
   status[tag]++;if(before!==null)status.comparado++;
   changes.push({modal:item.modal,origem:item.origem,destino:item.destino,periodo:item.periodo,
-   unidade:'R$/t',anterior:before,novo:item.valor,delta,status:tag,referencia:reference,
-   sourceLine:item.fonteLinha});
+   anteriorPeriodo:previousPeriod,unidade:'R$/t',anterior:before,novo:item.valor,
+   delta,status:tag,referencia:reference,sourceLine:item.fonteLinha});
  }
- return {schema:'BRZ_F77_INTERNAL_FREIGHT_PREVIEW_V1',counts:status,changes,
+ return {schema:'BRZ_F77_INTERNAL_FREIGHT_PREVIEW_V1',comparisonRule:'strictly_previous_week',
+  counts:status,changes,
   warnings:['A conferência de frete interno não grava tarifas nem altera replacement.',
-   'Frete rodoviário comparado somente por origem, destino e semana idênticos.',
+   'Frete rodoviário comparado com última semana anterior da mesma rota (sem inferir UF ou criar tarifa).',
+   'A referência semanal anterior do mesmo Excel tem prioridade sobre o motor autenticado.',
    'Ferroviário F45 possui tarifas mensais sem ano; a comparação temporal é N/D.']};
 }

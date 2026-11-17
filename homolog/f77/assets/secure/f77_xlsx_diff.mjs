@@ -12,7 +12,7 @@ export function compareDailyXlsx(projected,{physicalHistory=[],basisHistory=null
  if(!projected||!/^20\d\d-\d\d-\d\d$/.test(projected.as_of||''))throw Error('F77: pacote sem data de origem');
  const changes=[],asof=projected.as_of,keyDate=dayKey(asof),physicalMap=new Map();
  for(const record of Array.isArray(physicalHistory)?physicalHistory:[]){
-  if(!record||String(record.data||'')>asof)continue;
+  if(!record||String(record.data||'')>=asof)continue;
   const key=[norm(record.produto),norm(record.origem),norm(record.janelaFisica)].join('|');
   const prev=physicalMap.get(key);
   if(!prev||String(record.data||'')>=String(prev.data||''))physicalMap.set(key,record);
@@ -28,7 +28,7 @@ export function compareDailyXlsx(projected,{physicalHistory=[],basisHistory=null
  const series=basisHistory?.series||{};
  for(const item of projected.basis||[]){
   const old=Array.isArray(series[item.key])?series[item.key]
-    .filter(p=>Array.isArray(p)&&String(p[0])<=keyDate&&Number.isFinite(Number(p[1])))
+    .filter(p=>Array.isArray(p)&&String(p[0])<keyDate&&Number.isFinite(Number(p[1])))
     .sort((a,b)=>Number(b[0])-Number(a[0]))[0]:null;
   const was=finite(old?.[1]),next=finite(item.value);
   changes.push({tab:'Basis FOB',key:item.key,oldDate:old?String(old[0]):null,
@@ -36,7 +36,7 @@ export function compareDailyXlsx(projected,{physicalHistory=[],basisHistory=null
  }
  const cmaMap=new Map(),cmaRows=Array.isArray(derivativeHistory)?derivativeHistory:[];
  for(const item of cmaRows){
-  if(!item||String(item.d||'')>asof)continue;
+  if(!item||String(item.d||'')>=asof)continue;
   const v=validValue(item.v);if(v===null||v===0)continue;
   const key=[norm(item.o),norm(item.p)].join('|');
   const prior=cmaMap.get(key);
@@ -53,7 +53,7 @@ export function compareDailyXlsx(projected,{physicalHistory=[],basisHistory=null
   const key=item.route+'|'+item.shipment;
   // ocean routes may include multiple observations for the day. Only compare
   // exact route+shipment keys if archival entries explicitly provide that pair.
-  const records=Object.entries(history).filter(([d,rows])=>d<=asof&&Array.isArray(rows))
+  const records=Object.entries(history).filter(([d,rows])=>d<asof&&Array.isArray(rows))
    .sort((a,b)=>b[0].localeCompare(a[0]));
   let prev=null,priorDay=null;
   for(const [d,rows] of records){
@@ -73,10 +73,11 @@ export function compareDailyXlsx(projected,{physicalHistory=[],basisHistory=null
   const different=item.tab==='Preços'?item.bidDelta!==0||item.offerDelta!==0:item.delta!==0;
   if(different){counts.alterado++;t.alterado++;}else counts.sem_alteracao++;
  }
- return {schema:'BRZ_F77_XLSX_DIFF_V1',date:asof,
+ return {schema:'BRZ_F77_XLSX_DIFF_V1',comparisonRule:'strictly_previous_date',date:asof,
   sourceSha256:projected.sourceSha||null,
   counts,byTab,changes,
   warnings:[
+   'Nunca comparar uma observação com registros da mesma data de importação: usar somente datas anteriores.',
    'N/D indica referência histórica ausente, nunca preço zero.',
    'O valor do fechamento somente pode ser aceito se CBOT e dólar forem da mesma data.',
    'A comparação CMA por praça/produto é indicativa quando houver múltiplas cotações na mesma data.'
