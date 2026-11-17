@@ -321,7 +321,7 @@
   if(!reply?.available&&!useStage)return;
   const mod=await import('./market_excel_overlay.mjs?v=20261116f69');
   const reconciler=await import('./market_excel_reconcile.mjs?v=20261116f67');
-  const auditor=await import('./market_excel_audit.mjs?v=20261116f67');
+  const auditor=await import('./market_excel_audit.mjs?v=20261117fin01');
   const patch=useStage?mod.projectExcel(candidate):await mod.decodeExcelArchive(reply);
   if(!patch)return;
   const activeCapture=useStage?candidate.curve_capture:reply.curve_capture;
@@ -1083,7 +1083,7 @@
   const [mod,reconciler,auditor]=await Promise.all([
    import('./market_excel_overlay.mjs?v=20261116f69'),
    import('./market_excel_reconcile.mjs?v=20261116f67'),
-   import('./market_excel_audit.mjs?v=20261116f67')]);
+   import('./market_excel_audit.mjs?v=20261117fin01')]);
   const patch=mod.projectExcel(pack),raw=$('dataPrecos')?.textContent;
   if(!raw)throw Error('Histórico físico imutável não carregado.');
   const original=JSON.parse(raw);
@@ -1233,8 +1233,19 @@
 
 
  async function initDailyClosing(){
+  // The F73 audit identifies missing business references. F77 separately
+  // recalculates all eligible route economics with independent equations.
+  // Both reports are read-only and must be current to clear the close gate.
   try{
-   const mod=await import('./f77_daily_close.mjs?v=20261117f77');
+   const parity=await import('./f77_financial_parity.mjs?v=20261117fin01');
+   parity.installFinancialParityUI({
+    getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
+    getState:()=>state,
+    calculate:d=>typeof bestRouteAudit==='function'?bestRouteAudit(d):null
+   });
+  }catch(error){console.warn('[BRZ F77] paridade financeira:',error?.message);}
+  try{
+   const mod=await import('./f77_daily_close.mjs?v=20261117fin01');
    mod.installDailyClose({
     getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
     getState:()=>state,

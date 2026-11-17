@@ -6,7 +6,7 @@ const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const sourceIsoWeek=v=>{const s=String(v||'');const m=s.match(/(?:20\d{2})[-/]?(?:S|W)(\d\d)|(?:20\d{2})-S\d\d/i);
  return m?s.match(/20\d{2}[-/]?[SW]\d\d/i)?.[0]||s:null;};
 export function summarizeClose({trades=[],date,cbotDate,fxDate,excelDate,
- excelAudit=null,freights=[],geo=null,tradeAudits=null}={}){
+ excelAudit=null,excelPersisted=false,freights=[],geo=null,tradeAudits=null}={}){
  if(!/^\d{4}-\d\d-\d\d$/.test(String(date||'')))throw Error('F77 fechamento: data inválida');
  const records=trades.filter(d=>d&&String(d.data||'')===date);
  let volume=0,closed=0,pending=0,missingOrigin=0,missingWindow=0,missingCoords=0;
@@ -25,12 +25,14 @@ export function summarizeClose({trades=[],date,cbotDate,fxDate,excelDate,
   dolar:String(fxDate||'')===date,
   excel:String(excelDate||'')===date,
   excelAudit:excelAudit?.ok===true,
+  excelPersisted:excelPersisted===true,
   origins:missingOrigin===0,
   windows:missingWindow===0,
   geo:!geo||missingCoords===0
  };
  for(const [k,v] of Object.entries(checks))if(!v)
-  warnings.push(k==='excelAudit'?'Excel sem auditoria final aprovada':
+  warnings.push(k==='excelPersisted'?'Excel ainda sem comprovação de reidratação do fechamento confirmado':
+   k==='excelAudit'?'Excel sem auditoria final aprovada':
    k==='cbot'?'Chicago sem captura da data':
    k==='dolar'?'Dólar sem captura da data':
    k==='excel'?'Excel não corresponde à data':
@@ -43,8 +45,11 @@ export function summarizeClose({trades=[],date,cbotDate,fxDate,excelDate,
   const w=sourceIsoWeek(row?.semana||row?.iso_week||row?.week||row?.semanaISO);
   if(w&&(!maxWeek||w>maxWeek))maxWeek=w;
  }
- const financialCheck=tradeAudits?.checked===true&&tradeAudits.failed===0;
- if(!financialCheck)warnings.push('Replacement/TCO ainda sem auditoria por ID desta data');
+ const financialCheck=tradeAudits?.checked===true&&tradeAudits.failed===0&&
+  tradeAudits?.parityChecked===true&&tradeAudits?.parityFailed===0;
+ if(!financialCheck)warnings.push('Replacement/TCO sem dupla auditoria: referências F73 e recálculo financeiro F77');
+ if(tradeAudits?.parityChecked!==true)
+  warnings.push('Auditoria financeira independente da data não executada, incompleta ou desatualizada');
  if(!maxWeek)warnings.push('Frete semanal não identificado na base; fechamento não aprovado');
  return {date,records:records.length,closed,pending,volume,products,missingOrigin,missingWindow,
   missingCoords,cbotDate:cbotDate||null,fxDate:fxDate||null,excelDate:excelDate||null,
@@ -89,11 +94,30 @@ export function installDailyClose({getTrades,getState,getGeo}={}){
     Number(audit.stateVersion)===Number(state?._version||0)&&
     !!audit.completedAt;
   const relevant=Array.isArray(audit?.issues)?audit.issues.filter(x=>x.date===day):[];
+  const finance=window.__BRZ_F77_FINANCIAL_PARITY_AUDIT;
+  const financialCurrent=!!(finance&&finance.completedAt&&finance.date===day&&
+   finance.totalRecords===getTrades().length&&
+   Number(finance.stateVersion)===Number(state?._version||0)&&
+   finance.marketExcelAsOf===(state?.marketExcelAsOf||null)&&
+   finance.cbotDate===(state?.timestamps?.cbot||null)&&
+   finance.fxDate===(state?.timestamps?.dolar||null)&&
+   Number(finance.freightRows)===(state?.fretesRodo?.length||0)&&
+   Number(finance.railRows)===(state?.fretesFerro?.length||0)&&
+   finance.passed===true);
+  const badFinance=(finance?.counts?.eligible||0)-(finance?.counts?.conforme||0);
+  const savedExcel=state?.marketExcelStaged;
+  const excelReloadVerified=!!(savedExcel?.status==='confirmado'&&
+   savedExcel.as_of===day&&
+   /^[a-f0-9]{64}$/.test(String(savedExcel.file_sha256||''))&&
+   savedExcel.file_sha256===state?.marketExcelSHA256&&
+   savedExcel.file_sha256===state?.marketExcelAudit?.sourceSha256&&
+   state?.marketExcelAsOf===day);
   current=summarizeClose({date:day,trades:getTrades(),cbotDate:state?.timestamps?.cbot,
    fxDate:state?.timestamps?.dolar,excelDate:state?.marketExcelAsOf,
-   excelAudit:state?.marketExcelAudit,freights:state?.fretesRodo,
+   excelAudit:state?.marketExcelAudit,excelPersisted:excelReloadVerified,freights:state?.fretesRodo,
    geo:typeof getGeo==='function'?getGeo():null,
-   tradeAudits:{checked:!!auditCurrent,failed:relevant.length}});
+   tradeAudits:{checked:!!auditCurrent,failed:relevant.length,
+    parityChecked:financialCurrent,parityFailed:badFinance}});
   const products=Object.entries(current.products);
   const rows=products.map(([p,v])=>'<tr><td>'+esc(p)+'</td><td>'+fmt(v.count)+'</td><td>'+fmt(v.volume)+'</td></tr>').join('');
   $('brz-f77-close-content').innerHTML='<p><b>'+esc(current.date)+'</b> · '+fmt(current.records)+' negócios · '+fmt(current.closed)+' fechados · '+fmt(current.pending)+' pendentes · '+fmt(current.volume)+' t</p>'+
@@ -102,7 +126,7 @@ export function installDailyClose({getTrades,getState,getGeo}={}){
    '<table><thead><tr><th>Produto</th><th>Negócios</th><th>Volume (t)</th></tr></thead><tbody>'+rows+'</tbody></table>'+
    '<p><b>'+ (current.ready?'FECHAMENTO AUDITADO':'PENDENTE DE AUDITORIA')+'</b></p>'+
    '<ul>'+current.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>'+
-   '<small>A conferência financeira por ID requer executar a auditoria de replacement. A existência de cotação ou frete não comprova paridade.</small>';
+   '<small>Somente leitura: o fechamento exige auditoria F73 por ID e auditoria financeira independente F77 para a mesma data, além das referências CBOT, dólar, Excel e frete válidas. Derivados e gravação de tabelas requerem validação complementar.</small>';
  }
  $('brz-f77-close-day').onchange=review;$('brz-f77-close-review').onclick=review;
  $('brz-f77-close-export').onclick=()=>{

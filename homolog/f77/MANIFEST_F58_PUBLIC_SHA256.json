@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "bytes": 6126,
-      "sha256": "814c96c3f3d917353340abc6a44e742a644ef991524bbd22850fa2abbed38a97"
+      "bytes": 6125,
+      "sha256": "3ee6b2a91f4e47d7e1f5a978253e417906ea696579ca433d3069fbb9a3490467"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -340,16 +340,16 @@
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "bytes": 82182,
-      "sha256": "7804204ce4dd59f1e8bc27cf309d3c4f81a94375c1d9ebdbf3e1f4e6221ef866"
+      "bytes": 82787,
+      "sha256": "2b92bf40011d760fdbf40dac48b227dca2c1260b63ed5def9ede357295a52ef1"
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 39319,
-      "sha256": "c4b12e408e82ac7c8e616c96d2464af88c7a566e49eff8f45bec17a4698f09a3"
+      "bytes": 39318,
+      "sha256": "e5040412301faf0f179829466f5918013e618ff73186c04a14d8ada06ab7fbec"
     },
     "assets/secure/pin_boot.mjs": {
-      "bytes": 8792,
-      "sha256": "822a30b4e4be6d68219c65612ee9bb019697dd7010f4085a8ba34886f6d47f31"
+      "bytes": 8791,
+      "sha256": "26bb2b9d3199a6e724580428cb71e476a93754f6e8495101d1b909c202d44c93"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
@@ -364,8 +364,8 @@
       "sha256": "6cf8bee0efba6e7816bb6aeabd26fb1cc64237d8ec18e5ed5d3b3e70b17df77e"
     },
     "assets/secure/market_excel_audit.mjs": {
-      "bytes": 3851,
-      "sha256": "1e39d608fbd45ecb48f2b4321bfcbb881d3d698180e88aea41594a28c08dd64c"
+      "bytes": 5485,
+      "sha256": "59bc1b11161ebcd74250217b40e481ffb27332677f8897332feeda6d87e6b1fe"
     },
     "assets/secure/f68_deals_render_guard.mjs": {
       "bytes": 4454,
@@ -404,8 +404,8 @@
       "sha256": "4ee18f42a7fd77d133395ae3d0860d833c7738254e04a357d94113aa53991039"
     },
     "assets/secure/f77_daily_close.mjs": {
-      "sha256": "a8df0daf7cfa6ebc3218fc33ed06171ac01b4b9f25efa2426d3e79ecc4badd91",
-      "bytes": 7974
+      "bytes": 9598,
+      "sha256": "4e18a1f5f7bac1f4ead88c642ed7cc7197d6f06f3083894404fe6f2f0852c1ad"
     },
     "assets/secure/f77_xlsx_diff.mjs": {
       "bytes": 5524,
@@ -426,6 +426,10 @@
     "assets/secure/f77_official_daily_xlsx.mjs": {
       "bytes": 9234,
       "sha256": "cf68f577b77ff4a137eb31e82fa3d68c7cdbda583c656ad319c7fecfc0cc3435"
+    },
+    "assets/secure/f77_financial_parity.mjs": {
+      "bytes": 20103,
+      "sha256": "432595af262ea9e9fd350d814b5e916008e03b733a92d7ec9a260593f1b9c11d"
     }
   }
 }
