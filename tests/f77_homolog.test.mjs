@@ -74,11 +74,13 @@ test('Fechamento: falta de frete, auditoria, CBOT e Excel impedem aprovação',(
  const date='2026-11-17';
  const payload={date,trades:[{id:'a',data:date,status:'FECHADO',produto:'Soja',volume:1200,
   origem:'Jataí/GO',retirada:'01/02/2027'}],
-  cbotDate:date,fxDate:date,excelDate:date,excelAudit:{ok:true},
+  cbotDate:date,fxDate:date,excelDate:date,excelAudit:{ok:true},excelPersisted:true,
   freights:[{semana:'2026-S47'}],
   geo:{entries:new Map([['a',{geo:{lat:-17.8,lon:-51.7}}]])},
   tradeAudits:{checked:true,failed:0,parityChecked:true,parityFailed:0}};
  assert.equal(summarizeClose(payload).ready,true);
+ assert.equal(summarizeClose({...payload,excelPersisted:false}).ready,false,
+   'Fechamento sem reidratação comprovada do Excel é bloqueado');
  assert.equal(summarizeClose({...payload,freights:[]}).ready,false);
  assert.equal(summarizeClose({...payload,tradeAudits:{checked:false,failed:0}}).ready,false);
  assert.equal(summarizeClose({...payload,cbotDate:'2026-11-16'}).ready,false);
@@ -381,7 +383,7 @@ test('F77 fin: conciliação cobre todo o dia, bloqueia sem negocio e conserva f
  assert.equal(empty.passed,false);
  const base={date,trades:[{id:'x',data:date,status:'FECHADO',produto:'Soja',
    volume:1200,origem:'Jataí/GO',retirada:'01/02/2027'}],
-  cbotDate:date,fxDate:date,excelDate:date,excelAudit:{ok:true},
+  cbotDate:date,fxDate:date,excelDate:date,excelAudit:{ok:true},excelPersisted:true,
   freights:[{semana:'2026-S47'}],
   geo:{entries:new Map([['x',{geo:{lat:-17.8,lon:-51.7}}]])}};
  assert.equal(summarizeClose({...base,tradeAudits:{checked:true,failed:0}}).ready,false,
