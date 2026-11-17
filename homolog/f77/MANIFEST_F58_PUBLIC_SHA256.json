@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "sha256": "4077f35165356a608d3a6f226abc37e934c68ffd5235a10f0c7fc564f9355309",
-      "bytes": 6123
+      "sha256": "54889fc103075467132e62179f167d03d042e2668e9af212f2b89868245792ec",
+      "bytes": 6124
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -344,12 +344,12 @@
       "bytes": 82012
     },
     "assets/secure/f40_pin_login.js": {
-      "sha256": "31a81bda305cb6b65dbc28ad5d4ebb8b7c40effa60978f5d86a75386be003c48",
-      "bytes": 39316
+      "sha256": "bee99ea95f9fd02ebf98ab25e79e487a4c8925726e92509f5c83497c93be8a42",
+      "bytes": 39317
     },
     "assets/secure/pin_boot.mjs": {
-      "bytes": 8789,
-      "sha256": "ff5a77da114d9be081c94051507b97807814037c17ee6995408e64113d541611"
+      "sha256": "e49001b81375ac4c6341a5075874bf1416e9973373ec658aa5c149760b4465b4",
+      "bytes": 8790
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
