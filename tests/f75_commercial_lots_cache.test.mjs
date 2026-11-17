@@ -30,6 +30,10 @@ const paraguai={...base,id:'nf261112_01',produto:'Milho',volume:1200,
  corredor:'Paraguai / entrega RS',lotesEmbarque:null,embarque:null,
  vencCBOT:null,vencCambio:null,cbot:null,cambio:null};
 assert.equal(auditReason(paraguai,null,null).type,'fora_paridade_domestica');
+const altoParaguai={...ordinary,id:'alto_paraguai_mt',origem:'Alto Paraguai - MT + 11.9km',
+ corredor:'MT Médio Norte',produto:'Milho'};
+assert.equal(auditReason(altoParaguai,after(),null).type,'calculado',
+ 'Alto Paraguai/MT é praça brasileira e não deve ser confundida com importação');
 const spot={...base,id:'nf261112_20',produto:'Milho',origem:'Boituva - SP',
  corredor:'SP Interior',lotesEmbarque:null,embarque:'Dec-26',
  vencCBOT:'Z26',cbot:443,vencCambio:null,cambio:null,replacementPendente:true};
