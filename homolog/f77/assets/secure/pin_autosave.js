@@ -1162,7 +1162,7 @@
       try{
         const [projection,diffModule]=await Promise.all([
           import('./market_excel_overlay.mjs?v=20261116f69'),
-          import('./f77_xlsx_diff.mjs?v=20261117hist01')]);
+          import('./f77_xlsx_diff.mjs?v=20261117pair01')]);
         const projected=projection.projectExcel(pack);
         const original=typeof getPrecosBase==='function'?getPrecosBase():[];
         const basis=typeof ppeData==='function'?ppeData():null;
