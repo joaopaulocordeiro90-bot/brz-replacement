@@ -767,7 +767,7 @@
   screen.id='sistema';screen.className='screen scrollable';
   const intro=document.createElement('div');
   intro.className='brzsys-head';
-  intro.innerHTML='<h2>Sistema</h2><p>Sincronização, backup e ferramentas de suporte da plataforma em um único lugar.</p>';
+  intro.innerHTML='<h2>Sistema · F77 HOMOLOGAÇÃO</h2><p>Sincronização, backup e ferramentas de suporte da plataforma em um único lugar.</p>';
   screen.appendChild(intro);
   const currentGrid=document.createElement('div');
   currentGrid.className='brzsys-grid';
