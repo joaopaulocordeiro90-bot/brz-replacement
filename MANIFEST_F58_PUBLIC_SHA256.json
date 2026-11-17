@@ -317,7 +317,7 @@
     },
     "index.html": {
       "bytes": 5078,
-      "sha256": "0d2760650a7f26d7c5961ac37835e991729718fef32071c8433c9e6bdb1dfd63"
+      "sha256": "9e7e963b117c8d2e8a8cee3f8af5f86c13e343bf59d869012cf1f985c9715a32"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -344,12 +344,12 @@
       "sha256": "f29b68010814bd1e619965308506a5e60a0dff8d4214659985183354a87624c9"
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 38872,
-      "sha256": "1d12c12b77f784efaaba593107be77b251f90fa633bbbeb24e504d0719e9c69b"
+      "bytes": 36294,
+      "sha256": "4d4437908abbfa5a66c2bafb89e0ae0e59a4e76304a1293acd9bf1ace9cc948a"
     },
     "assets/secure/pin_boot.mjs": {
       "bytes": 7013,
-      "sha256": "61d9d82a5ba853f80f3f80bcf18ac9d2c24c9ac64ad2a461eff57f8548e7ac92"
+      "sha256": "8f54cbc5891ac1b6428f071186e75759735cb7d6369fe2514c9d70b624a7fbe5"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
@@ -370,6 +370,10 @@
     "assets/secure/f68_deals_render_guard.mjs": {
       "bytes": 4454,
       "sha256": "fd8d0afc0d05bb97b3a1612d7128df5ec8aa3ff2a9bdf989f8ff9c19839b2d47"
+    },
+    "assets/secure/f70_hydration_scheduler.mjs": {
+      "bytes": 1289,
+      "sha256": "be4208cec1ec21da9cb1f0cc0ceb74f488f40caacce09341e03a76847f255687"
     }
   }
 }
