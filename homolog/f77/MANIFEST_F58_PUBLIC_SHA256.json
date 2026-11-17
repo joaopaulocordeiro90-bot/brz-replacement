@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "bytes": 6125,
-      "sha256": "320ac1cd9e04dcf07fe69054114ba8a41755237333a230bc882fa3246d8d5ac8"
+      "bytes": 6126,
+      "sha256": "8aa6f3ad47c1bf7a99212787fe30b2b66fca095fd31349f9dbd1e413913aa986"
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -340,16 +340,16 @@
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "bytes": 82178,
-      "sha256": "247d1c4638e16f195b898db2095ccb567603d3b0d73fc21a03bcf402d84f31c5"
+      "bytes": 82179,
+      "sha256": "62e4303dd2dc39554393ffe849b1ba850e217e98206e7224004222fc3954460c"
     },
     "assets/secure/f40_pin_login.js": {
-      "bytes": 39318,
-      "sha256": "8937ae75cd15c0ec095f67d9068beb8cb025113e10d51433af26bdb37f3162fc"
+      "bytes": 39319,
+      "sha256": "26f911003aada5c116ebd9f380ee5c5d0f6ddf5c7dfd0a3cf5db5b98497dfad4"
     },
     "assets/secure/pin_boot.mjs": {
-      "bytes": 8791,
-      "sha256": "0330e10974ce081d10e63ca019858297fe9865454d5109ddd9d23b60cc14ba04"
+      "bytes": 8792,
+      "sha256": "1f727b850ad08330450513f694a6545e47b7ea00fec76bdfd15ccb6137afe663"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
@@ -400,8 +400,8 @@
       "sha256": "6ee6e8d8cd55ea9c484445b17da3397295fbc680a78c34738ee8a91bd141eb54"
     },
     "assets/secure/f77_xlsx_upload.mjs": {
-      "bytes": 23276,
-      "sha256": "a64a13e4fc1bcb62844750e31e7c298bbdd953597d78b4557f115ce3b7e109f6"
+      "bytes": 25334,
+      "sha256": "9b9ca57e45f2cacbb6d649a1d2bb70b0323bada56a93b823726b42140671ec91"
     },
     "assets/secure/f77_daily_close.mjs": {
       "sha256": "a8df0daf7cfa6ebc3218fc33ed06171ac01b4b9f25efa2426d3e79ecc4badd91",
@@ -420,8 +420,12 @@
       "bytes": 9051
     },
     "assets/secure/f77_internal_freight.mjs": {
-      "bytes": 6789,
-      "sha256": "9febb2b7ab2b77a0ace6afc9859b9cf3c1449c22981b49bc780d808cdd3c5ede"
+      "bytes": 9825,
+      "sha256": "0dab2b80cbd7cc208b3835d3bc54b55f7bf76123fc7af361b4bc499336ecf417"
+    },
+    "assets/secure/f77_official_daily_xlsx.mjs": {
+      "bytes": 8837,
+      "sha256": "cac625d0b4dabbb9cabdd2757d6ec73f1c560be7927ebcafc1e3b3913e7222b9"
     }
   }
 }
