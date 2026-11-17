@@ -1185,11 +1185,42 @@
  async function initGeoRegistry(){
    try{
      const geo=await import('./f77_geo_registry.mjs?v=20261117f77');
+     // Reference contains only general municipal coordinates; no farm position
+     // and no protected commercial observations are exposed in this asset.
+     let geoReferences={qualified:{},unqualified:{}};
+     try{
+       const response=await fetch('./assets/data/f77_municipal_indicative.json',{cache:'no-cache'});
+       if(!response.ok)throw Error('Referência municipal não disponível: '+response.status);
+       const data=await response.json();
+       if(data?.schema!=='BRZ_F77_GEO_REFERENCE_V1')throw Error('Versão cartográfica divergente');
+       geoReferences=data;
+     }catch(err){console.warn('[BRZ F77] fallback municipal:',err.message);}
+     const normalize=x=>String(x||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().trim();
+     const official=new Map(Object.entries(geoReferences.qualified||{}).map(([k,v])=>[normalize(k),v]));
+     const bare=new Map(Object.entries(geoReferences.unqualified||{}).map(([k,v])=>[normalize(k),v]));
+     const qualifiedCities=new Set([...official.keys()].map(k=>k.replace(/ - [a-z]{2}$/,'')));
+     const qualifiedCoord=key=>{
+       const normalized=normalize(key).replace(/\\/([a-z]{2})$/,' - $1');
+       let entry=official.get(normalized),source='BRZ F20 · UF conferida';
+       if(!entry&&/ - [a-z]{2}$/.test(normalized)){
+         const city=normalized.slice(0,-5);
+         if(!qualifiedCities.has(city)){entry=bare.get(city);source='BRZ F20 · UF não verificada';}
+       }else if(!entry){
+         entry=bare.get(normalized);source='BRZ F20 · município sem UF';
+       }
+       if(Array.isArray(entry)&&entry.length===2){
+         const point=[Number(entry[0]),Number(entry[1])];point.source=source;
+         return point;
+       }
+       const old=typeof getCityCoord==='function'?getCityCoord(key):null;
+       if(Array.isArray(old)){const point=[Number(old[0]),Number(old[1])];point.source='CITY_COORDS legado';return point;}
+       return null;
+     };
      // Scope: preexisting map source; read-only until operator confirms an exact pin.
      window.__BRZ_F77_MAP_GETTER=()=>typeof _leafletMap!=='undefined'?_leafletMap:null;
      geo.installGeoRegistry({
        getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
-       getCoord:city=>typeof getCityCoord==='function'?getCityCoord(city):null,
+       getCoord:qualifiedCoord,
        extractCity:raw=>typeof extractCidadeBase==='function'?extractCidadeBase(raw):raw,
        regionOf:deal=>typeof brzF77OriginRegion==='function'?brzF77OriginRegion(deal):deal.corredor,
        getOverrides:()=>state.originGeoOverrides||{},
