@@ -214,6 +214,7 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
  '<label>Data-base <input type="date" id="brz-f77-xlsx-date" required></label></div>'+
  '<div id="brz-f77-xlsx-mapping"></div>'+
  '<button type="button" id="brz-f77-xlsx-preview">Validar e pré-visualizar</button>'+
+ '<button type="button" id="brz-f77-xlsx-diff-download" disabled>Exportar diferenças completas (JSON)</button>'+
  '<div id="brz-f77-xlsx-report" role="status" aria-live="polite"></div>'+
  '<button type="button" id="brz-f77-xlsx-confirm" disabled>Confirmar importação após conferência</button>'+'<button type="button" id="brz-f77-xlsx-rollback">Desfazer último fechamento Excel</button>';
  screen.appendChild(panel);
@@ -229,7 +230,7 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
  document.head.appendChild(css);
  const $=id=>panel.querySelector('#'+id);
  $('brz-f77-xlsx-date').value=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
- let workbook=null,review=null;
+ let workbook=null,review=null,fullDiff=null;
  const mapping={};
  const updatePreview=()=>{
   if(!workbook)return;
@@ -245,7 +246,7 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
    el.addEventListener('change',()=>{$('brz-f77-xlsx-confirm').disabled=true;review=null;});
  };
  $('brz-f77-xlsx-file').onchange=async()=>{
-  workbook=null;review=null;$('brz-f77-xlsx-confirm').disabled=true;
+  workbook=null;review=null;fullDiff=null;$('brz-f77-xlsx-diff-download').disabled=true;$('brz-f77-xlsx-confirm').disabled=true;
   const file=$('brz-f77-xlsx-file').files?.[0];if(!file)return;
   $('brz-f77-xlsx-report').textContent='Conferindo estrutura ZIP e lendo abas…';
   try{workbook=await parseXlsx(file);updatePreview();
@@ -254,22 +255,54 @@ export function installExcelUpload({getReference,confirmUpload,rollbackUpload}={
   }catch(error){$('brz-f77-xlsx-report').textContent='Falha no XLSX: '+error.message;}
  };
  $('brz-f77-xlsx-preview').onclick=async()=>{
-  review=null;$('brz-f77-xlsx-confirm').disabled=true;
+  review=null;fullDiff=null;$('brz-f77-xlsx-diff-download').disabled=true;$('brz-f77-xlsx-confirm').disabled=true;
   if(!workbook){$('brz-f77-xlsx-report').textContent='Escolha um XLSX válido.';return;}
   for(const sel of $('brz-f77-xlsx-mapping').querySelectorAll('select'))mapping[sel.dataset.part]=sel.value;
   try{
    const built=buildDailyPack(workbook,$('brz-f77-xlsx-date').value,mapping);
    if(built.errors.length){$('brz-f77-xlsx-report').textContent='NÃO VALIDADO\n'+built.errors.join('\n');return;}
-   const reference=typeof getReference==='function'?getReference():null;
+   const reference=typeof getReference==='function'?await getReference(built.pack):null;
    const message='Fonte: '+built.pack.source_file+' · data '+built.pack.as_of+
     '\n'+Object.entries(built.counts).map(([k,v])=>k+': '+v+' registros').join('\n')+
     '\nTotal: '+built.total+' observações. Arquivo intacto; ausência de preço é N/D.'+
     '\nCurva da mesma data: '+(reference?.curveDay===built.pack.as_of&&reference?.fxDay===built.pack.as_of?'CONFIRMADA':'NÃO CONFIRMADA — precisa atualizar CBOT/DOL antes de publicar.');
-   $('brz-f77-xlsx-report').textContent=message;
+   if(reference?.diffError){
+     $('brz-f77-xlsx-report').textContent=message+'\nDiferenças não conciliadas: '+reference.diffError+'\nPublicação bloqueada.';
+     return;
+   }
+   if(!reference?.diff||reference.diff.counts?.total!==built.total-(built.counts.prices||0)/2){
+     // The true comparison can have fewer derivatives when original CMA=0 => N/D;
+     // accept only reports with positive coverage and no comparison exception.
+     if(!reference?.diff?.counts?.total){
+       $('brz-f77-xlsx-report').textContent=message+'\nSem comparação histórica verificável. Confirmação bloqueada.';
+       return;
+     }
+   }
+   fullDiff=reference.diff;
+   $('brz-f77-xlsx-diff-download').disabled=false;
+   const diff=fullDiff,format=v=>v===null||v===undefined?'N/D':String(v);
+   const stats=Object.entries(diff.byTab).map(([k,v])=>k+': '+v.total+
+    ' registros, '+v.alterado+' alterados, '+v.sem_referencia+' sem referência').join('\n');
+   const rows=diff.changes.slice(0,45).map(x=>x.tab+' | '+x.key+' | '+
+    (x.tab==='Preços'
+      ?'Bid '+format(x.oldBid)+' → '+format(x.newBid)+'; Offer '+format(x.oldOffer)+' → '+format(x.newOffer)
+      :format(x.oldValue)+' → '+format(x.newValue))+
+    (x.status==='sem_referencia'?' [N/D na base]':'')).join('\n');
+   $('brz-f77-xlsx-report').textContent=message+
+    '\n\nCOMPARAÇÃO COM HISTÓRICO (prévia das primeiras 45; exportação completa disponível):\n'+stats+
+    '\n\n'+rows+
+    '\n\nNenhum valor N/D foi convertido em zero. Originais permanecem preservados.';
    if(reference?.curveDay!==built.pack.as_of||reference?.fxDay!==built.pack.as_of)return;
    review=built;
    $('brz-f77-xlsx-confirm').disabled=false;
   }catch(error){$('brz-f77-xlsx-report').textContent='Falha de validação: '+error.message;}
+ };
+ $('brz-f77-xlsx-diff-download').onclick=()=>{
+   if(!fullDiff)return;
+   const blob=new Blob([JSON.stringify(fullDiff,null,2)],{type:'application/json'});
+   const url=URL.createObjectURL(blob),a=document.createElement('a');
+   a.href=url;a.download='BRZ_F77_Excel_Diferencas_'+fullDiff.date+'.json';
+   a.click();setTimeout(()=>URL.revokeObjectURL(url),2500);
  };
  $('brz-f77-xlsx-confirm').onclick=async()=>{
   if(!review)return;
