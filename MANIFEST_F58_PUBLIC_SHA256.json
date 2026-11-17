@@ -348,8 +348,8 @@
       "sha256": "01e81783395c9600335d303d5b25e26ced072ae269b213c758a525457d900f66"
     },
     "assets/secure/pin_boot.mjs": {
-      "bytes": 8039,
-      "sha256": "3f25f55a54f50e41cdf8b071477a3d162d6438701bc63576f35a432e9fcfc9e8"
+      "bytes": 8674,
+      "sha256": "d344413d43d8272ceb0556dcfbac6b172de3e9b3d7f579102753d9dcc2f344de"
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
