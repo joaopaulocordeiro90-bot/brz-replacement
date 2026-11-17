@@ -38,6 +38,9 @@
 
  let token=null,refreshToken=null,tokenExpiration=0;
  let connected=false,applying=false,saving=false,dirty=false,blocked=false,timer=null;
+ // F75: batch startup changes and render only after F33, modules and Excel
+ // are fully applied. Normal live updates continue rendering immediately.
+ let initialHydrating=false;
  let remote=new Map(),operationIds=new Map();
  const $=id=>document.getElementById(id);
  function stable(value){
@@ -286,8 +289,10 @@
     }]));
     if(typeof invalidateDataCache==='function')invalidateDataCache();
     if(typeof clearCalcCaches==='function')clearCalcCaches();
-    if(typeof scheduleRenderAll==='function')scheduleRenderAll();
-    else if(typeof renderAll==='function')renderAll();
+    if(!initialHydrating){
+      if(typeof scheduleRenderAll==='function')scheduleRenderAll();
+      else if(typeof renderAll==='function')renderAll();
+    }
     if(window.BRZPendencias)window.BRZPendencias.refresh();
   }finally{applying=false}
  }
@@ -424,7 +429,7 @@
   }
   if(typeof invalidateDataCache==='function')invalidateDataCache();
   if(typeof clearCalcCaches==='function')clearCalcCaches();
-  if(typeof scheduleRenderAll==='function')scheduleRenderAll();
+  if(!initialHydrating&&typeof scheduleRenderAll==='function')scheduleRenderAll();
   let stamp=$('brz-market-xlsx-status');
   if(!stamp){
     stamp=document.createElement('div');stamp.id='brz-market-xlsx-status';
@@ -1025,6 +1030,7 @@
   tokenExpiration=Date.now()+Number(supplied.expires_in||3600)*1000;
   // For the initial read only, ensure valid user JWT and complete inventory.
   connected=true;
+  initialHydrating=true;
   try{
     setStatus('Lendo os negócios…','working');
     // F68 — isolated renderer only for Fechados, before live trade hydration.
@@ -1053,18 +1059,23 @@
     // F73: audit calculations only after all authenticated source and trade
     // overlays are active; the button runs on demand, without any write.
     try{
-      const audit=await import('./f73_replacement_audit.mjs?v=20261117f73');
+      const audit=await import('./f73_replacement_audit.mjs?v=20261117f75');
       audit.installReplacementAudit(window,()=>state.negocios);
     }catch(e){console.warn('BRZ F73 auditoria opcional indisponível',e)}
     installSystemToolsTab();
     await initPendingWorkspace();
     dirty=false;blocked=false;
+    initialHydrating=false;
+    if(typeof scheduleRenderAll==='function')scheduleRenderAll();
+    else if(typeof renderAll==='function')renderAll();
     startLivePolling();
     setStatus('Sincronizado · '+data.filter(r=>!r.deleted).length.toLocaleString('pt-BR')+' negócios');
     return Object.freeze({ready:true,records:data.length,autosave:true});
   }catch(error){
     connected=false;setStatus('Falha de conexão','error');
     throw error;
+  }finally{
+    initialHydrating=false;
   }
  }
  function schedule(){
