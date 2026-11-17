@@ -76,11 +76,19 @@ async function load(){
   const basic=entries.filter(([name])=>immediate.has(name));
   const full=entries.filter(([name])=>!immediate.has(name));
   await verifyBatch(basic,'Verificando login seguro');
-  const fullVerify=async()=>{
-    if(window.__BRZF58_PREFLIGHT?.verified===true)return;
-    await verifyBatch(full,'Verificando motor completo');
-    window.__BRZF58_PREFLIGHT=Object.freeze({verified:true,quickVerified:true,readOnly:true,
-      productionApproved:false,verifiedResources:done});
+  // F77: while the PIN is being entered, validate public static assets.
+  // No private data or authenticated RPC is read here. Re-entrant verification
+  // shares the same promise and the protected engine still waits for completion.
+  let fullPromise=null;
+  const fullVerify=()=>{
+    if(window.__BRZF58_PREFLIGHT?.verified===true)return Promise.resolve();
+    if(!fullPromise)fullPromise=verifyBatch(full,'Verificando motor completo')
+      .then(()=>{window.__BRZF58_PREFLIGHT=Object.freeze({
+        verified:true,quickVerified:true,readOnly:true,productionApproved:false,
+        verifiedResources:done
+      });})
+      .catch(err=>{fullPromise=null;throw err});
+    return fullPromise;
   };
   window.__BRZ_VERIFY_FULL_STATIC=fullVerify;
   // F42 is defined in its own script (not in F40). Install it with the
@@ -112,6 +120,9 @@ async function load(){
   script.async=false;
   script.onerror=()=>{controls.forEach(x=>x.disabled=true);status('Não foi possível carregar o login protegido.');};
   document.body.appendChild(script);
+  // Start only public-code SHA verification ahead of the PIN submit.
+  // Authenticated full datasets remain gated by PIN and validated session.
+  void fullVerify().catch(err=>console.warn('[BRZ F77] static preflight:',err?.message));
  }catch(err){
   go.disabled=true;
   status('Acesso protegido bloqueado: '+(err?.message||String(err)));
