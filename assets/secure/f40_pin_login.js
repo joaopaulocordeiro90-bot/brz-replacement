@@ -16,7 +16,7 @@ const localHost=location.protocol==='http:'&&(['127.0.0.1','localhost','[::1]','
 const ghPages=()=>location.protocol==='https:'
  && location.hostname==='joaopaulocordeiro90-bot.github.io'
  && location.port===''
- && ['/brz-replacement/','/brz-replacement/index.html','/brz-replacement/pin.html'].includes(location.pathname);
+ && ['/brz-replacement/','/brz-replacement/index.html','/brz-replacement/pin.html', '/brz-replacement/homolog/f77/','/brz-replacement/homolog/f77/index.html','/brz-replacement/homolog/f77/pin.html'].includes(location.pathname);
 const stageEdge=()=>location.protocol==='https:' && location.hostname==='irekykmigdfvwozerkfa.supabase.co' && (location.pathname==='/functions/v1/brz-replacement-homologacao/' || location.pathname==='/functions/v1/brz-replacement-homologacao/index.html');
 const status=msg=>{ $('status').textContent=msg; };
 const bootProgress=value=>{const x=$('brz-boot-progress');if(x){x.value=Math.max(0,Math.min(100,Number(value)||0));x.setAttribute('aria-valuenow',String(x.value));}};
