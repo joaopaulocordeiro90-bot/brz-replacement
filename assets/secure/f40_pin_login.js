@@ -391,8 +391,17 @@ async function start(ev){
   await window.__BRZ_VERIFY_FULL_STATIC();
   await preflightModules(); // import only AFTER authenticated static code SHA verification
   bootProgress(18);
-  token=await restoreTabSession();
-  if(!token)throw Error('Sessão expirada durante a verificação integral.');
+  // F77: PIN was already authenticated. Do not make a second pair of
+  // Supabase session RPCs unless JWT is genuinely close to expiry.
+  let authTTL=0;
+  try{
+    const stored=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');
+    authTTL=Math.min(Number(stored?.keep_until||0),Number(stored?.token_expires_at||0))-Date.now();
+  }catch{}
+  if(authTTL<120000){
+    token=await restoreTabSession();
+    if(!token)throw Error('Sessão expirada durante a verificação integral.');
+  }
   status('Verificando metadados e fontes confidenciais em paralelo…');
   // F55 and F56 are independent authenticated read-only sources.
   // Concurrent retrieval saves one server round trip without touching data.
@@ -467,6 +476,7 @@ async function start(ev){
   // F70: instantiate each authenticated source only after the preceding
   // source passes its count and SHA. Failed requests leave no background pages.
   const {runHydrationStages}=await import('./f70_hydration_scheduler.mjs?v=20261117f70');
+  const stagePerf=[],stageClock={last:null,at:performance.now()};
   const hydrated=await runHydrationStages([
     {key:'rows',label:'F40 físico',run:()=>
       loadPrices(token,count=>{
@@ -510,9 +520,17 @@ async function start(ev){
       return hydrateF48Legacy({request,token,sha256,isAborted:()=>aborted});
     }}
   ],{
-    onStage:({label,index,total})=>{status('Restaurando '+label+' · etapa '+index+' de '+total);bootProgress(18+Math.round((index-1)/total*65));},
+    onStage:({key,label,index,total})=>{
+      const now=performance.now();
+      if(stageClock.last)stagePerf.push({key:stageClock.last,ms:Math.round(now-stageClock.at)});
+      stageClock.last=key;stageClock.at=now;
+      status('Restaurando '+label+' · etapa '+index+' de '+total);
+      bootProgress(18+Math.round((index-1)/total*65));
+    },
     isAborted:()=>aborted
   });
+  if(stageClock.last)stagePerf.push({key:stageClock.last,ms:Math.round(performance.now()-stageClock.at)});
+  window.__BRZ_F77_HYDRATION_STAGE_TIMES=Object.freeze(stagePerf);
   ({tradeBundle,derivativesResult,resultF44,rail,road,premiums,restored,rows}=hydrated);
 
     if(diskCache&&cacheContext){
@@ -575,6 +593,12 @@ async function start(ev){
       token=null;
       window.__BRZ_PIN_OPERATIONAL=true;
       window.__BRZ_SESSION_LOAD_MS=Math.round(performance.now()-loginBegan);
+      window.__BRZ_F77_BOOT_AUDIT=Object.freeze({
+        totalMs:window.__BRZ_SESSION_LOAD_MS,
+        cache:window.__BRZ_SOURCE_CACHE||'INDEFINIDO',
+        stageTimes:window.__BRZ_F77_HYDRATION_STAGE_TIMES||[],
+        fullEngine:ready?.ready===true
+      });
       console.info('BRZ: PIN e cargas autenticadas',window.__BRZ_SESSION_LOAD_MS,'ms');
       bootProgress(100);
       document.body.classList.add('loaded');
