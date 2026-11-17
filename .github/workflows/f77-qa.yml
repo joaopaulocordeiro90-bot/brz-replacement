@@ -1,0 +1,29 @@
+name: BRZ F77 - homologacao e integridade
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'homolog/f77/**'
+      - 'tests/f77_homolog.test.mjs'
+      - '.github/workflows/f77-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'homolog/f77/**'
+      - 'tests/f77_homolog.test.mjs'
+      - '.github/workflows/f77-qa.yml'
+permissions:
+  contents: read
+jobs:
+  f77-homolog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Checar sintaxe do motor F77
+        run: |
+          for f in homolog/f77/assets/secure/*.mjs homolog/f77/assets/secure/*.js; do node --check "$f"; done
+      - name: Testes F77 (somente leitura)
+        run: node --test tests/f77_homolog.test.mjs

@@ -45,6 +45,7 @@ export function summarizeClose({trades=[],date,cbotDate,fxDate,excelDate,
  }
  const financialCheck=tradeAudits?.checked===true&&tradeAudits.failed===0;
  if(!financialCheck)warnings.push('Replacement/TCO ainda sem auditoria por ID desta data');
+ if(!maxWeek)warnings.push('Frete semanal não identificado na base; fechamento não aprovado');
  return {date,records:records.length,closed,pending,volume,products,missingOrigin,missingWindow,
   missingCoords,cbotDate:cbotDate||null,fxDate:fxDate||null,excelDate:excelDate||null,
   freightWeek:maxWeek,checks,financialCheck,

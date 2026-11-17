@@ -13,7 +13,7 @@ function portInText(t){
  })||null;
 }
 export function contractedPort(d){
- if(!d||!['FECHADO','FECHADO AGRINVEST'].includes(String(d.status||'').toUpperCase()))return null;
+ if(!d||!/^FECHADO(?:$|[\s_-])/.test(String(d.status||'').toUpperCase()))return null;
  // Only a backed contractual field expressly marked confirmed qualifies.
  if(d.portoContratadoConfirmado===true)return safePort(d.portoContratado||d.portoDestinoConfirmado);
  if(d.destinoPortoConfirmado===true)return safePort(d.portoDestinoConfirmado);
