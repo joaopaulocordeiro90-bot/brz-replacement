@@ -3,7 +3,8 @@
  * Never alter source prices, dated curves, freight lanes or closed trades. */
 const dateKey=s=>Number(String(s||'').replaceAll('-',''));
 const identity=x=>[x.data,x.produto,String(x.origem||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s*[-\/]\s*([a-z]{2})$/,'/$1').replace(/\s+/g,''),x.janelaFisica||'N/D'].join('|');
-const num=x=>Number(x);
+const num=x=>x===null||x===undefined||x===''?NaN:Number(x);
+const eq=(x,y)=>Number.isFinite(num(x))&&Number.isFinite(num(y))&&Math.abs(num(x)-num(y))<=1e-7;
 export function auditDailyMarketOverlay(patch,reconciled,nextBasis,nextCMA,nextOcean){
  if(!patch||!reconciled||!Array.isArray(reconciled.rows))throw Error('F67: importação não conciliada.');
  const day=patch.as_of,dayNum=dateKey(day);
@@ -12,12 +13,24 @@ export function auditDailyMarketOverlay(patch,reconciled,nextBasis,nextCMA,nextO
  const seen=new Set(),errors=[],warnings=[];
  if(expected.length!==actual.length)errors.push('Quantidade de preços divergente: '+expected.length+' / '+actual.length);
  const sourceKeys=new Set(expected.map(identity));
+ const sourceByKey=new Map(expected.map(r=>[identity(r),r]));
+ if(sourceByKey.size!==expected.length)errors.push('Duplicidade de identidade física no Excel original');
  for(const r of actual){
   const k=identity(r);
   if(seen.has(k))errors.push('Cotação física duplicada: '+k);
   seen.add(k);
   if(!sourceKeys.has(k))errors.push('Cotação fora do Excel: '+k);
+  const original=sourceByKey.get(k);
   if(!Number.isFinite(num(r.preco))||num(r.preco)<=0)errors.push('Preço inválido: '+k);
+  if(original){
+   if(!eq(r.bid,original.bid)||!eq(r.offer,original.offer))
+    errors.push('Bid/Offer aplicado diverge da cotação original: '+k);
+   const expectedMid=(num(original.bid)+num(original.offer))/2;
+   if(!eq(r.preco,expectedMid))
+    errors.push('Mid aplicado difere de (Bid + Offer)/2: '+k);
+   if(r.unidadePreco!=='R$/sc')
+    errors.push('Unidade do físico diferente de R$/sc: '+k);
+  }
  }
  for(const k of sourceKeys)if(!seen.has(k))errors.push('Cotação não exibida: '+k);
  const products={};
@@ -45,5 +58,24 @@ export function auditDailyMarketOverlay(patch,reconciled,nextBasis,nextCMA,nextO
  const ocean=patch.ocean.filter(x=>x.day===day);
  const oceanApplied=nextOcean?.marketExcelOceanRoutes?.[day]||[];
  if(ocean.length!==oceanApplied.length)errors.push('Rotas marítimas divergentes: '+ocean.length+'/'+oceanApplied.length);
+ const seaKey=(route,shipment)=>String(route||'')+'|'+String(shipment||'');
+ const expectedSea=new Map();
+ for(const x of ocean){
+  const k=seaKey(x.route,x.shipment);
+  if(expectedSea.has(k))errors.push('Frete marítimo duplicado no Excel: '+k);
+  expectedSea.set(k,num(x.value));
+ }
+ const seenSea=new Set();
+ for(const raw of oceanApplied){
+  if(!Array.isArray(raw)||raw.length<3){errors.push('Registro marítimo aplicado inválido');continue}
+  const k=seaKey(raw[0],raw[1]);
+  if(seenSea.has(k))errors.push('Frete marítimo aplicado duplicado: '+k);
+  seenSea.add(k);
+  if(!expectedSea.has(k))errors.push('Rota marítima aplicada fora do Excel: '+k);
+  else if(!eq(raw[2],expectedSea.get(k)))
+   errors.push('Valor do frete marítimo aplicado difere do Excel: '+k);
+ }
+ for(const k of expectedSea.keys())if(!seenSea.has(k))
+  errors.push('Rota marítima do Excel não aplicada: '+k);
  return {sourceDate:day,sourceSha256:patch.sourceSha,totals:{physicalPairs:expected.length,basisFOB:basis.length,soymealCMA:derivatives.filter(x=>x.p==='Soymeal').length,soyoilCMA:derivatives.filter(x=>x.p==='Soyoil').length,ocean:ocean.length},products,errors,warnings,ok:errors.length===0&&products.Soja.incomplete.length===0&&products.Milho.incomplete.length===0};
 }
