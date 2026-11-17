@@ -316,8 +316,8 @@
       "sha256": "fb1f1ebb78b9c596e2ea0be0661c2ea962ec8190940b55598575fc378cd1eb40"
     },
     "index.html": {
-      "sha256": "4077f35165356a608d3a6f226abc37e934c68ffd5235a10f0c7fc564f9355309",
-      "bytes": 6123
+      "sha256": "54889fc103075467132e62179f167d03d042e2668e9af212f2b89868245792ec",
+      "bytes": 6124
     },
     "assets/secure/tab_cache.mjs": {
       "bytes": 7095,
@@ -340,16 +340,16 @@
       "sha256": "4297a0c0b72d1c53bf192c29ae4d853df5cc32fd21185c0932bf9b3b18c26b6a"
     },
     "assets/secure/pin_autosave.js": {
-      "sha256": "3f975ac3d927fcde330a8830da232bdf3f7306b8d500457d764498d9ffe094c3",
-      "bytes": 81489
+      "sha256": "54189c36b8252f256fdc5f159a3762fb1f624ced86ff123e96f44e9280dfeeb6",
+      "bytes": 82012
     },
     "assets/secure/f40_pin_login.js": {
-      "sha256": "31a81bda305cb6b65dbc28ad5d4ebb8b7c40effa60978f5d86a75386be003c48",
-      "bytes": 39316
+      "sha256": "bee99ea95f9fd02ebf98ab25e79e487a4c8925726e92509f5c83497c93be8a42",
+      "bytes": 39317
     },
     "assets/secure/pin_boot.mjs": {
-      "bytes": 8789,
-      "sha256": "ff5a77da114d9be081c94051507b97807814037c17ee6995408e64113d541611"
+      "sha256": "e49001b81375ac4c6341a5075874bf1416e9973373ec658aa5c149760b4465b4",
+      "bytes": 8790
     },
     "assets/secure/pagamento_confirmacoes.mjs": {
       "bytes": 3664,
@@ -388,8 +388,8 @@
       "sha256": "0e13a59ec2855a6ceb313deb2e01f539e2a363baea54b6fe4050cf25cf3cea1f"
     },
     "assets/secure/f77_regional_flows.mjs": {
-      "bytes": 7145,
-      "sha256": "44d821f857c85357573e5d10d9a8eeeafa8e641403a2e78e27190d4afee0f5b0"
+      "sha256": "9661bf5d88617b4742369402a571787c09260bfd70b4322a3f3aee18cc723bb4",
+      "bytes": 7132
     },
     "assets/secure/f77_geo_registry.mjs": {
       "bytes": 8808,
@@ -404,8 +404,8 @@
       "sha256": "b536d8893bc6017fcd95ccac4c40a4ecbab81398b6a72ad06d9a4f0194843bcb"
     },
     "assets/secure/f77_daily_close.mjs": {
-      "bytes": 7877,
-      "sha256": "9ba3c6cba86813f5ea34bf10e5080512e1cad597d630e08661d38a14819d410f"
+      "sha256": "a8df0daf7cfa6ebc3218fc33ed06171ac01b4b9f25efa2426d3e79ecc4badd91",
+      "bytes": 7974
     },
     "assets/secure/f77_xlsx_diff.mjs": {
       "bytes": 4977,
@@ -414,6 +414,10 @@
     "assets/data/f77_municipal_indicative.json": {
       "bytes": 18729,
       "sha256": "1b3079ec62b13fa08ac7e105c529c3ad3ab981504cbe330bf01d6fa72a29d0d4"
+    },
+    "assets/secure/f77_deals_filters.mjs": {
+      "sha256": "d3818905258a651d7a8bfe9aa011bb38b6edfb0b1cbe94c6cca79562b6f6b965",
+      "bytes": 9051
     }
   }
 }

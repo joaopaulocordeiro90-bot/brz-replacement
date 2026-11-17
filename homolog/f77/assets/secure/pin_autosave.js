@@ -1315,6 +1315,15 @@
     }catch(e){console.warn('BRZ F73 auditoria opcional indisponível',e)}
     installSystemToolsTab();
     await initDailyExcelUpload();
+    // F77 QA: advanced search reads the full authenticated inventory without
+    // changing the main deal table, filters, records or autosave.
+    try{
+      const {installDealsFilters}=await import('./f77_deals_filters.mjs?v=20261117qa01');
+      installDealsFilters({
+        getTrades:()=>Array.isArray(state.negocios)?state.negocios:[],
+        extractCity:raw=>typeof extractCidadeBase==='function'?extractCidadeBase(raw):''
+      });
+    }catch(error){console.warn('[BRZ F77] filtros avançados:',error?.message);}
     await initPendingWorkspace();
     await initGeoRegistry();
     await initDailyClosing();
