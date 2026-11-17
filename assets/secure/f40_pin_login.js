@@ -484,8 +484,10 @@ async function start(ev){
     }
     if(activeUserId&&tabSessionUntil>Date.now()){
       const fingerprint=await sha256(stableStringify({
-        version:'BRZ_SOURCE_FINGERPRINT_20261116_V1',
-        deployedScript:document.querySelector('script[src*="f40_pin_login.js"]')?.src||'',
+        // F75: fingerprint sealed SOURCE CONTENT/ABI, not the URL of a
+        // JavaScript patch release. A versioned script URL made a previously
+        // SHA-validated source cache miss on every harmless code deployment.
+        version:'BRZ_SOURCE_CACHE_ABI_F75_V1',
         marketStats:stats,marketMeta:protected55.f44_meta,
         roadMeta:protected55.f46_meta,
         tradesSha:F41_STATE_CANONICAL_SHA,
@@ -622,11 +624,25 @@ async function start(ev){
       // background, after the working platform is visible. Never store live
       // overlay edits, PINs, JWTs, or refresh tokens in browser disk cache.
       if(cacheAfterOpen&&diskCache&&cacheContext){
-        setTimeout(()=>{
+        // F75: the one-time AES-GCM source cache is large. Serialize/compress
+        // only after the first operational frame and during browser idle time.
+        // The source fingerprints, user binding and one-hour expiry stay intact.
+        const writeCache=()=>{
+          window.__BRZ_CACHE_STATUS='WRITING';
           diskCache.writeHydrationCache(cacheContext,cacheAfterOpen)
-            .then(ok=>{window.__BRZ_CACHE_READY=ok;})
-            .catch(()=>{window.__BRZ_CACHE_READY=false;});
-        },250);
+            .then(ok=>{
+              window.__BRZ_CACHE_READY=ok;
+              window.__BRZ_CACHE_STATUS=ok?'READY':'UNAVAILABLE';
+            }).catch(error=>{
+              window.__BRZ_CACHE_READY=false;
+              window.__BRZ_CACHE_STATUS='ERROR';
+              console.warn('[BRZ F75] cache protegido indisponível',error?.message);
+            });
+        };
+        window.__BRZ_CACHE_STATUS='SCHEDULED';
+        if(typeof requestIdleCallback==='function')
+          requestIdleCallback(writeCache,{timeout:9000});
+        else setTimeout(writeCache,1800);
       }
 
       document.documentElement.classList.remove('brz-restoring','brz-resume-failed');
