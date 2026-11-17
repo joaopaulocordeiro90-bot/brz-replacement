@@ -111,8 +111,14 @@ function worksheet(doc,shared){
  }
  return rows;
 }
-export async function parseXlsx(file){
+export async function parseXlsx(file,onProgress=()=>{}){
  if(!file||!/\.(xlsx)$/i.test(file.name||''))throw Error('Selecione um arquivo .xlsx');
+ // Real desk exports exceed 24 MB and contain >1 million historical rows.
+ // Stream the entire XML, verify counts and retain ONLY each sheet's latest date.
+ if(file.size>12*1024*1024){
+  const {parseOfficialDailyXlsx}=await import('./f77_official_daily_xlsx.mjs?v=20261117real01');
+  return parseOfficialDailyXlsx(file,onProgress);
+ }
  if(file.size<50||file.size>MAX_FILE)throw Error('XLSX maior que 24 MB ou vazio');
  const buffer=await file.arrayBuffer();
  const digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',buffer))]
@@ -149,12 +155,25 @@ export function suggestedSheets(sheets){
  }
  return out;
 }
-function normalizedRows(rows,part){
+function normalizedRows(rows,part,day){
  const data=[],errors=[];let ignored=0;
+ const first=norm(rows?.[0]?.[0]||'');
+ const originalFormat=({
+  prices:'date','Basis FOB':'reference_date',
+  'Derivados CMA':'dt_date','frete maritimo':'date(a.created_at)'
+ })[part]===first;
  for(const [j,original] of (rows||[]).entries()){
-  const r=Array.isArray(original)?original:[];
+  let r=Array.isArray(original)?original:[];
   if(!r.some(x=>str(x)!==''))continue;
-  const value0=str(r[0]);
+  if(originalFormat){
+   if(j===0)continue;
+   const recordDay=excelDate(r[0]);
+   if(recordDay!==day){
+    errors.push(part+' linha '+(j+1)+': data '+(recordDay||'inválida')+
+     ' diferente da data-base '+day);continue;
+   }
+   r=r.slice(1);
+  }
   try{
    if(part==='prices'){
     const product=prod(r[0]),city=str(r[1]),side=norm(r[2]),value=number(r[3]);
@@ -189,10 +208,16 @@ function normalizedRows(rows,part){
 export function buildDailyPack(workbook,day,mapping){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(str(day)))throw Error('Data do relatório inválida');
  const problems=[],records={};let total=0;
+ if(workbook?.officialDaily&&workbook.asOf!==day)
+  problems.push('A data-base deve ser '+workbook.asOf+' conforme o Excel original. Não misturar dias.');
+ if(workbook?.officialDaily)
+  for(const name of ['prices','Basis FOB','Derivados CMA','frete maritimo'])
+   if(workbook.dateBySheet?.[name]!==day)
+    problems.push(name+': data mais recente diferente da data-base');
  for(const part of Object.keys(canonicalNames)){
   const name=mapping?.[part];
   if(!name||!Array.isArray(workbook?.sheets?.[name])){problems.push('Aba não mapeada: '+part);continue;}
-  const normalized=normalizedRows(workbook.sheets[name],part);
+  const normalized=normalizedRows(workbook.sheets[name],part,day);
   if(normalized.errors.length)problems.push(...normalized.errors);
   if(!normalized.data.length)problems.push('Sem dados reconhecidos na aba: '+part);
   records[part==='prices'?'prices':part]={[day]:normalized.data};
@@ -280,9 +305,24 @@ export function installExcelUpload({getReference,getInternalFreightReference,con
   workbook=null;review=null;fullDiff=null;$('brz-f77-xlsx-diff-download').disabled=true;$('brz-f77-xlsx-confirm').disabled=true;
   const file=$('brz-f77-xlsx-file').files?.[0];if(!file)return;
   $('brz-f77-xlsx-report').textContent='Conferindo estrutura ZIP e lendo abas…';
-  try{workbook=await parseXlsx(file);updatePreview();showInternalSheets();
+  try{workbook=await parseXlsx(file,progress=>{
+    if(progress?.done)
+     $('brz-f77-xlsx-report').textContent='Histórico conferido: '+progress.sheet+
+      ' · '+progress.historic+' registros · '+progress.latestCount+
+      ' na data '+progress.latest;
+    else if(progress?.read)
+     $('brz-f77-xlsx-report').textContent='Conferindo histórico do Excel: '+
+      progress.read.toLocaleString('pt-BR')+' registros na aba '+progress.sheet;
+   });updatePreview();showInternalSheets();
+   if(workbook.officialDaily&&workbook.asOf)
+    $('brz-f77-xlsx-date').value=workbook.asOf;
    $('brz-f77-xlsx-report').textContent='Planilha lida: '+Object.keys(workbook.sheets).join(', ')+
-   '\nSHA-256: '+workbook.file_sha256+'\nSelecione a data e valide antes de gravar.';
+   '\nSHA-256: '+workbook.file_sha256+
+   (workbook.officialDaily?'\nArquivo histórico original auditado: '+
+    Object.entries(workbook.historyRows).map(([name,n])=>name+' '+n.toLocaleString('pt-BR')).join(' · ')+
+    '\nÚltimo mercado: '+workbook.asOf+' · último frete rodoviário: '+workbook.roadSourceDate+
+    '\nOs históricos anteriores não serão reaplicados; serão conferidos antes de atualizar o fechamento.':'')+
+   '\nSelecione a data e valide antes de gravar.';
   }catch(error){$('brz-f77-xlsx-report').textContent='Falha no XLSX: '+error.message;}
  };
  $('brz-f77-xlsx-preview').onclick=async()=>{

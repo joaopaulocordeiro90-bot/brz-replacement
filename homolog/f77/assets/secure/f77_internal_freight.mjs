@@ -46,8 +46,65 @@ function headerIndex(row){
  }
  return ['origin','destination','period','value'].every(n=>Number.isInteger(found[n]))?found:null;
 }
+// Official daily export: created_at | name (City - State -> City - State) | value.
+// For the verified 08/11/2026 source, Sunday publication corresponds to
+// the *following* freight ISO week (2026-S46), not calendar week S45.
+const stateLabels={
+ 'acre':'AC','alagoas':'AL','amapa':'AP','amazonas':'AM','bahia':'BA',
+ 'ceara':'CE','distrito federal':'DF','espirito santo':'ES','goias':'GO',
+ 'maranhao':'MA','mato grosso':'MT','mato grosso do sul':'MS',
+ 'minas gerais':'MG','para':'PA','paraiba':'PB','parana':'PR',
+ 'pernambuco':'PE','piaui':'PI','rio de janeiro':'RJ',
+ 'rio grande do norte':'RN','rio grande do sul':'RS','rondonia':'RO',
+ 'roraima':'RR','santa catarina':'SC','sao paulo':'SP',
+ 'sergipe':'SE','tocantins':'TO'
+};
+function toCityUF(input){
+ const raw=String(input||'').trim(),i=raw.lastIndexOf(' - ');
+ if(i<1)return null;
+ const city=raw.slice(0,i).trim(),uf=stateLabels[norm(raw.slice(i+3))];
+ return city&&uf?city+'/'+uf:null;
+}
+const isoMondayAfterSunday=v=>{
+ const serial=Number(v);
+ if(!Number.isInteger(serial)||serial<40000||serial>80000)return null;
+ const date=new Date(Date.UTC(1899,11,30)+serial*86400000);
+ if(date.getUTCDay()!==0)return null;
+ const monday=new Date(date);monday.setUTCDate(monday.getUTCDate()+1);
+ const iso=new Date(monday);iso.setUTCDate(iso.getUTCDate()+4-(iso.getUTCDay()||7));
+ const first=new Date(Date.UTC(iso.getUTCFullYear(),0,1));
+ const week=Math.ceil((((iso-first)/86400000)+1)/7);
+ return iso.getUTCFullYear()+'-S'+String(week).padStart(2,'0');
+};
+export function parseOfficialRoadFreight(rows){
+ const records=[],errors=[],seen=new Set();
+ for(let i=1;i<rows.length;i++){
+  const row=rows[i];if(!Array.isArray(row)||!row.some(x=>String(x??'').trim()))continue;
+  const route=String(row[1]||''),parts=route.split(/\s*->\s*/);
+  const origem=parts.length===2?toCityUF(parts[0]):null;
+  const destino=parts.length===2?toCityUF(parts[1]):null;
+  const periodo=isoMondayAfterSunday(row[0]),valor=digits(row[2]);
+  if(!origem||!destino||!periodo||valor===null||valor<=0||valor>10000){
+   errors.push('Frete rodoviário linha '+(i+1)+': rota, data semanal ou valor inválido');continue;
+  }
+  const record={modal:'Rodoviário',origem,destino,periodo,valor,fonteLinha:i+1,
+   origemOriginal:route,sourceDate:new Date(Date.UTC(1899,11,30)+Number(row[0])*86400000).toISOString().slice(0,10),
+   periodoInferidoDaData:true};
+  const id=key(record);
+  if(seen.has(id)){errors.push('Frete rodoviário linha '+(i+1)+': duplicidade de rota e semana');continue}
+  seen.add(id);records.push(record);
+ }
+ if(!records.length)errors.push('Aba rodoviária sem tarifas reconhecíveis');
+ return {records,errors,counts:{total:records.length,rodoviario:records.length,ferroviario:0},
+  sourceType:'created_at_name_value',sourceWeek:records[0]?.periodo||null,
+  sourceDate:records[0]?.sourceDate||null};
+}
+
 export function parseInternalFreight(rows,{sheetName='Frete interno'}={}){
  if(!Array.isArray(rows))throw Error('Frete interno: aba indisponível');
+ if(norm(rows?.[0]?.[0])==='created_at'&&norm(rows?.[0]?.[1])==='name'&&
+    norm(rows?.[0]?.[2])==='value'&&norm(sheetName).includes('rodovi'))
+  return parseOfficialRoadFreight(rows);
  const errors=[],result=[],seen=new Set();
  const headerPos=rows.slice(0,12).findIndex(row=>headerIndex(row));
  const header=headerPos>=0?headerIndex(rows[headerPos]):null;

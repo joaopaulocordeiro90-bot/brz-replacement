@@ -10,6 +10,8 @@ import {summarizeClose} from '../homolog/f77/assets/secure/f77_daily_close.mjs';
 import {createGeoRegistry} from '../homolog/f77/assets/secure/f77_geo_registry.mjs';
 import {validatedRailPath} from '../homolog/f77/assets/secure/f77_rail_network.mjs';
 import {parseInternalFreight,compareInternalFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
+import {parseOfficialRoadFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
+import {buildDailyPack} from '../homolog/f77/assets/secure/f77_xlsx_upload.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const folder=path.join(root,'homolog/f77');
 const r=file=>readFileSync(path.join(folder,file),'utf8');
@@ -20,10 +22,10 @@ test('F77: PIN direto sem tela Mercado diário e arquivos assinados',()=>{
  assert.match(pin,/__BRZ_VERIFY_FULL_STATIC/);
  assert.match(pin,/full verified replacement engine/);
  assert.match(app,/id="brz-f77-build"/);
- assert.match(index,/pin_boot\.mjs\?v=20261117int01/);
- assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117int01/);
- assert.match(pin,/pin_autosave\.js\?v=20261117int01/);
- assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117D/);
+ assert.match(index,/pin_boot\.mjs\?v=20261117real01/);
+ assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117real01/);
+ assert.match(pin,/pin_autosave\.js\?v=20261117real01/);
+ assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117E/);
  const m=JSON.parse(r('MANIFEST_F58_PUBLIC_SHA256.json'));
  assert.ok(Object.keys(m.files).length>100);
  for(const [name,record] of Object.entries(m.files)){
@@ -143,4 +145,56 @@ test('Frete interno: bloqueia duplicidades, periodo invalido e preco ausente',()
  assert.match(ui,/brz-f77-internal-file/);
  assert.match(ui,/brz-f77-internal-sheet/);
  assert.match(ui,/nenhuma cotação de frete interno será publicada/);
+});
+
+test('Arquivo real: schema oficial de cinco abas normaliza as quatro fontes diárias',()=>{
+ const asOf='2026-11-16';
+ const book={officialDaily:true,asOf,
+  dateBySheet:{prices:asOf,'Basis FOB':asOf,'Derivados CMA':asOf,'frete maritimo':asOf,'frete rodoviario':'2026-11-08'},
+  file_sha256:'a'.repeat(64),source_file:'Dados para João Cordeiro Atualizado.xlsx',
+  sheets:{
+   prices:[['Date','Commodity','City','Player','Price (BRL/ton)','Shipment'],
+    ['46342','Soybean','Jataí - GO','Bid','132','Feb-27'],
+    ['46342','Soybean','Jataí - GO','Offer','134','Feb-27']],
+   'Basis FOB':[['reference_date','porto','commodity','code','type','shipment','shipment2','player','basis'],
+    ['46342','Paranaguá','Soymeal','BSM-JK27','F','04|05-2027','','offer','-11']],
+   'Derivados CMA':[['dt_date','city_st','value','commodity'],
+    ['46342','Uberlândia - MG','0','Soymeal']],
+   'frete maritimo':[['DATE(a.created_at)','route','shipment','value'],
+    ['46342','[ECSA] Santos>N.CN SOYB','2026-12-01','36']],
+   'frete rodoviario':[['created_at','name','value'],
+    ['46334','Jataí - Goiás -> São Simão - São Paulo','79']]
+  }};
+ const map={prices:'prices','Basis FOB':'Basis FOB','Derivados CMA':'Derivados CMA',
+  'frete maritimo':'frete maritimo'};
+ const built=buildDailyPack(book,asOf,map);
+ assert.deepEqual(built.errors,[]);
+ assert.deepEqual(built.counts,{prices:2,'Basis FOB':1,'Derivados CMA':1,'frete maritimo':1});
+ assert.deepEqual(built.pack.records.prices[asOf][0],['Soybean','Jataí - GO','Bid',132,'Feb-27']);
+ assert.deepEqual(built.pack.records['Basis FOB'][asOf][0],
+  ['Paranaguá','Soymeal','BSM-JK27','F','04|05-2027','','offer',-11]);
+ assert.equal(built.pack.records['Derivados CMA'][asOf][0][1],0);
+ assert.equal(buildDailyPack(book,'2026-11-17',map).errors.length>0,true);
+});
+test('Frete original created_at/name/value: semana seguinte ao domingo, 514 linhas preserváveis',()=>{
+ const rows=[['created_at','name','value'],
+  ['46334','Jataí - Goiás -> São Simão - São Paulo',79],
+  ['46334','Campo Grande - Mato Grosso do Sul -> Santos - São Paulo',360]];
+ const parsed=parseOfficialRoadFreight(rows);
+ assert.deepEqual(parsed.errors,[]);
+ assert.equal(parsed.counts.total,2);
+ assert.equal(parsed.sourceDate,'2026-11-08');
+ assert.equal(parsed.sourceWeek,'2026-S46');
+ assert.equal(parsed.records[0].origem,'Jataí/GO');
+ assert.equal(parsed.records[0].destino,'São Simão/SP');
+ assert.equal(parsed.records[1].origem,'Campo Grande/MS');
+});
+test('Leitura historica incremental requerida e sem dados privados no repositorio',()=>{
+ const code=r('assets/secure/f77_official_daily_xlsx.mjs');
+ assert.match(code,/MAX_TOTAL=460/);
+ assert.match(code,/parseOfficialDailyXlsx/);
+ assert.match(code,/read!==entry.expanded/);
+ assert.match(code,/rows\.length>50000/);
+ assert.match(r('assets/secure/f77_xlsx_upload.mjs'),/officialDaily/);
+ assert.match(r('assets/secure/f77_xlsx_upload.mjs'),/f77_official_daily_xlsx\.mjs/);
 });

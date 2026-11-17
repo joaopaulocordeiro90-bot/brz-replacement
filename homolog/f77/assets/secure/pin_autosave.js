@@ -1153,7 +1153,7 @@
  }
  async function initDailyExcelUpload(){
   try{
-   const xlsx=await import('./f77_xlsx_upload.mjs?v=20261117int01');
+   const xlsx=await import('./f77_xlsx_upload.mjs?v=20261117real01');
    xlsx.installExcelUpload({
     getReference:async pack=>{
       const base={curveDay:String(state.timestamps?.cbot||''),
