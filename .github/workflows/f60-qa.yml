@@ -61,6 +61,7 @@ jobs:
           node tests/f76_audit_source_diff.test.mjs
           node tests/f77_engine_alignment.test.mjs
           node tests/f77_regional_flows.test.mjs
+          node tests/f77_region.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'
