@@ -371,7 +371,8 @@ test('F77 fin: conciliação cobre todo o dia, bloqueia sem negocio e conserva f
  const copy=JSON.stringify(deals);
  const report=await auditDayParity({trades:deals,date,calculate:()=>null});
  assert.equal(report.counts.eligible,2);
- assert.equal(report.counts.divergente,2);
+ assert.equal(report.counts.sem_referencia,2,'Sem resultado do motor é referência ausente');
+ assert.equal(report.counts.divergente,0);
  assert.equal(report.passed,false);
  assert.equal(report.rows.length,2);
  assert.equal(JSON.stringify(deals),copy);
