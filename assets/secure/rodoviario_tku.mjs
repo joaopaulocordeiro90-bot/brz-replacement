@@ -79,6 +79,34 @@ export function installRoadGeo(api){
     '<div style="font-size:11px;margin-top:5px">'+esc(a.source)+
     (r.modal==='T+R'?' · Ferrovia '+esc(r.transbordo||'terminal')+' → '+esc(r.porto)+': geometria ferroviária ainda não validada; traçado não inventado.':'')+
     ' · Fretes cotados e snapshots preservados. Confirme para usar em cálculo indicativo.</div>');
+
+   // F77: a railway line appears only if a connected path exists on the
+   // georeferenced official ANTT/Infra S.A. network. No price changes.
+   if(r.modal==='T+R'){
+     const railStart=coords(r.transbordo),railEnd=coords(r.porto,true);
+     const note=$('brzf60-status');
+     if(!railStart||!railEnd){
+       if(note)note.append(document.createTextNode(' · Ferrovia sem terminal/porto georreferenciado.'));
+     }else if(m&&layer){
+       if(note)note.append(document.createTextNode(' · Verificando traçado ferroviário oficial…'));
+       const railTimer=setTimeout(()=>controller.abort(),18000);
+       try{
+         const {displayValidatedRail}=await import('./f77_rail_network.mjs?v=20261117f77');
+         const railway=await displayValidatedRail({
+           map:m,group:layer,from:[railStart[1],railStart[0]],
+           to:[railEnd[1],railEnd[0]],signal:controller.signal
+         });
+         if(seq===requestId&&note){
+           note.append(document.createTextNode(railway.ok
+             ?' · Ferrovia oficial conectada: '+fmt(railway.km)+' km (violeta; sem comprovação de operação comercial ou bitola).'
+             :' · Ferrovia não desenhada: '+String(railway.reason||'sem traçado verificado')+'.'));
+         }
+       }catch(error){
+         if(seq===requestId&&note)note.append(document.createTextNode(' · Ferrovia indisponível: '+error.message));
+       }finally{clearTimeout(railTimer);}
+     }
+   }
+
   }catch(err){if(seq===requestId)status('Roteirização não confirmada: '+esc(err.message)+'. Nenhum cálculo foi alterado.',true);}
   finally{clearTimeout(timeout);if(activeCtrl===controller)activeCtrl=null;$('brzf60-calc').disabled=false;}
  }
