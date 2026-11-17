@@ -38,6 +38,7 @@ jobs:
           node --check assets/secure/f77_geo_registry.mjs
           node --check assets/secure/f77_rail_network.mjs
           node --check assets/secure/f77_xlsx_upload.mjs
+          node --check assets/secure/f77_xlsx_diff.mjs
           node --check assets/secure/f77_daily_close.mjs
           node --check assets/secure/pin_autosave.js
           node --check assets/secure/f40_pin_login.js
@@ -70,6 +71,7 @@ jobs:
           node tests/f77_rail_network.test.mjs
           node tests/f77_xlsx_stage.test.mjs
           node tests/f77_daily_close.test.mjs
+          node tests/f77_full_readiness.test.mjs
       - name: Auditar manifesto estático com SHA-256
         run: |
           node --input-type=module <<'NODE'
