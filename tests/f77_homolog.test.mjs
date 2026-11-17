@@ -23,10 +23,10 @@ test('F77: PIN direto sem tela Mercado diário e arquivos assinados',()=>{
  assert.match(pin,/__BRZ_VERIFY_FULL_STATIC/);
  assert.match(pin,/full verified replacement engine/);
  assert.match(app,/id="brz-f77-build"/);
- assert.match(index,/pin_boot\.mjs\?v=20261117real01/);
- assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117real01/);
- assert.match(pin,/pin_autosave\.js\?v=20261117real01/);
- assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117E/);
+ assert.match(index,/pin_boot\.mjs\?v=20261117hist01/);
+ assert.match(r('assets/secure/pin_boot.mjs'),/f40_pin_login\.js\?v=20261117hist01/);
+ assert.match(pin,/pin_autosave\.js\?v=20261117hist01/);
+ assert.match(pin,/app\.html\?v=F77_HOMOLOG_20261117F/);
  const m=JSON.parse(r('MANIFEST_F58_PUBLIC_SHA256.json'));
  assert.ok(Object.keys(m.files).length>100);
  for(const [name,record] of Object.entries(m.files)){
