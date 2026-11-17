@@ -12,6 +12,7 @@ import {validatedRailPath} from '../homolog/f77/assets/secure/f77_rail_network.m
 import {parseInternalFreight,compareInternalFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
 import {parseOfficialRoadFreight} from '../homolog/f77/assets/secure/f77_internal_freight.mjs';
 import {buildDailyPack} from '../homolog/f77/assets/secure/f77_xlsx_upload.mjs';
+import {auditDailyMarketOverlay} from '../homolog/f77/assets/secure/market_excel_audit.mjs';
 import {compareDailyXlsx} from '../homolog/f77/assets/secure/f77_xlsx_diff.mjs';
 import {auditRouteParity,auditDealParity,auditDayParity,isoWeekDay,buildRoadReferenceIndex} from '../homolog/f77/assets/secure/f77_financial_parity.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -413,4 +414,34 @@ test('F77 fin: frete rodoviario exige correspondencia da rota e semana (R$/t)',(
  assert.equal(auditRouteParity(d,route,{port:'Paranaguá',freightIndex:old}).status,'indicativo');
  assert.equal(auditRouteParity(d,{...route,freteProjSafraNova:true},
    {port:'Santos',freightIndex:old}).status,'indicativo');
+});
+
+
+test('F77: comparar TODOS os valores fisicos e fretes maritimos aplicados, nao somente contagens',()=>{
+ const day='2026-11-16';
+ const expected={data:day,produto:'Soja',origem:'Jataí/GO',janelaFisica:'Nov-26',
+  bid:150,offer:152,preco:151,unidadePreco:'R$/sc'};
+ const applied={...expected,corredor:'GO Sudoeste',safra:'Soja 25/26',
+  embarque:'Dec-26',retirada:'Nov-26',vencCBOT:'F27',vencCambio:'DOLF27',
+  cbot:1100,cambio:5.4};
+ const patch={as_of:day,sourceSha:'a'.repeat(64),physical:[expected],basis:[],
+  derivatives:[],ocean:[{day,route:'Santos>N.CN',shipment:'2026-12-01',value:38}]};
+ const basis={series:{}},cma={rows:[]};
+ const sea={marketExcelOceanRoutes:{[day]:[['Santos>N.CN','2026-12-01',38]]}};
+ const ok=auditDailyMarketOverlay(patch,{rows:[applied]},basis,cma,sea);
+ assert.equal(ok.ok,true,JSON.stringify(ok));
+ assert.equal(ok.totals.physicalPairs,1);
+ assert.equal(ok.totals.ocean,1);
+ const badBid=auditDailyMarketOverlay(patch,{rows:[{...applied,bid:149}]},basis,cma,sea);
+ assert.equal(badBid.ok,false);assert.ok(badBid.errors.some(x=>x.includes('Bid/Offer')));
+ const badMid=auditDailyMarketOverlay(patch,{rows:[{...applied,preco:152}]},basis,cma,sea);
+ assert.equal(badMid.ok,false);assert.ok(badMid.errors.some(x=>x.includes('Mid aplicado')));
+ const badUnit=auditDailyMarketOverlay(patch,{rows:[{...applied,unidadePreco:'R$/t'}]},basis,cma,sea);
+ assert.equal(badUnit.ok,false);assert.ok(badUnit.errors.some(x=>x.includes('Unidade')));
+ const badRate=auditDailyMarketOverlay(patch,{rows:[applied]},basis,cma,
+  {marketExcelOceanRoutes:{[day]:[['Santos>N.CN','2026-12-01',39]]}});
+ assert.equal(badRate.ok,false);assert.ok(badRate.errors.some(x=>x.includes('Valor do frete')));
+ const swappedRoute=auditDailyMarketOverlay(patch,{rows:[applied]},basis,cma,
+  {marketExcelOceanRoutes:{[day]:[['Paranaguá>N.CN','2026-12-01',38]]}});
+ assert.equal(swappedRoute.ok,false);assert.ok(swappedRoute.errors.some(x=>x.includes('Rota marítima')));
 });
