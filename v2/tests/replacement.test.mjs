@@ -89,3 +89,19 @@ test("basis negativo é permitido e mantém sinal no cálculo",()=>{
  assert.equal(r.ok,true);
  check(r.margemFOBCbu,-20-r.basisFOB);
 });
+
+test("vencimento físico segue o mês do embarque segundo a regra C49",()=>{
+ const ok=calculate({trade,route,market:{...market,cbot_contract:"F27"}});
+ assert.equal(ok.ok,true);
+ const wrong=calculate({trade,route,market:{...market,cbot_contract:"X26"}});
+ assert.equal(wrong.ok,false);
+ assert.match(wrong.reasons.join(" "),/Vencimento CBOT incompatível/);
+});
+test("última retirada determina embarque e bloqueia divergência sem exceção",()=>{
+ const t={...trade,window_start:"2026-12-01",window_end:"2026-12-15"};
+ const wrong=calculate({trade:t,route,market:{...market,ship_month:"2026-12",cbot_contract:"F27"}});
+ assert.equal(wrong.ok,false);
+ assert.match(wrong.reasons.join(" "),/Mês de embarque incompatível/);
+ const valid=calculate({trade:{...trade,window_start:"2026-11-01",window_end:"2026-11-30"},route,market:{...market,cbot_contract:"F27"}});
+ assert.equal(valid.ok,true);
+});

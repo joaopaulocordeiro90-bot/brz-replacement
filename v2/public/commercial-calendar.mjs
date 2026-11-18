@@ -38,7 +38,7 @@ export function inferShipment({trade,product,port}={}){
  const pick=pickupMonth(trade);
  if(!pick.month)return {shipMonth:null,source:pick.source,confidence:"INDETERMINADO",exception:null};
  let ship=nextMonth(pick.month),exception=null;
- const isCorn=p==="milho"||p==="sorgo";
+ const isCorn=p==="milho";
  if(isCorn&&clean(port).replace(/^porto (?:de|do|da) /,"")==="santos"&&ship.endsWith("-01")){
   ship=pick.month;exception="milho_santos_janeiro_para_dezembro";
  }

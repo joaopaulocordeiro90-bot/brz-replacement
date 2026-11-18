@@ -101,3 +101,9 @@ test("não assume rota ausente e não calcula com data inválida",()=>{
  assert.equal(projectFreight({tradeDate:"2026-11-18",shipMonth:"2027-01"}).ok,false);
  assert.equal(projectFreight({tradeDate:"não sei",shipMonth:"2027-01",roadBrlT:200}).ok,false);
 });
+
+test("sorgo não herda exceção que foi aprovada somente para milho Santos",()=>{
+ const tr={trade_date:"2026-11-18",window_end:"2026-12-10"};
+ assert.equal(inferShipment({trade:tr,product:"Sorgo",port:"Santos"}).shipMonth,"2027-01");
+ assert.equal(inferShipment({trade:tr,product:"Milho",port:"Santos"}).shipMonth,"2026-12");
+});

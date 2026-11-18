@@ -1,3 +1,4 @@
+import {inferShipment,expectedCbotContract,expectedDolContract,projectFreight} from "./commercial-calendar.mjs";
 import {cbToCanonical} from "./cbot-units.mjs";
 import {routeIssues,marketIssues} from "./matching.mjs";
 import {calculate} from "./engine.mjs";
@@ -164,11 +165,54 @@ function selectedFrom(id,rows){return rows.find(x=>x.id===$(id).value);}
 function hint(id,text,warn=false){
  const el=$(id);el.textContent=text;el.className="sim-hint"+(warn?" warn":"");
 }
+function updateCommercePreview(){
+ const el=$("sim-commerce-preview");if(!el)return;
+ el.replaceChildren();
+ const t=selectedFrom("sim-trade",state.trades),r=selectedFrom("sim-route",state.routes),m=selectedFrom("sim-market",state.market);
+ if(!t||!r||!m){el.textContent="Selecione negócio, rota e referência para conferir o calendário comercial.";return;}
+ const inferred=inferShipment({trade:t,product:t.product,port:r.destination_port});
+ const ship=String(m.ship_month||""),cb=expectedCbotContract({product:t.product,shipMonth:ship,tradeDate:t.trade_date});
+ const dol=expectedDolContract(ship);
+ const expected=cb.contract||"N/D (regra sem vigência)";
+ const actual=String(m.cbot_contract||"N/D");
+ const normalized=actual.toUpperCase().replace(/^(ZS|ZC)/,"");
+ const contractMismatch=!!cb.contract&&normalized!==cb.contract;
+ const shipMismatch=inferred.shipMonth&&inferred.confidence==="REGRA_VIGENTE"&&inferred.shipMonth!==ship;
+ const rows=[
+  ["Embarque selecionado",ship||"N/D"],
+  ["Embarque pela retirada",inferred.shipMonth||"N/D (falta data de retirada/spot)"],
+  ["CBOT do registro",actual],
+  ["CBOT esperada pela regra",expected+(cb.override?" · exceção U27":"")],
+  ["DOL do mês porto",dol?.contract||"N/D"]
+ ];
+ for(const [name,value] of rows){const p=elem("p");p.style.margin="4px 0";p.append(elem("strong",name+": "),document.createTextNode(value));el.append(p);}
+ if(contractMismatch||shipMismatch){
+  const warns=[];
+  if(contractMismatch)warns.push("CBOT divergente; cálculo bloqueado");
+  if(shipMismatch)warns.push("Embarque divergente da regra de retirada; cálculo bloqueado");
+  const msg=elem("p",warns.join(" · "),"sim-hint warn");el.append(msg);
+ }
+ if(r.modal==="Rodoviário"||r.modal==="Ferroviário"){
+  try{
+   const opt={tradeDate:t.trade_date,shipMonth:ship,roadBrlT:r.modal==="Rodoviário"?r.freight_brl_t:0,
+    railBrlT:r.modal==="Ferroviário"?r.freight_brl_t:0,originUf:r.origin_uf,port:r.destination_port};
+   const freight=projectFreight(opt);
+   if(freight.ok){
+    const label=elem("p","Prévia do frete ("+r.modal+"): R$ "+fmt(freight.totalBrlT)+"/t"+
+     (freight.projected2027?" · projeção 1 ano":"")+(freight.projected2028?" · projeção 2+ anos":"")+
+     " · base informada R$ "+fmt(r.freight_brl_t)+"/t","muted");
+    el.append(label);
+    el.append(elem("p","Prévia de regra por vigência. Não altera a tarifa salva, não presume desconto ferroviário e não entra automaticamente na margem até homologação do corredor.","muted"));
+   }else el.append(elem("p","Prévia do frete N/D: "+freight.reasons.join("; "),"muted"));
+  }catch(e){el.append(elem("p","Frete inválido: "+String(e.message||e),"sim-hint warn"));}
+ }else el.append(elem("p","Frete multimodal N/D: informe os trechos rodoviário, ferroviário e/ou barcaça separadamente para projetar custos sem distorção.","sim-hint warn"));
+}
 function updateSummary(){
  const t=selectedFrom("sim-trade",state.trades),r=selectedFrom("sim-route",state.routes),m=selectedFrom("sim-market",state.market);
  const routes=state.routes.filter(x=>!routeIssues(t,x).length);
  const markets=state.market.filter(x=>!marketIssues(t,r,x).length);
  $("sim-summary").textContent=state.tradeTotal+" negócio(s) · "+state.routes.length+" rota(s) · "+state.market.length+" referência(s) carregadas. "+(t?routes.length+" rota(s) compatível(is) com "+t.city+"/"+t.uf+". ":"Selecione o negócio para conferir as rotas. ")+(r?markets.length+" referência(s) compatível(is) com "+r.destination_port+".":"Selecione a rota para conferir as referências.");
+ updateCommercePreview();
  const extra=state.tradeTotal>state.trades.length?" Mostrando apenas "+state.trades.length+" negócio(s) da página atual; use a busca em Negócios para mudar a página.":"";
  hint("sim-trade-info",state.trades.length+" negócio(s) disponível(is)."+extra);
  if(!t){

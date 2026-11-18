@@ -1,3 +1,4 @@
+import {expectedCbotContract,inferShipment} from "./commercial-calendar.mjs";
 import {routeIssues,marketIssues} from "./matching.mjs";
 // BRZ Replacement V2: núcleo de equivalência ARITMÉTICA verificado contra
 // calcReplacement, priceCbu, freightCbu e usdTCbu do HTML operacional C49/V4GE.
@@ -40,6 +41,19 @@ export function calculate(input){
  if(!/^\d{4}-\d{2}$/.test(ship))reasons.push("Embarque não definido no padrão AAAA-MM");
  else if(Number(ship.slice(0,4))>=2027)
   reasons.push("Projeção de frete 2027/2028+ não homologada neste piloto; cálculo bloqueado até aplicar regras por vigência e modal");
+ const calendarReference=expectedCbotContract({product,shipMonth:ship,tradeDate:p?.trade_date});
+ if(calendarReference.contract&&m?.cbot_contract){
+  const saved=String(m.cbot_contract).trim().toUpperCase().replace(/^(?:ZS|ZC)/,"");
+  if(saved!==calendarReference.contract)
+   reasons.push("Vencimento CBOT incompatível: referência "+String(m.cbot_contract)+"; esperado "+calendarReference.contract+" conforme regra vigente "+calendarReference.validSince);
+ }else if(!calendarReference.contract)
+  warnings.push("Calendário CBOT não identificado: "+calendarReference.reason);
+ const inferredShipment=inferShipment({trade:p,product,port:r?.destination_port});
+ if(inferredShipment.shipMonth&&inferredShipment.confidence==="REGRA_VIGENTE"&&inferredShipment.shipMonth!==ship)
+  reasons.push("Mês de embarque incompatível com a última retirada: calculado "+inferredShipment.shipMonth+"; informado "+ship+". Corrija a janela ou cadastre a exceção comercial.");
+ else if(inferredShipment.shipMonth&&inferredShipment.shipMonth!==ship)
+  warnings.push("Embarque indicado difere de inferência apenas indicativa: conferir a janela");
+ if(!m?.cbot_contract)warnings.push("Vencimento CBOT não informado na referência: comparação contratual parcial");
  if(reasons.length)return insufficient(reasons);
  // Fórmulas replicadas do HTML operacional; o frete deste piloto já precisa ser
  // o custo total aprovado para o modal. Não inferir distribuição rodo/ferro.
