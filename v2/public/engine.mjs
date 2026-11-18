@@ -14,7 +14,7 @@ export function calculate(input){
  if(!(good(physical)&&physical>0))reasons.push("Preço físico R$/sc ausente");
  if(!(good(fx)&&fx>0))reasons.push("Dólar ausente");
  if(!good(cbot))reasons.push("CBOT ausente");
- else if(cbot<100||cbot>4000)reasons.push("CBOT inválida: "+cbot+" c/bu. Confira a unidade no Administrador (ex.: 1100 c/bu = US$ 11/bu).");
+ else if(cbot<(product==="Soja"?400:product==="Milho"?150:100)||cbot>4000)reasons.push("CBOT inválida para "+product+": "+cbot+" c/bu. Confira a unidade no Administrador (ex.: 1100 c/bu = US$ 11/bu).");
  if(!(good(freight)&&freight>=0))reasons.push("Frete interno ausente");
  if(!(good(fobbins)&&fobbins>=0))reasons.push("FOBBINS ausente");
  if(!(good(ocean)&&ocean>=0))reasons.push("Frete marítimo ausente");

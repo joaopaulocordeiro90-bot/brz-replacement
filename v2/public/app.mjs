@@ -138,7 +138,7 @@ async function saveEditor(event){
  if(type==="trades"&&body.uf)body.uf=String(body.uf).trim().toUpperCase();
  if(type==="routes"&&body.origin_uf)body.origin_uf=String(body.origin_uf).trim().toUpperCase();
  if(type==="market"){
-  try{body.cbot_cbu=cbToCanonical(body.cbot_cbu,$("editor-form").elements.namedItem("cbot_entry_unit").value);}
+  try{body.cbot_cbu=cbToCanonical(body.cbot_cbu,$("editor-form").elements.namedItem("cbot_entry_unit").value,body.product);}
   catch(err){notify(err.message,true);return;}
  }
  if(state.editing)body.version=state.editing.version;

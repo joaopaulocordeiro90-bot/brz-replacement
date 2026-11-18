@@ -17,7 +17,7 @@ function validate(name,src){
  if(name==="trades"){if(!["Soja","Milho","Sorgo","Farelo","Óleo"].includes(item.product))throw Error("Produto inválido");if(!(item.volume_t>0))throw Error("Volume inválido");if(item.price_brl_sc!=null&&item.price_brl_sc<=0)throw Error("Preço inválido");if(!/^\d{4}-\d{2}-\d{2}$/.test(item.trade_date))throw Error("Data inválida");if(item.lat!=null&&!(item.lat>=-35&&item.lat<=6))throw Error("Latitude fora do Brasil");if(item.lng!=null&&!(item.lng>=-75&&item.lng<=-32))throw Error("Longitude fora do Brasil");if((item.lat==null)!=(item.lng==null))throw Error("Coordenadas incompletas");}
  if(name==="routes"&&!(item.freight_brl_t>=0))throw Error("Frete inválido");
  if(name==="market"&&(!/^\d{4}-\d{2}$/.test(item.ship_month)||!/^\d{4}-\d{2}-\d{2}$/.test(item.reference_date)))throw Error("Competência inválida");
- if(name==="market"&&item.cbot_cbu!=null&&(item.cbot_cbu<100||item.cbot_cbu>4000))throw Error("CBOT inválida: informe em c/bu, por exemplo 1100 (equivalente a US$ 11/bu).");
+ if(name==="market"&&item.cbot_cbu!=null&&(item.cbot_cbu<(item.product==="Soja"?400:item.product==="Milho"?150:100)||item.cbot_cbu>4000))throw Error("CBOT inválida: informe em c/bu, por exemplo 1100 (equivalente a US$ 11/bu).");
  return item;
 }
 async function audit(DB,entity,id,operation,before,after){

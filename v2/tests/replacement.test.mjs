@@ -62,7 +62,7 @@ test("unidades CBOT são explícitas e equivalentes",()=>{
  assert.equal(cbToCanonical(1100,"cbu"),1100);
  assert.equal(cbToCanonical(11,"usd_bu"),1100);
  assert.throws(()=>cbToCanonical(1.1,"cbu"),/CBOT fora da faixa/);
- assert.throws(()=>cbToCanonical(1.1,"usd_bu"),/CBOT fora da faixa/);
+ assert.throws(()=>cbToCanonical(1.1,"usd_bu","Soja"),/CBOT fora da faixa/);
 });
 test("screenshot reproduz erro de unidade e prova a correção aritmética",()=>{
  const t={...trade,price_brl_sc:136};
