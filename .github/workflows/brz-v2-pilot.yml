@@ -1,0 +1,37 @@
+name: BRZ V2 Pilot QA
+on:
+  push:
+    branches:
+      - brz-v2-cloudflare-piloto
+    paths:
+      - "v2/**"
+      - ".github/workflows/brz-v2-pilot.yml"
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax checks
+        run: |
+          node --check public/engine.mjs
+          node --check public/app.mjs
+          node --check "functions/api/[[path]].js"
+      - name: Replacement unit tests
+        run: npm test
+      - name: D1 SQL schema smoke test
+        run: |
+          python3 - <<'PY'
+          import sqlite3,pathlib
+          db=sqlite3.connect(":memory:")
+          db.executescript(pathlib.Path("migrations/0001_base.sql").read_text())
+          tabs={r[0] for r in db.execute("select name from sqlite_master where type='table'")}
+          assert {"trades","routes","market_refs","audit_events"}<=tabs
+          print("D1 SQL schema: OK")
+          PY
