@@ -33,7 +33,7 @@ async function api(resource,options={}){
 }
 async function checkHealth(){
  try{const data=await api("health");$("connection").textContent="Banco D1 conectado";$("kpi-state").textContent="Online";return data;}
- catch(e){$("connection").textContent="D1 não configurado";$("kpi-state").textContent="Bloqueado";notify("Persistência indisponível: "+e.message,true);return null;}
+ catch(e){$("connection").textContent="Banco pendente de ativação";$("kpi-state").textContent="Pendente";notify("Banco ainda indisponível ou sem tabelas. Se o D1 já está associado, clique em ‘Inicializar o D1 do piloto’ nesta tela. Detalhe: "+e.message,true);return null;}
 }
 function tableAt(target,headers,records,actions){
  const el=$(target);el.replaceChildren();
