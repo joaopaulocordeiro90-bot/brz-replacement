@@ -1,0 +1,8 @@
+{
+  "application": "BRZ Replacement 2.0",
+  "phase": "PILOTO_NAO_HOMOLOGADO",
+  "release": "pilot-d1-binding-check-01",
+  "branch": "brz-v2-cloudflare-piloto",
+  "expected_binding": "DB",
+  "health_endpoint": "/api/health"
+}
