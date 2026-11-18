@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BRZ Replacement 2.0 | Piloto</title>
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head><body>
+<header class="topbar"><div class="brand"><span class="brand-mark">BRZ</span><div><strong>Replacement Engine</strong><small>2.0 · Homologação</small></div></div><div class="status"><span id="connection">Verificando banco…</span><span class="pilot">PILOTO</span></div></header>
+<div class="shell">
+<nav class="sidebar" aria-label="Seções">
+<button data-page="dashboard" class="selected">Visão geral</button>
+<button data-page="trades">Negócios</button>
+<button data-page="simulation">Replacement</button>
+<button data-page="map">Mapa de origens</button>
+<span class="navline"></span>
+<span class="navlabel">ADMINISTRADOR</span>
+<button data-page="admin-trades">Editar negócios</button>
+<button data-page="admin-routes">Rotas e fretes</button>
+<button data-page="admin-market">Referências de mercado</button>
+<button data-page="admin-audit">Auditoria</button>
+</nav>
+<main class="main">
+<div id="notice" class="notice" role="status"></div>
+<section id="page-dashboard" class="page">
+<div class="head"><div><div class="eyebrow">BRZ · ORIGINAÇÃO E REPLACEMENT</div><h1>Visão geral</h1><p>Fundação operacional da plataforma modular.</p></div></div>
+<div class="metrics"><article class="metric"><small>Negócios cadastrados</small><strong id="kpi-trades">—</strong></article><article class="metric"><small>Rotas cadastradas</small><strong id="kpi-routes">—</strong></article><article class="metric"><small>Referências de mercado</small><strong id="kpi-market">—</strong></article><article class="metric"><small>Estado da plataforma</small><strong id="kpi-state">Pendente</strong></article></div>
+<div class="panel"><h2>Escopo do piloto</h2><p>Cadastro administrativo, persistência D1, georreferenciamento de origens e simulação indicativa. Histórico real, importador Excel e paridade financeira ainda dependem de homologação.</p><button class="primary" data-open="admin-trades">Cadastrar um negócio</button></div>
+</section>
+<section id="page-trades" class="page hidden"><div class="head"><h1>Negócios</h1><p>Histórico operacional pesquisável e paginado.</p></div><div class="panel"><div class="toolbar"><input id="trades-search" placeholder="Buscar origem, vendedor, comprador…" aria-label="Buscar negócios"><button id="refresh-trades">Atualizar</button></div><div id="trades-table"></div><div class="pager"><button id="prev-trades">Anterior</button><span id="trades-range"></span><button id="next-trades">Próximo</button></div></div></section>
+<section id="page-simulation" class="page hidden"><div class="head"><h1>Replacement</h1><p>Simulação financeira indicativa. A versão atual ainda não reproduz todas as regras do HTML.</p></div><div class="panel"><div class="triple"><label>Negócio<select id="sim-trade"></select></label><label>Rota / frete<select id="sim-route"></select></label><label>Referência de mercado<select id="sim-market"></select></label></div><button class="primary" id="sim-run">Calcular</button><div id="sim-result" class="result">Selecione as três referências para simular.</div></div></section>
+<section id="page-map" class="page hidden"><div class="head"><h1>Mapa de origens</h1><p>Pin confirmado é diferente de localização municipal indicativa.</p></div><div class="panel"><div id="map"></div><p class="muted">Selecione um negócio em Administrador → Editar negócios, abra o formulário e use “Marcar no mapa” para cadastrar a localização exata.</p></div></section>
+<section id="page-admin-trades" class="page hidden"><div class="head"><h1>Administrador · Negócios</h1><p>Cadastre ou edite um negócio sem IA.</p></div><div class="panel"><div class="toolbar"><button class="primary" id="new-trade">Novo negócio</button><button id="admin-refresh">Atualizar lista</button></div><div id="admin-trades-list"></div></div></section>
+<section id="page-admin-routes" class="page hidden"><div class="head"><h1>Administrador · Rotas e fretes</h1><p>Tarifas explicitamente cadastradas, sem valores inventados.</p></div><div class="panel"><button class="primary" id="new-route">Nova rota</button><div id="routes-table"></div></div></section>
+<section id="page-admin-market" class="page hidden"><div class="head"><h1>Administrador · Mercado</h1><p>CBOT, câmbio, basis FOB, FOBBINS e marítimo por referência.</p></div><div class="panel"><button class="primary" id="new-market">Nova referência</button><div id="market-table"></div></div></section>
+<section id="page-admin-audit" class="page hidden"><div class="head"><h1>Administrador · Auditoria</h1><p>Últimas alterações com antes/depois preservados.</p></div><div class="panel"><div id="audit-table"></div></div></section>
+</main></div>
+<dialog id="editor"><form method="dialog" id="editor-form"><div class="dialoghead"><div><small id="editor-eyebrow">ADMIN</small><h2 id="editor-title">Cadastrar</h2></div><button type="button" id="close-dialog" aria-label="Fechar">×</button></div><div id="editor-fields" class="formgrid"></div><div id="geo-controls" class="geo-controls hidden"><button id="open-pin" type="button">Marcar no mapa</button><span id="geo-note">Nenhuma coordenada confirmada</span></div><div class="actions"><button type="button" id="cancel-dialog">Cancelar</button><button type="submit" class="primary">Salvar</button></div></form></dialog>
+<dialog id="pin-dialog"><div class="dialoghead"><h2>Confirmar localização exata</h2><button id="close-pin" type="button">×</button></div><p>Toque no ponto real da fazenda ou armazém. Sem clique, nenhuma coordenada será gravada.</p><div id="pin-map"></div><div class="actions"><span id="pin-coordinates">Sem ponto selecionado</span><button class="primary" id="confirm-pin" type="button" disabled>Confirmar ponto</button></div></dialog>
+<script type="module" src="./app.mjs"></script>
+</body></html>

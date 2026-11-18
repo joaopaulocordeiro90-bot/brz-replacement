@@ -1,0 +1,9 @@
+{
+  "name": "brz-replacement-v2-piloto",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "description": "Piloto BRZ Replacement modular Cloudflare Pages + D1"
+}
