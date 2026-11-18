@@ -1,3 +1,4 @@
+import {cbToCanonical} from "./cbot-units.mjs";
 import {routeIssues,marketIssues} from "./matching.mjs";
 import {calculate} from "./engine.mjs";
 const $=id=>document.getElementById(id);
@@ -18,7 +19,7 @@ const spec={
  ],
  market:[
  ["product","Produto","select",true,["Soja","Milho","Sorgo"]],["port","Porto","text",true],["ship_month","Embarque (AAAA-MM)","month",true],
- ["reference_date","Data de mercado","date",true],["cbot_contract","Vencimento CBOT","text",true],["cbot_cbu","CBOT (c/bu)","number"],
+ ["reference_date","Data de mercado","date",true],["cbot_contract","Vencimento CBOT","text",true],["cbot_cbu","Cotação CBOT — confira a unidade abaixo","number"],
  ["fx_brl_usd","Dólar (R$/US$)","number"],["fob_basis_cbu","Basis FOB (c/bu)","number"],["fobbins_usd_t","FOBBINS (US$/t)","number"],
  ["ocean_usd_t","Frete marítimo (US$/t)","number"],["side","Lado","select",false,["Bid","Offer"]],["source","Fonte","text",true]
  ]};
@@ -108,6 +109,18 @@ function openEditor(type,record=null){
   input.value=value==null?"":String(value);
   wrapper.append(input);$("editor-fields").append(wrapper);
  }
+ if(type==="market"){
+  const wrapper=elem("label","Unidade informada da CBOT");
+  const unit=elem("select");unit.name="cbot_entry_unit";
+  unit.append(new Option("c/bu (centavos/bushel) — digite 1100","cbu"),new Option("US$/bu (dólares/bushel) — digite 11","usd_bu"));
+  wrapper.append(unit);$("editor-fields").append(wrapper);
+  const help=elem("p","Exemplo: 1.100 c/bu = US$ 11/bu. No campo numérico, NÃO digite 1.100 para representar mil e cem; escolha a unidade e informe 1100 ou 11.","muted");
+  help.style.gridColumn="1 / -1";$("editor-fields").append(help);
+  if(record?.cbot_cbu!=null&&record.cbot_cbu<100){
+   const warning=elem("p","Atenção: esta referência contém CBOT "+fmt(record.cbot_cbu)+" c/bu, incompatível com o exemplo. Corrija a cotação antes de calcular.","muted");
+   warning.style.gridColumn="1 / -1";warning.style.color="#b45309";$("editor-fields").append(warning);
+  }
+ }
  $("geo-controls").classList.toggle("hidden",type!=="trades");
  const lat=$("editor-form").elements.namedItem("lat")?.value,lng=$("editor-form").elements.namedItem("lng")?.value;
  $("geo-note").textContent=lat&&lng?"Coordenadas: "+lat+", "+lng:"Nenhuma coordenada confirmada";
@@ -124,6 +137,10 @@ async function saveEditor(event){
  }
  if(type==="trades"&&body.uf)body.uf=String(body.uf).trim().toUpperCase();
  if(type==="routes"&&body.origin_uf)body.origin_uf=String(body.origin_uf).trim().toUpperCase();
+ if(type==="market"){
+  try{body.cbot_cbu=cbToCanonical(body.cbot_cbu,$("editor-form").elements.namedItem("cbot_entry_unit").value);}
+  catch(err){notify(err.message,true);return;}
+ }
  if(state.editing)body.version=state.editing.version;
  try{
   await api(type+(state.editing?"/"+state.editing.id:""),{method:state.editing?"PUT":"POST",body:JSON.stringify(body)});
@@ -202,6 +219,12 @@ function simulate(){
  if(!result.ok){el.append(elem("strong","N/D — cálculo bloqueado"),elem("p",result.reasons.join("; ")));return;}
  for(const line of [["Replacement FOB",fmt(result.foB)+" c/bu"],["Replacement CFR",fmt(result.cfr)+" c/bu"],["Gross Margin indicativa",result.grossMargin==null?"N/D":fmt(result.grossMargin)+" US$/t"]]){
   const p=elem("p");const strong=elem("strong",line[0]+": ");p.append(strong,document.createTextNode(line[1]));el.append(p);
+ }
+ if(result.inputs){
+  const details=elem("details");details.append(elem("summary","Conferir memória de cálculo (c/bu)"));
+  const i=result.inputs;
+  const p=elem("p","Preço físico convertido: "+fmt(i.priceCbu)+" | Frete interno: "+fmt(i.freightCbu)+" | FOBBINS: "+fmt(i.fobbinsCbu)+" | CBOT subtraída: "+fmt(i.cbot)+" | Marítimo: "+fmt(i.oceanCbu),"muted");
+  details.append(p);el.append(details);
  }
  if(result.reasons.length)el.append(elem("p",result.reasons.join("; "),"muted"));
  el.append(elem("p","Piloto — cálculo ainda não homologado contra V4GG/F77.","muted"));

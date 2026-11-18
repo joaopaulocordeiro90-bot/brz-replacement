@@ -37,3 +37,13 @@ test("endpoint não existente retorna 404",async()=>{
  const r=await onRequest(ctx("qualquercoisa","GET",undefined,{prepare(){throw Error("NÃO")}}));
  assert.equal(r.status,404);
 });
+
+test("API rejeita CBOT registrada como 1.10 c/bu antes de gravar",async()=>{
+ const db={prepare(){throw Error("NÃO DEVE ACESSAR BANCO")}};
+ const r=await onRequest(ctx("market","POST",{
+  product:"Soja",port:"Santos",ship_month:"2026-12",reference_date:"2026-11-18",
+  cbot_contract:"F27",cbot_cbu:1.1,source:"Teste"
+ },db));
+ assert.equal(r.status,422);
+ assert.match((await r.json()).error,/CBOT inválida/);
+});

@@ -1,3 +1,4 @@
+import {cbToCanonical} from "../public/cbot-units.mjs";
 import {routeIssues,marketIssues} from "../public/matching.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -47,4 +48,28 @@ test("referência de outro porto ou produto continua bloqueada",()=>{
  assert.notEqual(marketIssues(trade,route,{...market,port:"Paranaguá"}).length,0);
  assert.notEqual(marketIssues(trade,route,{...market,product:"Milho"}).length,0);
  assert.equal(calculate({trade,route,market:{...market,port:"Paranaguá"}}).ok,false);
+});
+
+test("CBOT ambígua do print é bloqueada, sem margem falsa",()=>{
+ const t={...trade,price_brl_sc:136};
+ const m={...market,cbot_cbu:1.1};
+ const result=calculate({trade:t,route,market:m});
+ assert.equal(result.ok,false);
+ assert.equal(result.grossMargin,null);
+ assert.match(result.reasons.join(" "),/CBOT inválida/);
+});
+test("unidades CBOT são explícitas e equivalentes",()=>{
+ assert.equal(cbToCanonical(1100,"cbu"),1100);
+ assert.equal(cbToCanonical(11,"usd_bu"),1100);
+ assert.throws(()=>cbToCanonical(1.1,"cbu"),/CBOT fora da faixa/);
+ assert.throws(()=>cbToCanonical(1.1,"usd_bu"),/CBOT fora da faixa/);
+});
+test("screenshot reproduz erro de unidade e prova a correção aritmética",()=>{
+ const t={...trade,price_brl_sc:136};
+ const m={...market,cbot_cbu:1100};
+ const result=calculate({trade:t,route,market:m});
+ assert.equal(result.ok,true);
+ assert.ok(Math.abs(result.foB-163.14400468442)<0.00001);
+ assert.ok(Math.abs(result.cfr-258.39937980915)<0.00001);
+ assert.ok(Math.abs(result.grossMargin+23.20121212121)<0.00001);
 });
