@@ -12,7 +12,7 @@
 
 ## Publicação (após criar banco e conectar Cloudflare)
 Configurar um novo projeto **Cloudflare Pages** usando o repositório GitHub \`brz-replacement\`, branch \`brz-v2-cloudflare-piloto\`, **diretório raiz \`v2\`**, diretório de saída \`public\` e sem build command (site estático).
-Na Cloudflare, criar um banco **D1** e vinculá-lo ao Pages Functions com o binding exatamente \`DB\`. Aplicar a migração em \`migrations/0001_base.sql\` ao banco. A Cloudflare pode exigir ativação das Functions conforme o fluxo de publicação escolhido.
+Na Cloudflare, criar um banco **D1** e vinculá-lo ao Pages Functions com o binding exatamente \`DB\`. Depois de conectar o binding, abra o piloto e use o botão **Inicializar o D1 do piloto**, que executa o mesmo esquema da migração \`migrations/0001_base.sql\` no banco vinculado. Esta função é exclusiva de homologação e deve ser desativada antes do uso operacional. A Cloudflare pode exigir ativação das Functions conforme o fluxo de publicação escolhido.
 Antes do binding/migração, a interface não grava: a verificação de saúde mostra o problema.
 O código não contém senha de acesso. Esta versão não deve receber negócios confidenciais e não pode ser tratada como produção.
 Para desenvolvimento local, usar \`wrangler pages dev public --d1=DB\` com o D1 local migrado, dentro de \`v2\` (conferir documentação da versão Wrangler utilizada).

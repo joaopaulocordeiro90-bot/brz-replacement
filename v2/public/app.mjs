@@ -209,6 +209,11 @@ function confirmPin(){
 function wire(){
  qs("[data-page]").forEach(b=>b.onclick=()=>nav(b.dataset.page));
  qs("[data-open]").forEach(b=>b.onclick=()=>nav(b.dataset.open));
+ $("bootstrap-db").onclick=async()=>{
+  if(!confirm("Inicializar as tabelas no D1 vinculado? Esta ação não importa negócios reais."))return;
+  try{const result=await api("bootstrap",{method:"POST"});notify("D1 inicializado. "+result.trades+" negócios cadastrados.");await checkHealth();await refresh();}
+  catch(e){notify("Inicialização não realizada: "+e.message,true);}
+ };
  $("new-trade").onclick=()=>openEditor("trades");$("new-route").onclick=()=>openEditor("routes");$("new-market").onclick=()=>openEditor("market");
  $("refresh-trades").onclick=refresh;$("admin-refresh").onclick=refresh;
  $("trades-search").onchange=e=>{state.tradeSearch=e.target.value.trim();state.tradeOffset=0;refreshTrades().catch(e=>notify(e.message,true));};

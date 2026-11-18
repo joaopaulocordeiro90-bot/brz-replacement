@@ -1,3 +1,4 @@
+import {BOOTSTRAP_SCHEMA} from "../schema.js";
 const SCHEMAS={
  trades:{table:"trades",required:["trade_date","product","volume_t","origin_name","city","uf"],fields:["trade_date","product","crop_year","seller","buyer","volume_t","price_brl_sc","delivery_basis","origin_name","city","uf","lat","lng","geo_precision","window_start","window_end","payment_date","due","fethab","status","notes"]},
  routes:{table:"routes",required:["origin_city","origin_uf","destination_port","modal","freight_brl_t","source"],fields:["origin_city","origin_uf","destination_port","terminal","modal","freight_brl_t","distance_km","freight_status","source","valid_from","valid_to"]},
@@ -43,6 +44,11 @@ export async function onRequest({request,env}){
  if(!env.DB)return failure("D1 não vinculado: configurar binding DB na Cloudflare",503);
  const pathname=new URL(request.url).pathname,parts=pathname.split("/").filter(Boolean),name=parts[1],id=parts[2],cfg=SCHEMAS[name];
  try{
+  if(name==="bootstrap"&&request.method==="POST"){
+   await env.DB.exec(BOOTSTRAP_SCHEMA);
+   const initialized=await env.DB.prepare("SELECT COUNT(*) AS n FROM trades").first();
+   return json({ok:true,status:"D1_INICIALIZADO",trades:initialized?.n||0,stage:"PILOTO_NAO_HOMOLOGADO"});
+  }
   if(name==="health"&&request.method==="GET"){
    await env.DB.prepare("SELECT COUNT(*) AS n FROM trades").first();
    return json({ok:true,db:"online",stage:"PILOTO_NAO_HOMOLOGADO"});
