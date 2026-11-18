@@ -1,3 +1,4 @@
+import {routeIssues,marketIssues} from "./matching.mjs";
 // BRZ Replacement piloto — NUNCA confundir com motor homologado V4GG/F77.
 export const FACTORS=Object.freeze({Soja:2.2046,Milho:2.3621,Sorgo:2.3621});
 const num=x=>x===null||x===undefined||x===""?null:Number.isFinite(Number(x))?Number(x):null;
@@ -16,9 +17,8 @@ export function calculate(input){
  if(!(good(freight)&&freight>=0))reasons.push("Frete interno ausente");
  if(!(good(fobbins)&&fobbins>=0))reasons.push("FOBBINS ausente");
  if(!(good(ocean)&&ocean>=0))reasons.push("Frete marítimo ausente");
- if(!m||m.product!==product)reasons.push("Referência não corresponde ao produto");
- if(!r||r.origin_city!==p?.city||r.origin_uf!==p?.uf||r.destination_port!==m?.port)
-  reasons.push("Corredor não corresponde à origem e ao porto");
+ reasons.push(...routeIssues(p,r));
+ reasons.push(...marketIssues(p,r,m).filter(x=>x!=="Selecione um negócio"&&x!=="Selecione uma rota"));
  if(reasons.length)return {ok:false,reasons,foB:null,cfr:null,grossMargin:null};
  const priceCbu=100*(physical/fx)/factor;
  const freightCbu=100*(freight*.06/fx)/factor;

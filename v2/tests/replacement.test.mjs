@@ -1,3 +1,4 @@
+import {routeIssues,marketIssues} from "../public/matching.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {calculate} from "../public/engine.mjs";
@@ -28,4 +29,22 @@ test("fórmula independente de conversão c/bu e $/t",()=>{
 test("milho mantém seu próprio fator",()=>{
  const t={...trade,product:"Milho"};
  const m={...market,product:"Milho"};assert.equal(calculate({trade:t,route,market:m}).ok,true);
+});
+
+test("diferença de acentos e espaços não oculta rota válida",()=>{
+ const t={...trade,city:"Jataí",uf:"GO"};
+ const r={...route,origin_city:" JATAI / GO ",origin_uf:"go",destination_port:" Porto de Santos/SP "};
+ const m={...market,port:"santos"};
+ assert.deepEqual(routeIssues(t,r),[]);
+ assert.deepEqual(marketIssues(t,r,m),[]);
+ assert.equal(calculate({trade:t,route:r,market:m}).ok,true);
+});
+test("rota com origem errada continua bloqueada",()=>{
+ assert.notEqual(routeIssues(trade,{...route,origin_city:"Sorriso"}).length,0);
+ assert.equal(calculate({trade,route:{...route,origin_city:"Sorriso"},market}).ok,false);
+});
+test("referência de outro porto ou produto continua bloqueada",()=>{
+ assert.notEqual(marketIssues(trade,route,{...market,port:"Paranaguá"}).length,0);
+ assert.notEqual(marketIssues(trade,route,{...market,product:"Milho"}).length,0);
+ assert.equal(calculate({trade,route,market:{...market,port:"Paranaguá"}}).ok,false);
 });

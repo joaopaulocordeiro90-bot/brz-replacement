@@ -1,3 +1,4 @@
+import {routeIssues,marketIssues} from "./matching.mjs";
 import {calculate} from "./engine.mjs";
 const $=id=>document.getElementById(id);
 const qs=(selector)=>[...document.querySelectorAll(selector)];
@@ -71,13 +72,12 @@ async function refreshLists(){
  $("kpi-routes").textContent=String(routes.total);$("kpi-market").textContent=String(market.total);
  tableAt("routes-table",[["Origem",r=>r.origin_city+"/"+r.origin_uf],["Porto",r=>r.destination_port],["Modal",r=>r.modal],["Frete R$/t",r=>fmt(r.freight_brl_t)],["Referência",r=>r.freight_status]],state.routes,"routes");
  tableAt("market-table",[["Produto",r=>r.product],["Porto",r=>r.port],["Embarque",r=>r.ship_month],["CBOT",r=>r.cbot_contract],["Dólar",r=>fmt(r.fx_brl_usd,3)],["Basis FOB",r=>fmt(r.fob_basis_cbu)]],state.market,"market");
- fillSimulation();
 }
 async function refreshAudit(){
  const data=await api("audit");tableAt("audit-table",[["Data UTC",r=>r.created_at],["Entidade",r=>r.entity],["Ação",r=>r.operation],["ID",r=>r.entity_id]],data.rows,null);
 }
 async function refresh(){
- try{await Promise.all([refreshTrades(),refreshLists()]);if(state.page==="admin-audit")await refreshAudit();if(state.page==="map")renderMap();}
+ try{await Promise.all([refreshTrades(),refreshLists()]);fillSimulation();if(state.page==="admin-audit")await refreshAudit();if(state.page==="map")renderMap();}
  catch(e){notify(e.message,true);}
 }
 function nav(name){
@@ -136,26 +136,64 @@ async function removeRecord(type,record){
  try{await api(type+"/"+record.id,{method:"DELETE",body:JSON.stringify({version:record.version})});notify("Registro excluído logicamente.");await refresh();}
  catch(e){notify(e.message,true);}
 }
-function fillSelect(target,rows,display){
- const el=$(target),before=el.value;el.replaceChildren(new Option("Selecione…",""));
+function fillSelect(target,rows,display,{preferredId=null}={}){
+ const el=$(target),before=el.value;
+ el.replaceChildren(new Option("Selecione…",""));
  for(const item of rows)el.append(new Option(display(item),item.id));
  if(rows.some(r=>r.id===before))el.value=before;
+ else if(preferredId&&rows.some(r=>r.id===preferredId))el.value=preferredId;
 }
 function selectedFrom(id,rows){return rows.find(x=>x.id===$(id).value);}
+function hint(id,text,warn=false){
+ const el=$(id);el.textContent=text;el.className="sim-hint"+(warn?" warn":"");
+}
+function updateSummary(){
+ const t=selectedFrom("sim-trade",state.trades),r=selectedFrom("sim-route",state.routes),m=selectedFrom("sim-market",state.market);
+ const routes=state.routes.filter(x=>!routeIssues(t,x).length);
+ const markets=state.market.filter(x=>!marketIssues(t,r,x).length);
+ $("sim-summary").textContent=state.tradeTotal+" negócio(s) · "+state.routes.length+" rota(s) · "+state.market.length+" referência(s) carregadas. "+(t?routes.length+" rota(s) compatível(is) com "+t.city+"/"+t.uf+". ":"Selecione o negócio para conferir as rotas. ")+(r?markets.length+" referência(s) compatível(is) com "+r.destination_port+".":"Selecione a rota para conferir as referências.");
+ const extra=state.tradeTotal>state.trades.length?" Mostrando apenas "+state.trades.length+" negócio(s) da página atual; use a busca em Negócios para mudar a página.":"";
+ hint("sim-trade-info",state.trades.length+" negócio(s) disponível(is)."+extra);
+ if(!t){
+  hint("sim-route-info","Escolha o negócio. Todas as rotas cadastradas estão visíveis.",true);
+  hint("sim-market-info","Escolha a rota. Todas as referências cadastradas estão visíveis.",true);
+  return;
+ }
+ if(!r){
+  hint("sim-route-info",state.routes.length===0?"Nenhuma rota cadastrada. Cadastre em Administrador → Rotas e fretes.":routes.length===0?"Nenhuma rota compatível. Confira município e UF no Administrador.":routes.length+" rota(s) compatível(is). Selecione uma.",!routes.length);
+  hint("sim-market-info","Escolha uma rota para validar o porto.");
+  return;
+ }
+ const issueR=routeIssues(t,r),issueM=marketIssues(t,r,m);
+ hint("sim-route-info",issueR.length?issueR.join("; "):"Origem da rota compatível com o negócio.",!!issueR.length);
+ hint("sim-market-info",!m?(markets.length?markets.length+" referência(s) compatível(is). Selecione uma.":"Nenhuma referência compatível. Confira produto e porto no Administrador."):(issueM.length?issueM.join("; "):"Produto e porto da referência compatíveis."),!m?!markets.length:!!issueM.length);
+}
 function fillSimulation(){
- fillSelect("sim-trade",state.trades,r=>r.product+" | "+r.origin_name+" | "+r.trade_date);
+ const tBefore=$("sim-trade").value;
+ fillSelect("sim-trade",state.trades,r=>r.product+" | "+r.origin_name+" | "+r.city+"/"+r.uf+" | "+r.trade_date,{
+  preferredId:state.trades.length===1?state.trades[0].id:null
+ });
  syncSimulationRoutes();
 }
 function syncSimulationRoutes(){
  const t=selectedFrom("sim-trade",state.trades);
- const rr=state.routes.filter(r=>t&&r.origin_city===t.city&&r.origin_uf===t.uf);
- fillSelect("sim-route",rr,r=>r.modal+" → "+r.destination_port+" | R$ "+fmt(r.freight_brl_t)+"/t");
+ const compatible=state.routes.filter(r=>!routeIssues(t,r).length);
+ const preferred=compatible.length===1?compatible[0].id:null;
+ fillSelect("sim-route",state.routes,r=>{
+  const issues=routeIssues(t,r);
+  return (issues.length?"⚠ ":"✓ ")+r.modal+" | "+r.origin_city+"/"+r.origin_uf+" → "+r.destination_port+" | R$ "+fmt(r.freight_brl_t)+"/t"+(issues.length?" · origem diferente":"");
+ },{preferredId:preferred});
  syncSimulationMarket();
 }
 function syncSimulationMarket(){
  const t=selectedFrom("sim-trade",state.trades),r=selectedFrom("sim-route",state.routes);
- const mm=state.market.filter(m=>t&&r&&m.product===t.product&&m.port===r.destination_port);
- fillSelect("sim-market",mm,m=>m.port+" | "+m.ship_month+" | "+m.cbot_contract+" | "+m.side);
+ const compatible=state.market.filter(m=>!marketIssues(t,r,m).length);
+ const preferred=compatible.length===1?compatible[0].id:null;
+ fillSelect("sim-market",state.market,m=>{
+  const issues=marketIssues(t,r,m);
+  return (issues.length?"⚠ ":"✓ ")+m.product+" | "+m.port+" | "+m.ship_month+" | "+m.cbot_contract+" | "+m.side+(issues.length?" · incompatível":"");
+ },{preferredId:preferred});
+ updateSummary();
 }
 function simulate(){
  const t=selectedFrom("sim-trade",state.trades),r=selectedFrom("sim-route",state.routes),m=selectedFrom("sim-market",state.market);
@@ -222,6 +260,6 @@ function wire(){
  $("editor-form").onsubmit=saveEditor;
  $("close-dialog").onclick=()=> $("editor").close();$("cancel-dialog").onclick=()=> $("editor").close();
  $("open-pin").onclick=openPin;$("close-pin").onclick=()=> $("pin-dialog").close();$("confirm-pin").onclick=confirmPin;
- $("sim-trade").onchange=syncSimulationRoutes;$("sim-route").onchange=syncSimulationMarket;$("sim-run").onclick=simulate;
+ $("sim-trade").onchange=syncSimulationRoutes;$("sim-route").onchange=syncSimulationMarket;$("sim-market").onchange=updateSummary;$("sim-run").onclick=simulate;$("sim-refresh").onclick=refresh;
 }
 wire();await checkHealth();await refresh();
