@@ -85,7 +85,7 @@ export async function onRequest({request,env}){
   return failure("Método não permitido",405);
  }catch(e){
   const msg=String(e?.message||e);
-  if(/Campo obrigatório|inválido|incompletas|fora do Brasil|limite|Competência/.test(msg))return failure(msg,422);
+  if(/campo obrigatório|inválid|incomplet|fora do brasil|limite|competência/i.test(msg))return failure(msg,422);
   return failure("Erro de operação: "+msg,500);
  }
 }
