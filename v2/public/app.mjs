@@ -216,8 +216,8 @@ function simulate(){
  const t=selectedFrom("sim-trade",state.trades),r=selectedFrom("sim-route",state.routes),m=selectedFrom("sim-market",state.market);
  const el=$("sim-result"),result=calculate({trade:t,route:r,market:m});
  el.replaceChildren();
- if(!result.ok){el.append(elem("strong","N/D — cálculo bloqueado"),elem("p",result.reasons.join("; ")));return;}
- for(const line of [["Replacement FOB",fmt(result.foB)+" c/bu"],["Replacement CFR",fmt(result.cfr)+" c/bu"],["Gross Margin indicativa",result.grossMargin==null?"N/D":fmt(result.grossMargin)+" US$/t"]]){
+ if(!result.ok){el.append(elem("strong","N/D — cálculo bloqueado para evitar replacement sem regra homologada"),elem("p",result.reasons.join("; ")));return;}
+ for(const line of [["Replacement FOB · Flat",fmt(result.flatFOB)+" c/bu"],["Replacement Basis FOB",fmt(result.basisFOB)+" c/bu"],["Replacement CFR · Flat",result.flatCFR==null?"N/D":fmt(result.flatCFR)+" c/bu"],["Replacement Basis CFR",result.basisCFR==null?"N/D":fmt(result.basisCFR)+" c/bu"],["Gross Margin FOB",result.margemFOBCbu==null?"N/D":fmt(result.margemFOBCbu)+" c/bu"+(result.marginFOBUsdT==null?"":" · "+fmt(result.marginFOBUsdT)+" US$/t")]]){
   const p=elem("p");const strong=elem("strong",line[0]+": ");p.append(strong,document.createTextNode(line[1]));el.append(p);
  }
  if(result.inputs){
@@ -226,8 +226,8 @@ function simulate(){
   const p=elem("p","Preço físico convertido: "+fmt(i.priceCbu)+" | Frete interno: "+fmt(i.freightCbu)+" | FOBBINS: "+fmt(i.fobbinsCbu)+" | CBOT subtraída: "+fmt(i.cbot)+" | Marítimo: "+fmt(i.oceanCbu),"muted");
   details.append(p);el.append(details);
  }
- if(result.reasons.length)el.append(elem("p",result.reasons.join("; "),"muted"));
- el.append(elem("p","Piloto — cálculo ainda não homologado contra V4GG/F77.","muted"));
+ if(result.warnings?.length)el.append(elem("p",result.warnings.join(" · "),"muted"));
+ el.append(elem("p","Status: núcleo aritmético conferido contra C49/V4GE. Não substitui a homologação comercial V4GJ/C54 nem permite fechamento operacional.","muted"));
 }
 function renderMap(){
  if(typeof L==="undefined"){notify("Biblioteca Leaflet indisponível.",true);return;}

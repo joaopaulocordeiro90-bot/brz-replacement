@@ -3,73 +3,89 @@ import {routeIssues,marketIssues} from "../public/matching.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {calculate} from "../public/engine.mjs";
-const trade={product:"Soja",city:"Jataí",uf:"GO",price_brl_sc:135};
-const route={origin_city:"Jataí",origin_uf:"GO",destination_port:"Santos",freight_brl_t:220};
-const market={product:"Soja",port:"Santos",fx_brl_usd:5.5,cbot_cbu:1100,fobbins_usd_t:12,ocean_usd_t:35,fob_basis_cbu:100};
-test("não aceita dados faltantes",()=>{
- assert.equal(calculate({trade,route,market:{...market,fx_brl_usd:null}}).ok,false);
- assert.equal(calculate({trade,route,market:{...market,cbot_cbu:null}}).ok,false);
- assert.equal(calculate({trade,route,market:{...market,fobbins_usd_t:null}}).ok,false);
-});
-test("basis FOB ausente implica gross margin N/D",()=>{
- const r=calculate({trade,route,market:{...market,fob_basis_cbu:null}});
- assert.equal(r.ok,true);assert.equal(r.grossMargin,null);
-});
-test("origem, destino e produto precisam coincidir",()=>{
- assert.equal(calculate({trade,route:{...route,origin_city:"Sorriso"},market}).ok,false);
- assert.equal(calculate({trade,route,market:{...market,port:"Paranaguá"}}).ok,false);
-});
-test("fórmula independente de conversão c/bu e $/t",()=>{
+const trade={product:"Soja",city:"Jataí",uf:"GO",price_brl_sc:136,trade_date:"2026-11-18"};
+const route={origin_city:"Jataí",origin_uf:"GO",destination_port:"Santos",freight_brl_t:220,modal:"Rodoviário"};
+const market={product:"Soja",port:"Santos",ship_month:"2026-12",fx_brl_usd:5.5,cbot_cbu:1100,
+ fobbins_usd_t:12,ocean_usd_t:35,fob_basis_cbu:100,side:"Bid"};
+const check=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,"Esperado "+b+", obtido "+a);
+test("reprodução aritmética C49: FLAT FOB, basis FOB, FLAT CFR e basis CFR separados",()=>{
  const r=calculate({trade,route,market});assert.equal(r.ok,true);
- const f=2.2046,expectedPrice=100*(135/5.5)/f,expectedFreight=100*(220*.06/5.5)/f;
- const expectedFob=expectedPrice+expectedFreight+100*(12*.06)/f-1100;
- assert.ok(Math.abs(r.foB-expectedFob)<1e-9);
- assert.ok(Math.abs(r.cfr-expectedFob-100*(35*.06)/f)<1e-9);
- assert.ok(Math.abs(r.grossMargin-(100-expectedFob)*f/(100*.06))<1e-9);
+ const f=2.2046,p=100*(136/5.5)/f,fr=100*(220*.06/5.5)/f,fb=100*(12*.06)/f,sea=100*(35*.06)/f;
+ const flat=p+fr+fb,bas=flat-1100;
+ check(r.flatFOB,flat);check(r.basisFOB,bas);
+ check(r.flatCFR,flat+sea);check(r.basisCFR,flat+sea-1100);
+ check(r.margemFOBCbu,100-bas);check(r.marginFOBUsdT,(100-bas)*f/(100*.06));
+ check(r.foB,r.flatFOB);check(r.cfr,r.flatCFR);
+ check(r.flatFOB,1263.14400468442);check(r.basisFOB,163.14400468442);
+ check(r.flatCFR,1358.39937980915);check(r.basisCFR,258.39937980915);
 });
-test("milho mantém seu próprio fator",()=>{
- const t={...trade,product:"Milho"};
- const m={...market,product:"Milho"};assert.equal(calculate({trade:t,route,market:m}).ok,true);
+test("screenshot antes rotulava basis como flat; a confusão é impedida",()=>{
+ const r=calculate({trade,route,market});assert.equal(r.ok,true);
+ assert.notEqual(r.foB,r.basisFOB);assert.notEqual(r.cfr,r.basisCFR);
+ assert.ok(Math.abs(r.grossMargin+23.20121212121)<1e-9);
 });
-
-test("diferença de acentos e espaços não oculta rota válida",()=>{
- const t={...trade,city:"Jataí",uf:"GO"};
- const r={...route,origin_city:" JATAI / GO ",origin_uf:"go",destination_port:" Porto de Santos/SP "};
- const m={...market,port:"santos"};
- assert.deepEqual(routeIssues(t,r),[]);
- assert.deepEqual(marketIssues(t,r,m),[]);
- assert.equal(calculate({trade:t,route:r,market:m}).ok,true);
+test("CBOT ambígua (1.10 em vez 1100) é bloqueada",()=>{
+ const r=calculate({trade,route,market:{...market,cbot_cbu:1.1}});
+ assert.equal(r.ok,false);assert.equal(r.grossMargin,null);
+ assert.match(r.reasons.join(" "),/CBOT inválida/);
 });
-test("rota com origem errada continua bloqueada",()=>{
- assert.notEqual(routeIssues(trade,{...route,origin_city:"Sorriso"}).length,0);
- assert.equal(calculate({trade,route:{...route,origin_city:"Sorriso"},market}).ok,false);
-});
-test("referência de outro porto ou produto continua bloqueada",()=>{
- assert.notEqual(marketIssues(trade,route,{...market,port:"Paranaguá"}).length,0);
- assert.notEqual(marketIssues(trade,route,{...market,product:"Milho"}).length,0);
- assert.equal(calculate({trade,route,market:{...market,port:"Paranaguá"}}).ok,false);
-});
-
-test("CBOT ambígua do print é bloqueada, sem margem falsa",()=>{
- const t={...trade,price_brl_sc:136};
- const m={...market,cbot_cbu:1.1};
- const result=calculate({trade:t,route,market:m});
- assert.equal(result.ok,false);
- assert.equal(result.grossMargin,null);
- assert.match(result.reasons.join(" "),/CBOT inválida/);
-});
-test("unidades CBOT são explícitas e equivalentes",()=>{
+test("converter explicitamente c/bu e US$/bu, sem aceitar cotação ambígua",()=>{
  assert.equal(cbToCanonical(1100,"cbu"),1100);
  assert.equal(cbToCanonical(11,"usd_bu"),1100);
  assert.throws(()=>cbToCanonical(1.1,"cbu"),/CBOT fora da faixa/);
  assert.throws(()=>cbToCanonical(1.1,"usd_bu","Soja"),/CBOT fora da faixa/);
 });
-test("screenshot reproduz erro de unidade e prova a correção aritmética",()=>{
- const t={...trade,price_brl_sc:136};
- const m={...market,cbot_cbu:1100};
- const result=calculate({trade:t,route,market:m});
- assert.equal(result.ok,true);
- assert.ok(Math.abs(result.foB-163.14400468442)<0.00001);
- assert.ok(Math.abs(result.cfr-258.39937980915)<0.00001);
- assert.ok(Math.abs(result.grossMargin+23.20121212121)<0.00001);
+test("sem basis FOB: flat/basis continuam, Gross Margin N/D",()=>{
+ const r=calculate({trade,route,market:{...market,fob_basis_cbu:null}});
+ assert.equal(r.ok,true);assert.notEqual(r.basisFOB,null);
+ assert.equal(r.margemFOBCbu,null);assert.equal(r.grossMargin,null);
+});
+test("Offer não pode assumir lugar do Bid na Gross Margin",()=>{
+ const r=calculate({trade,route,market:{...market,side:"Offer"}});
+ assert.equal(r.ok,true);assert.equal(r.grossMargin,null);
+ assert.match(r.warnings.join(" "),/não é Bid/);
+});
+test("sem marítimo soja: FOB calculado; CFR N/D",()=>{
+ const r=calculate({trade,route,market:{...market,ocean_usd_t:null}});
+ assert.equal(r.ok,true);assert.equal(r.flatCFR,null);assert.equal(r.basisCFR,null);
+ assert.ok(r.flatFOB>0);
+});
+test("CBOT, câmbio, FOBBINS e preço físico são obrigatórios",()=>{
+ for(const [part,key] of [["market","cbot_cbu"],["market","fx_brl_usd"],["market","fobbins_usd_t"],["trade","price_brl_sc"]]){
+  const input={trade:{...trade},route:{...route},market:{...market}};
+  input[part][key]=null;
+  assert.equal(calculate(input).ok,false,key);
+ }
+});
+test("frete e rota incompatível bloqueiam cálculo",()=>{
+ assert.equal(calculate({trade,route:{...route,origin_city:"Sorriso"},market}).ok,false);
+ assert.equal(calculate({trade,route:{...route,freight_brl_t:null},market}).ok,false);
+ assert.equal(calculate({trade,route,market:{...market,port:"Paranaguá"}}).ok,false);
+ assert.equal(calculate({trade,route,market:{...market,product:"Milho"}}).ok,false);
+});
+test("accentos e grafias comerciais normalizadas preservam rota válida",()=>{
+ const r={...route,origin_city:" JATAI / GO ",origin_uf:"go",destination_port:" Porto de Santos/SP "};
+ const m={...market,port:"santos"};
+ assert.deepEqual(routeIssues(trade,r),[]);assert.deepEqual(marketIssues(trade,r,m),[]);
+ assert.equal(calculate({trade,route:r,market:m}).ok,true);
+});
+test("milho usa 2.3621; não exibe CFR China sem cotação real",()=>{
+ const t={...trade,product:"Milho",price_brl_sc:55};
+ const m={...market,product:"Milho",cbot_cbu:450,ocean_usd_t:null};
+ const x=calculate({trade:t,route,market:m});assert.equal(x.ok,true);
+ const expectedFlat=100*(55/5.5)/2.3621+100*(220*.06/5.5)/2.3621+100*(12*.06)/2.3621;
+ check(x.flatFOB,expectedFlat);check(x.basisFOB,expectedFlat-450);
+ assert.equal(x.flatCFR,null);assert.equal(x.basisCFR,null);
+});
+test("safrinha/embarques 2027+ bloqueados até migrar regra por modal e vigência",()=>{
+ for(const month of ["2027-01","2027-09","2028-03"]){
+  const r=calculate({trade,route,market:{...market,ship_month:month}});
+  assert.equal(r.ok,false,month);
+  assert.match(r.reasons.join(" "),/Projeção de frete/);
+ }
+});
+test("basis negativo é permitido e mantém sinal no cálculo",()=>{
+ const r=calculate({trade,route,market:{...market,fob_basis_cbu:-20}});
+ assert.equal(r.ok,true);
+ check(r.margemFOBCbu,-20-r.basisFOB);
 });
