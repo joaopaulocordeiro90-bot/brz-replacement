@@ -45,7 +45,12 @@ export async function onRequest({request,env}){
  const pathname=new URL(request.url).pathname,parts=pathname.split("/").filter(Boolean),name=parts[1],id=parts[2],cfg=SCHEMAS[name];
  try{
   if(name==="bootstrap"&&request.method==="POST"){
-   await env.DB.exec(BOOTSTRAP_SCHEMA);
+   // D1.exec() separa SQL por QUEBRA DE LINHA e falha com CREATE TABLE multilinha.
+   // D1.batch() recebe instruções completas, sequenciais e atômicas.
+   const statements=BOOTSTRAP_SCHEMA.split(";").map(sql=>sql.trim()).filter(Boolean);
+   if(statements.length!==9||statements.some(sql=>!/^(?:CREATE TABLE IF NOT EXISTS|CREATE INDEX IF NOT EXISTS)\b/i.test(sql)))
+    throw Error("Esquema D1 inesperado: inicialização bloqueada");
+   await env.DB.batch(statements.map(sql=>env.DB.prepare(sql)));
    const initialized=await env.DB.prepare("SELECT COUNT(*) AS n FROM trades").first();
    return json({ok:true,status:"D1_INICIALIZADO",trades:initialized?.n||0,stage:"PILOTO_NAO_HOMOLOGADO"});
   }
