@@ -43,7 +43,7 @@ export function inferShipment({trade,product,port}={}){
   ship=pick.month;exception="milho_santos_janeiro_para_dezembro";
  }
  return {shipMonth:ship,pickupMonth:pick.month,source:pick.source,
-  confidence:pick.source==="mes_por_extenso_sem_ano_verificado"?"INDICATIVO":"REGRA_VIGENTE",exception};
+  confidence:["mes_por_extenso_sem_ano_verificado","inicio_da_retirada_sem_fim"].includes(pick.source)?"INDICATIVO":"REGRA_VIGENTE",exception};
 }
 const SOY=[
  ["2000-01-01",{Dec:"F+1"}],

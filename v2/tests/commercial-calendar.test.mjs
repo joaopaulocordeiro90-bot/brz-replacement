@@ -107,3 +107,10 @@ test("sorgo não herda exceção que foi aprovada somente para milho Santos",()=
  assert.equal(inferShipment({trade:tr,product:"Sorgo",port:"Santos"}).shipMonth,"2027-01");
  assert.equal(inferShipment({trade:tr,product:"Milho",port:"Santos"}).shipMonth,"2026-12");
 });
+
+test("início de retirada sem data final é indicativo, não confirmação de embarque",()=>{
+ const tr={trade_date:"2026-11-18",window_start:"2026-12-01"};
+ const shipment=inferShipment({trade:tr,product:"Soja",port:"Santos"});
+ assert.equal(shipment.shipMonth,"2027-01");
+ assert.equal(shipment.confidence,"INDICATIVO");
+});
