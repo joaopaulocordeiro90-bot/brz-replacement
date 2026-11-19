@@ -4072,10 +4072,7 @@ function _freteAuditoria(m, porto, deal){
   const extra=/\+\s*\d+\s*km/i.test(String(deal.origem||''))?' (km extra incl.)':'';
   const _destLeg=(m.modal==='Rodo + Ferro'||m.modal==='Rodo + Barca\u00e7a')?tb:porto;
   let fonteR;
-  if(m.fonteFrete==='milho_ano1'){ const _ii=m._ano1Info||{};
-    if(_ii.refOrigem){ fonteR='regra milho: ano-1 +15% \u00b7 ref '+_ii.refOrigem+' mediana '+(_ii.mesRef||'?')+'/2025 R$ '+money(_ii.med||0)+' \u00b7 TKU '+_ii.tku+' \u00d7 '+_ii.km+' km \u00d7 1,15 ('+(_ii.n||0)+' sem.)'; }
-    else { fonteR='regra milho: ano-1 +15% \u00b7 mediana '+(_ii.mesRef||'?')+'/2025 R$ '+money(_ii.med||0)+' \u00d7 1,15 ('+(_ii.n||0)+' sem.)'; } }
-  else if(m.fonteFrete==='milho_agoset'){ fonteR='proxy Ago/Set'; }
+  if(m.fonteFrete==='milho_agoset'){ fonteR='proxy Ago/Set'; }
   else if(m.freteEstimado){
     let det='TKU est.';
     try{
@@ -4197,64 +4194,6 @@ var MILHO_AGOSET_CORR_REF={
  'GO Sul':'Rio Verde','GO Sudoeste':'Rio Verde',
  'TO Sul':'Porto Nacional','TO Centro':'Porto Nacional','PR Norte':'Maringá'
 };
-function _isoMonday2025(w){ const j4=new Date(2025,0,4); const day=(j4.getDay()+6)%7; return new Date(2025,0,4-day+(w-1)*7); }
-var _a1Cache={}, _a1Idx=null, _a1WeekMonth=null;
-function _a1BuildIdx(){
-  _a1WeekMonth={};
-  for(let w=1;w<=52;w++){ _a1WeekMonth['2025-S'+String(w).padStart(2,'0')]=_isoMonday2025(w).getMonth(); }
-  _a1Idx={};
-  (state.fretesRodo||[]).forEach(function(r){
-    const mm=_a1WeekMonth[r.semana];
-    if(mm==null||!(r.valor>0)) return;
-    const dl=normFreightText(String(r.destino||''));
-    const oc=String(r.origem||'').split('/')[0];
-    const key=dl+'|'+mm;
-    (_a1Idx[key]=_a1Idx[key]||{});
-    (_a1Idx[key][oc]=_a1Idx[key][oc]||[]).push(r.valor);
-  });
-}
-function _milhoAno1Rodo(deal, destinoLeg){
-  try{
-    if(typeof normalizeProduto==='function' && !['Milho','Sorgo'].includes(normalizeProduto(deal.produto))) return null;
-    const EN={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-    const PT={Jan:0,Fev:1,Mar:2,Abr:3,Mai:4,Jun:5,Jul:6,Ago:7,Set:8,Out:9,Nov:10,Dez:11};
-    let mm=EN[String(deal.embarque||'').slice(0,3)];
-    if(mm==null) mm=PT[vencToMes(deal.vencCBOT)];
-    if(mm==null) return null;
-    const co=normFreightText(freightCityFromOrigem(deal.origem));
-    const dl=normFreightText(String(destinoLeg||''));
-    const _ck=co+'|'+dl+'|'+mm+'|'+String(deal.origem||'');
-    if(_a1Cache[_ck]!==undefined) return _a1Cache[_ck];
-    if(!_a1Idx) _a1BuildIdx();
-    const bucket=_a1Idx[dl+'|'+mm]||{};
-    let vals=[];
-    for(const oc in bucket){ if(normFreightText(oc)===co){ vals=vals.concat(bucket[oc]); } }
-    vals.sort(function(a,b){ return a-b; });
-    const MESPT=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    if(vals.length){
-      const med=vals.length%2? vals[(vals.length-1)/2] : (vals[vals.length/2-1]+vals[vals.length/2])/2;
-      return (_a1Cache[_ck]={valor: Math.round(med*1.15*100)/100, med: med, n: vals.length, mesRef: MESPT[mm]});
-    }
-    // fallback aprovado 13/07/2026: rota de referência mais próxima com mediana ano-1 (método TKU sobre o histórico)
-    const cands=bucket;
-    const _rawCity=String(deal.origem||'').split(' - ')[0].split('/')[0].replace(/\s*\+.*$/,'').trim();
-    let best=null;
-    for(const oc in cands){
-      let dref=null, dor=null;
-      try{ dref=estimateDistanceKm(oc, String(destinoLeg)); }catch(e){}
-      try{ dor=estimateDistanceKm(_rawCity, oc); }catch(e){}
-      if(dref==null||dor==null||!(dref>30)||!(dor>0||oc===_rawCity)) continue;
-      if(best==null || dor<best.dor) best={oc:oc, dor:dor, kmRef:dref, arr:cands[oc].slice().sort(function(a,b){return a-b;})};
-    }
-    if(!best) return (_a1Cache[_ck]=null);
-    let kmDeal=null; try{ kmDeal=estimateDistanceKm(_rawCity, String(destinoLeg)); }catch(e){}
-    if(kmDeal==null||!(kmDeal>0)) return (_a1Cache[_ck]=null);
-    const a2=best.arr, med2=a2.length%2? a2[(a2.length-1)/2] : (a2[a2.length/2-1]+a2[a2.length/2])/2;
-    const tku=med2/best.kmRef;
-    return (_a1Cache[_ck]={valor: Math.round(tku*kmDeal*1.15*100)/100, med: med2, n: a2.length, mesRef: MESPT[mm],
-            refOrigem: best.oc, kmRef: Math.round(best.kmRef), km: Math.round(kmDeal), tku: Math.round(tku*1000)/1000});
-  }catch(e){ return null; }
-}
 function _agoSetFrete(deal, porto, modalCode){
   return null; // DESATIVADO 13/07/2026 — frete milho passa a marcar pela regra ano-1 +15% (tabela proxy Ago/Set aposentada)
   if(typeof normalizeProduto==='function' && !['Milho','Sorgo'].includes(normalizeProduto(deal.produto))) return null;
@@ -4345,12 +4284,12 @@ function buildModalRoute(deal, porto, rt, mes){
   }
   if(modal === 'T'){
     const ri = findRodoFreight(deal.origem, porto, deal.data, deal.corredor);
-    const _a1T=_milhoAno1Rodo(deal, porto);
-    const _ovT=(_a1T!=null?null:_agoSetFrete(deal,porto,'T'));
-    if(_a1T==null && _ovT==null && (!ri || !(ri.valor > 0))) return null;
-    const _rodoT=(_a1T!=null?_a1T.valor+kmExtraRoadCost(deal,porto):(_ovT!=null?_ovT+kmExtraRoadCost(deal,porto):ri.valor));
+    // F77: milho e sorgo usam a mesma referência semanal/TKU vigente aplicada à soja.
+    const _ovT=_agoSetFrete(deal,porto,'T');
+    if(_ovT==null && (!ri || !(ri.valor > 0))) return null;
+    const _rodoT=(_ovT!=null?_ovT+kmExtraRoadCost(deal,porto):ri.valor);
     return { modal:'Rodoviário', freteRodo:_rodoT, freteFerro:0, freteBarcaca:0, freteEstimado:!!(ri&&ri.estimado), freteKm:(ri&&ri.km)||null,
-      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_a1T!=null?'milho_ano1':(_ovT!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual')))), freteOverrideAgoSet:(_ovT!=null), _ano1Info:(_a1T||null),
+      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_ovT!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'))), freteOverrideAgoSet:(_ovT!=null),
       ...calcReplacement(deal,{freteRodo:_rodoT,freteFerro:0,freteBarcaca:0,porto}) };
   }
   if(modal === 'R'){
@@ -4396,12 +4335,11 @@ function buildModalRoute(deal, porto, rt, mes){
         }
       }
     }catch(e){}
-    if(!_noTerminal && !_nearTerminalAccess){ const _a1R=_milhoAno1Rodo(deal, transb);
-      if(_a1R!=null){ ri={valor:_a1R.valor+kmExtraRoadCost(deal,porto), km:(ri&&ri.km)||null, estimado:false, semana:'', fonteFrete:'milho_ano1', _a1:_a1R}; } }
+    // F77: sem substituição por mediana do frete do ano anterior.
     if((_ovTR==null && (!ri || (!(ri.valor > 0) && !_noTerminal))) || !(fFerro > 0)) return null;
     const _rodoTR=(_ovTR!=null?Math.max(0,_ovTR-fFerro)+kmExtraRoadCost(deal,porto):ri.valor);
     return { modal:'Rodo + Ferro', freteRodo:_rodoTR, freteFerro:fFerro, freteBarcaca:0, freteEstimado:!!(ri&&ri.estimado), freteKm:(ri&&ri.km)||null,
-      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_ovTR!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'))), freteOverrideAgoSet:(_ovTR!=null), _transbordo:transb, _ferroEstimado:_ferroEst, _ano1Info:((ri&&ri._a1)||null),
+      freteSemana: (ri&&ri.semana)||'', fonteFrete: (_ovTR!=null?'milho_agoset':(ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'))), freteOverrideAgoSet:(_ovTR!=null), _transbordo:transb, _ferroEstimado:_ferroEst,
       ...calcReplacement(deal,{freteRodo:_rodoTR,freteFerro:fFerro,freteBarcaca:0,porto}) };
   }
   if(modal === 'T+B'){
@@ -4411,13 +4349,11 @@ function buildModalRoute(deal, porto, rt, mes){
     if(ri && ri.valor > 0){ rodoVal=ri.valor; estim=!!ri.estimado; km=ri.km||null; semana=ri.semana||''; fonte=ri.fonteFrete || (ri.estimado ? 'tku_estimado' : 'frete_manual'); }
     else { const org=String(deal.origem||'').toLowerCase(), tb=String(transb).toLowerCase(); const fx=RODO_LEG_FIXA.find(e=>org.indexOf(e.orig)!==-1 && tb.indexOf(e.transb)!==-1); if(fx){ rodoVal=fx.val; estim=true; fonte='leg_fixa'; } }
     const fBarc = (BARCACA_TRANSBORDO[transb+'|'+porto] != null ? BARCACA_TRANSBORDO[transb+'|'+porto] : (BARCACA_TRANSBORDO[transb] != null ? BARCACA_TRANSBORDO[transb] : getBarcaca(porto, mes)));
-    const _a1B=_milhoAno1Rodo(deal, transb);
-    if(_a1B!=null){ rodoVal=_a1B.valor+kmExtraRoadCost(deal,porto); estim=false; km=null; semana=''; fonte='milho_ano1'; }
-    const _ovTB=(_a1B!=null?null:_agoSetFrete(deal,porto,'T+B'));
+    const _ovTB=_agoSetFrete(deal,porto,'T+B');
     if(_ovTB!=null && fBarc>0){ rodoVal=Math.max(0,_ovTB-fBarc)+kmExtraRoadCost(deal,porto); }
     if((_ovTB==null && (rodoVal == null || !(rodoVal > 0))) || !(fBarc > 0)) return null;
     return { modal:'Rodo + Barcaça', freteRodo:rodoVal, freteFerro:0, freteBarcaca:fBarc, freteEstimado:estim, freteKm:km,
-      freteSemana: semana, fonteFrete: (_ovTB!=null?'milho_agoset':(fonte || 'frete_manual')), freteOverrideAgoSet:(_ovTB!=null), _transbordo:transb, _ano1Info:(_a1B||null),
+      freteSemana: semana, fonteFrete: (_ovTB!=null?'milho_agoset':(fonte || 'frete_manual')), freteOverrideAgoSet:(_ovTB!=null), _transbordo:transb,
       ...calcReplacement(deal,{freteRodo:rodoVal,freteFerro:0,freteBarcaca:fBarc,porto}) };
   }
   return null;
@@ -4727,11 +4663,40 @@ function aShort(c){ var city=String(c||'').split(' - ')[0].trim(); var uf=_aUFma
 
 /* V4FO/C33 · Regiao de preco do negocio: CIF = ponto contratado de entrega;
    FOB = local de coleta. Rótulo não altera o motor ou seus portos. */
+/* F77: geographical-origin region is an analytical label.
+ * Original commercial corridor remains intact for price/freight snapshots.
+ * A bare state or a state-inconsistent tag is NOT a precise region. */
+function brzF77OriginRegion(d){
+  if(!d)return 'Região a validar';
+  var text=String(d.origem||''),old=String(d.corredor||'').trim();
+  var city=typeof extractCidadeBase==='function'?String(extractCidadeBase(text)||'').trim():'';
+  var uf=(text.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1]||
+    (old.match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+  var k=typeof PRACA_TO_CORREDOR==='object'&&PRACA_TO_CORREDOR
+    ? PRACA_TO_CORREDOR[city]||null:null;
+  if(!k&&city&&typeof PRACA_TO_CORREDOR==='object'){
+    var lower=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    var original=Object.keys(PRACA_TO_CORREDOR).find(x=>lower(x)===lower(city));
+    if(original)k=PRACA_TO_CORREDOR[original];
+  }
+  // The commercial corridor can be more precise than the geography dictionary.
+  // Correct an unqualified state tag or an incompatible state, preserving named lanes.
+  if(k&&(old===''||old===uf||(uf&&/^[A-Z]{2}(?:\s|$)/.test(old)&&old.slice(0,2)!==uf)||
+    (uf==='MT'&&String(city).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()==='querencia')))
+    return k;
+  if(old&&(!uf||old===uf||old.startsWith(uf+' ')||(old.startsWith('FAS ')&&k)))return old===uf?uf+' · região a validar':old;
+  return k|| (uf?uf+' · região a validar':old||'Região a validar');
+}
 function brzDeskRegionLabel(d){
-  if(!d) return '—';
-  if(d.rotuloTabRegiao) return String(d.rotuloTabRegiao);
-  if(normalizeProduto(d.produto)==='Sorgo' && /^TO(?:\s|$)/.test(String(d.corredor||''))) return 'TO';
-  return String(d.corredor||'—');
+  if(!d)return '—';
+  var region=brzF77OriginRegion(d);
+  var original=String(d.origem||'').trim();
+  var city=typeof extractCidadeBase==='function'?extractCidadeBase(original):'';
+  city=String(city||original.split(/\s*\+\s*/)[0]).trim();
+  var uf=(original.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1]||
+    (region.match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+  var place=city?city+(uf&&!new RegExp('(?:\\/|\\s-\\s)'+uf+'$').test(city)?'/'+uf:''):'Praça a validar';
+  return place+' · '+region;
 }
 function brzDeskRailModal(d,modal){
   if(d&&d.terminalVliTipnCIF===true) return 'R · TO Centro (TIPN)';
@@ -7876,6 +7841,19 @@ function renderDeals(){
   const baseAtiva = getActiveBase();
   const dealsProduct = getActiveDeals();
   const corrs = [...new Set(dealsProduct.map(d=>d.corredor))].sort();
+  // F77: município/UF são critérios próprios, não texto livre nem o corredor.
+  const placeOf=d=>{
+    const source=String(d?.origem||'');
+    const city=String((typeof extractCidadeBase==='function'&&extractCidadeBase(source))||'').trim();
+    const rawUF=(source.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1];
+    const region=(typeof brzF77OriginRegion==='function'?brzF77OriginRegion(d):d.corredor)||'';
+    const uf=rawUF||(String(region).match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+    return {city,uf};
+  };
+  const hAttr=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const allPlaces=dealsProduct.map(placeOf);
+  const ufs=[...new Set(allPlaces.map(x=>x.uf).filter(Boolean))].sort();
+  const cityOptions=[...new Set(allPlaces.filter(x=>negociosFiltroUF==='todos'||x.uf===negociosFiltroUF).map(x=>x.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   /* V4AV: safras geradas a partir da base (regra safra.calendario) */
   const safras = [{k:'disponivel', label:brzSafraLabel('disponivel')}].concat(brzSafraLista(dealsProduct).map(function(k){ return {k:k, label:brzSafraLabel(k)}; }));
 
@@ -7890,7 +7868,7 @@ function renderDeals(){
     countCorr[c] = dealsProduct.filter(d => d.corredor === c).length;
   });
 
-  const isFiltered = negociosFiltroSafra.size > 0 || negociosFiltroCorr.size > 0 || negociosBusca || negociosFiltroAno !== 'todos' || negociosFiltroMes !== 'todos' || negociosFiltroEmb !== 'todos';
+  const isFiltered = negociosFiltroSafra.size > 0 || negociosFiltroCorr.size > 0 || negociosBusca || negociosFiltroAno !== 'todos' || negociosFiltroMes !== 'todos' || negociosFiltroEmb !== 'todos' || negociosFiltroDia || negociosFiltroInicio || negociosFiltroFim || negociosFiltroUF!=='todos' || negociosFiltroCidade!=='todos';
   const chip = (label, isActive, onClick, count) => `
     <button class="btn small ${isActive?'primary':''}" onclick="${onClick}" style="font-size:10.5px;padding:5px 9px">
       ${label}${count !== undefined ? ` <span style="opacity:.65;font-weight:500">(${count})</span>` : ''}
@@ -7907,6 +7885,8 @@ function renderDeals(){
   const _embKey=x=>{const p=/^([A-Za-z]{3})-(\d{2})$/.exec(String(x||'')); return p?(2000+ +p[2])*12+(_MEN[p[1]]!==undefined?_MEN[p[1]]:0):1e9;};
   const embarques=[...new Set(dealsProduct.map(x=>embarqueEfetivo(x)).filter(Boolean))].sort((a,b)=>_embKey(a)-_embKey(b));
   const embOptions = `<option value="todos">Todos embarques</option>` + embarques.map(x=>`<option value="${x}" ${negociosFiltroEmb===x?'selected':''}>${x}</option>`).join('');
+  const ufOptions = '<option value="todos">Todas UF</option>'+ufs.map(x=>`<option value="${hAttr(x)}" ${negociosFiltroUF===x?'selected':''}>${hAttr(x)}</option>`).join('');
+  const citySelectOptions = '<option value="todos">Todas cidades</option>'+cityOptions.map(x=>`<option value="${hAttr(x)}" ${negociosFiltroCidade===x?'selected':''}>${hAttr(x)}</option>`).join('');
 
   const toolbarBox = document.getElementById('negociosToolbar');
   if(toolbarBox){
@@ -7919,6 +7899,11 @@ function renderDeals(){
           <select class="btn" onchange="setNegociosAno(this.value)" style="font-size:11.5px;min-width:130px">${anoOptions}</select>
           <select class="btn" onchange="setNegociosMes(this.value)" style="font-size:11.5px;min-width:140px">${mesOptions}</select>
           <select class="btn" onchange="setNegociosEmb(this.value)" style="font-size:11.5px;min-width:150px">${embOptions}</select>
+          <select class="btn" onchange="setNegociosUF(this.value)" title="Filtrar estado da origem" aria-label="Origem UF" style="font-size:11.5px;min-width:115px">${ufOptions}</select>
+          <select class="btn" onchange="setNegociosCidade(this.value)" title="Filtrar município da origem" aria-label="Origem cidade" style="font-size:11.5px;min-width:170px;max-width:240px">${citySelectOptions}</select>
+          <label class="brz-f77-date">Dia <input type="date" aria-label="Dia do negócio" value="${negociosFiltroDia}" onchange="setNegociosDia(this.value)"></label>
+          <label class="brz-f77-date">De <input type="date" aria-label="Início do período" value="${negociosFiltroInicio}" onchange="setNegociosInicio(this.value)"></label>
+          <label class="brz-f77-date">Até <input type="date" aria-label="Fim do período" value="${negociosFiltroFim}" onchange="setNegociosFim(this.value)"></label>
           ${isFiltered ? `<button class="btn small" onclick="clearNegociosFiltros()" style="font-size:10.5px;padding:6px 10px;margin-left:auto">× Limpar filtros</button>` : ''}
         </div>
         <!-- Linha 2: Safra -->
@@ -7984,7 +7969,15 @@ function renderDeals(){
   let ds = dealsProduct.filter(d => {
     if(negociosFiltroAno !== 'todos' && String(d.data||'').slice(0,4) !== negociosFiltroAno) return false;
     if(negociosFiltroMes !== 'todos' && String(d.data||'').slice(5,7) !== negociosFiltroMes) return false;
+    if(negociosFiltroDia && d.data!==negociosFiltroDia) return false;
+    if(negociosFiltroInicio && String(d.data||'')<negociosFiltroInicio) return false;
+    if(negociosFiltroFim && String(d.data||'')>negociosFiltroFim) return false;
     if(negociosFiltroEmb !== 'todos' && embarqueEfetivo(d) !== negociosFiltroEmb) return false;
+    if(negociosFiltroUF!=='todos'||negociosFiltroCidade!=='todos'){
+      const city=placeOf(d);
+      if(negociosFiltroUF!=='todos'&&city.uf!==negociosFiltroUF)return false;
+      if(negociosFiltroCidade!=='todos'&&city.city!==negociosFiltroCidade)return false;
+    }
     if(negociosFiltroCorr.size > 0 && !negociosFiltroCorr.has(d.corredor)) return false;
     if(negociosFiltroSafra.size > 0 && ![...negociosFiltroSafra].some(f => brzSafraMatch(d, f))) return false;
     if(q && !JSON.stringify(d).toLowerCase().includes(q)) return false;
@@ -8080,9 +8073,9 @@ function renderDeals(){
       <td><span class="tag navy" title="Número visual recalculado automaticamente">${visualNo}</span></td>
       <td><span class="tag neutral" title="ID técnico preservado para auditoria" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10.5px">${d.id}</span></td>
       <td>${fmtDate(d.data)}</td>
-      <td><span class="tag ${safraTag}">${d.safra}</span></td>
+      <td><span class="tag ${safraTag}" title="Safra da retirada física; declaração original preservada">${brzSafraLabel(safraK)}</span></td>
       <td><b title="${String(d.origem||'').replace(/"/g,'&quot;')}">${cleanOrigem(d.origem)}</b>${(function(){try{var _c=String(d.origem||'').split(' - ')[0].replace(/\s*\+.*$/,'').trim();return(_c&&!getCityCoord(_c))?' <span class="tag red" title="PRAÇA SEM COORDENADA — frete estimado pelo centróide do corredor; rota pode estar errada">s/ coord</span>':'';}catch(e){return '';}})()}${audit.best&&audit.best.freteOverrideAgoSet?' <span class="tag amber" title="Frete Ago/Set milho \u2014 proxy ano anterior (perna rodoviária ajustada)">frete Ago/Set</span>':''}</td>
-      <td><span class="tag neutral">${d.corredor}</span>${d.foraMercado?' <span class="tag amber" title="Registrado e contado no volume, mas fora do cálculo de replacement">'+(d.foraMercadoMotivo||'fora de mercado')+'</span>':''}${(d.precoAFixar===true||d.status==='A FIXAR')?' <span class="tag amber" title="Preço a fixar: fora das médias e da tabela de replacement até a fixação">A FIXAR</span>':(d.replacementPendente?' <span class="tag amber" title="Registro fechado; replacement pendente por termos comerciais ou origem não informada">REPLACEMENT PENDENTE</span>':'')}</td>
+      <td><span class="tag neutral" title="Corredor comercial original: ${d.corredor||'N/D'}">${brzF77OriginRegion(d)}</span>${d.foraMercado?' <span class="tag amber" title="Registrado e contado no volume, mas fora do cálculo de replacement">'+(d.foraMercadoMotivo||'fora de mercado')+'</span>':''}${(d.precoAFixar===true||d.status==='A FIXAR')?' <span class="tag amber" title="Preço a fixar: fora das médias e da tabela de replacement até a fixação">A FIXAR</span>':(d.replacementPendente?' <span class="tag amber" title="Registro fechado; replacement pendente por termos comerciais ou origem não informada">REPLACEMENT PENDENTE</span>':'')}</td>
       <td>${_dealRetiradaEn(d.retirada)}</td>
       <td>${(function(){ if(d.embarque) return `<span class="tag neutral">${d.embarque}</span>`; const inf=embarqueEfetivo(d); return inf? `<span class="tag neutral" style="opacity:.55" title="Inferido da retirada — campo não gravado no registro">${inf}*</span>` : '<span style="color:var(--muted)">—</span>'; })()}</td>
       <td class="num">${n(d.volume)>0 ? tons(d.volume) : '—'}</td>
@@ -12261,6 +12254,11 @@ var negociosBusca = '';                 // texto livre
 var negociosFiltroAno = 'todos';        // filtro de ano na aba Negócios
 var negociosFiltroMes = 'todos';        // filtro de mês na aba Negócios, 01-12
 var negociosFiltroEmb = 'todos';        // filtro de embarque (MMM-YY) na aba Negócios
+var negociosFiltroDia = '';             // F77: dia exato
+var negociosFiltroInicio = '';          // F77: intervalo, início
+var negociosFiltroFim = '';             // F77: intervalo, fim
+var negociosFiltroUF = 'todos';         // F77: filtro de estado original
+var negociosFiltroCidade = 'todos';     // F77: filtro de município original
 var _embEffCache = new Map();           // cache embarque efetivo (gravado || inferido) por id
 function embarqueEfetivo(dl){
   var k=String(dl&&dl.id); if(_embEffCache.has(k)) return _embEffCache.get(k);
@@ -12382,6 +12380,11 @@ function toggleNegociosCorr(c){
   else negociosFiltroCorr.add(c);
   renderDeals();
 }
+function setNegociosUF(v){negociosFiltroUF=v||'todos';negociosFiltroCidade='todos';negociosRenderPage=0;renderDeals();}
+function setNegociosCidade(v){negociosFiltroCidade=v||'todos';negociosRenderPage=0;renderDeals();}
+function setNegociosDia(v){negociosFiltroDia=v||'';negociosRenderPage=0;renderDeals();}
+function setNegociosInicio(v){negociosFiltroInicio=v||'';negociosRenderPage=0;renderDeals();}
+function setNegociosFim(v){negociosFiltroFim=v||'';negociosRenderPage=0;renderDeals();}
 function setNegociosAno(v){
   negociosRenderPage = 0;
   negociosFiltroAno = v || 'todos';
@@ -12405,6 +12408,11 @@ function clearNegociosFiltros(){
   negociosFiltroAno = 'todos';
   negociosFiltroMes = 'todos';
   negociosFiltroEmb = 'todos';
+  negociosFiltroDia = '';
+  negociosFiltroInicio = '';
+  negociosFiltroFim = '';
+  negociosFiltroUF = 'todos';
+  negociosFiltroCidade = 'todos';
   renderDeals();
 }
 function setNegociosBuscaDebounced(v){
@@ -13345,7 +13353,7 @@ function renderMapa(){
   brzMapCalculationIssues=0; brzMapCalculationExample=[];
   // Mostra o mapa imediatamente, antes de cálculos de milhares de negócios.
   function showMapLayer(data,col){
-    try{renderMapaLeaflet(data,col)}catch(e){console.error('[BRZ F72] Leaflet',e);
+    try{renderMapaLeaflet(data,col,dealsFiltro)}catch(e){console.error('[BRZ F72] Leaflet',e);
       const target=document.getElementById('mapaContainer');
       if(target)target.setAttribute('data-brz-map-error',String(e?.message||e).slice(0,180));
     }
@@ -13458,7 +13466,7 @@ let _leafletMap = null;
 let _leafletLayer = null;  // grupo de markers
 let _mapaUiState = {panelHidden:false, tableHidden:false, fullscreen:false};
 
-function renderMapaLeaflet(agg, colorFor){
+function renderMapaLeaflet(agg, colorFor, cityDeals=[]){
   const container = document.getElementById('mapaContainer');
   if(!container) return;
 
@@ -13565,6 +13573,75 @@ function renderMapaLeaflet(agg, colorFor){
     marker.on('click', ()=>{ mapaCorredorSelecionado = corr; renderMapa(); });
     _leafletLayer.addLayer(marker);
   });
+
+  // F77: drill down from a Brazilian corridor to the real business origin
+  // municipality. Pins are municipal (indicative), never fictitious farm sites.
+  // All deals in the chosen corridor participate; no source-row cap.
+  const selectedCorridor=String(mapaCorredorSelecionado||'');
+  let cityPanel=document.getElementById('brzF77MapCityDetail');
+  if(!cityPanel){
+    cityPanel=document.createElement('div');
+    cityPanel.id='brzF77MapCityDetail';
+    cityPanel.setAttribute('role','region');
+    cityPanel.setAttribute('aria-label','Negócios por cidade da origem');
+    cityPanel.style.cssText='margin:8px 0;background:var(--card,#fff);border:1px solid var(--g200,#d5e2e9);padding:12px;font:12px Inter,Arial,sans-serif;color:var(--g900,#18364b);max-height:280px;overflow:auto';
+    container.insertAdjacentElement('afterend',cityPanel);
+  }
+  const htmlSafe=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  if(selectedCorridor){
+    const grouped=new Map(),withoutCoords=[];
+    for(const d of cityDeals||[]){
+      if(String(d.corredor||'')!==selectedCorridor)continue;
+      const raw=String(d.origem||'');
+      const city=String((typeof extractCidadeBase==='function'&&extractCidadeBase(raw))||'').trim();
+      const uf=(raw.match(/(?:\/|\s-\s)([A-Z]{2})(?:\b|[\s(]|$)/)||[])[1]||
+        (String(d.corredor||'').match(/^([A-Z]{2})(?:\s|$)/)||[])[1]||'';
+      if(!city){withoutCoords.push(d);continue;}
+      const key=city+'|'+uf;
+      if(!grouped.has(key)){
+        let loc=null;
+        try{loc=getCityCoord(city+(uf?'/'+uf:''))||getCityCoord(city);}catch(_e){}
+        const good=Array.isArray(loc)&&loc.length===2&&loc.every(x=>Number.isFinite(Number(x)))&&
+         loc[0]>=-35&&loc[0]<=6&&loc[1]>=-75&&loc[1]<=-32;
+        grouped.set(key,{city,uf,loc:good?loc:null,deals:[],volume:0});
+      }
+      const group=grouped.get(key);
+      group.deals.push(d);group.volume+=Number(d.volume)>0?Number(d.volume):0;
+    }
+    const known=[...grouped.values()].filter(x=>x.loc),missing=[...grouped.values()].filter(x=>!x.loc);
+    cityPanel.innerHTML='<b>'+htmlSafe(selectedCorridor)+'</b> · '+
+      grouped.size+' municípios · '+known.length+' localizados · '+(missing.length+withoutCoords.length)+
+      ' origens geográficas pendentes · <small>pinos indicam apenas a sede municipal</small>'+
+      '<div id="brzF77MapCitySelected" style="margin-top:9px">Selecione um município no mapa para visualizar os seus negócios.</div>'+
+      (missing.length?'<details style="margin-top:8px"><summary>Municípios sem coordenadas verificadas ('+missing.length+')</summary>'+
+       '<div>'+missing.map(x=>htmlSafe(x.city+(x.uf?'/'+x.uf:'')+' · '+x.deals.length+' negócios')).join(' · ')+'</div></details>':'');
+    for(const group of known){
+      const loc=group.loc;
+      const point=L.circleMarker(loc,{
+        radius:Math.min(10,5+Math.log2(group.deals.length+1)),
+        color:'#fff',weight:2,fillColor:'#168c82',fillOpacity:.96
+      });
+      point.bindTooltip('<b>'+htmlSafe(group.city+(group.uf?'/'+group.uf:''))+'</b> · '+
+        group.deals.length+' negócios · '+group.volume.toLocaleString('pt-BR')+' t'+
+        '<br><small>Coordenada municipal indicativa</small>',{direction:'top',sticky:true});
+      point.on('click',()=>{
+        _leafletMap.setView(loc,Math.max(7,_leafletMap.getZoom()),{animate:false});
+        const target=document.getElementById('brzF77MapCitySelected');
+        if(!target)return;
+        target.innerHTML='<b>'+htmlSafe(group.city+(group.uf?'/'+group.uf:''))+
+          '</b> · '+group.deals.length+' negócios · '+group.volume.toLocaleString('pt-BR')+
+          ' t<div style="margin:6px 0;font-size:11px;color:var(--g600)">Localização indicativa; não representa fazenda nem acesso ferroviário.</div>'+
+          '<div style="overflow:auto;max-height:145px"><table style="width:100%;border-collapse:collapse">'+
+          '<thead><tr><th>ID</th><th>Data</th><th>Produto</th><th>Origem comercial</th><th>Volume</th></tr></thead><tbody>'+
+          group.deals.map(d=>'<tr>'+[d.id,d.data,d.produto,d.origem,(Number(d.volume)||0).toLocaleString('pt-BR')+' t']
+           .map(v=>'<td style="border-bottom:1px solid var(--g200);padding:3px">'+htmlSafe(v)+'</td>').join('')+'</tr>').join('')+
+          '</tbody></table></div>';
+      });
+      _leafletLayer.addLayer(point);
+    }
+  }else{
+    cityPanel.textContent='Selecione um corredor no mapa para detalhar as origens por cidade.';
+  }
 
   // Legenda flutuante (recria a cada render)
   if(_leafletMap._legendControl){ _leafletMap.removeControl(_leafletMap._legendControl); }
@@ -15133,15 +15210,34 @@ function brzSafraPorFisico(produto, ano, mes){
   return 'safrinha_'+ano;
 }
 function brzFisicoDeal(d){
-  if(!d) return null;
-  var jf=brzEmbParse(d.janelaFisica||''); if(jf) return {ano:2000+jf.yy, mes:jf.mes+1};
-  var e=brzEmbParse(d.embarque||''); if(e){ var i=(2000+e.yy)*12+e.mes-1; return {ano:Math.floor(i/12), mes:i%12+1}; }
+  if(!d)return null;
+  // F77: classificar pela data de retirada física, não pelo rótulo legado.
+  var raw=String(d.retirada||''), norm=raw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  var date=/^20\d{2}-\d\d-\d\d$/.test(String(d.data||''))?String(d.data):'';
+  var year=date?Number(date.slice(0,4)):null,month=date?Number(date.slice(5,7)):null;
+  var years=[...raw.matchAll(/\b20\d{2}\b/g)].map(x=>Number(x[0])),explicit=years.at(-1)||null;
+  var dates=[...raw.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(20\d{2}|\d{2}))?\b/g)];
+  if(dates.length){
+    var last=dates.at(-1),m=Number(last[2]),y=last[3]?Number(last[3]):explicit||year;
+    if(y!=null&&y<100)y+=2000;
+    if(!last[3]&&!explicit&&month>=10&&m<=5)y++;
+    if(m>=1&&m<=12&&y>=2000&&y<=2100)return {ano:y,mes:m};
+  }
+  var words={jan:1,janeiro:1,fev:2,fevereiro:2,mar:3,marco:3,abr:4,abril:4,mai:5,maio:5,jun:6,junho:6,jul:7,julho:7,ago:8,agosto:8,set:9,setembro:9,out:10,outubro:10,nov:11,novembro:11,dez:12,dezembro:12};
+  var months=[...norm.matchAll(/\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/g)];
+  if(months.length){
+    var mm=words[months.at(-1)[1]],yy=explicit||year;
+    if(yy&&mm){if(!explicit&&month>=10&&mm<=5)yy++;return {ano:yy,mes:mm};}
+  }
+  if(/imediat|\bspot\b|dispon|\bdisp\b|pronta?\b/.test(norm)&&year)return {ano:year,mes:month};
+  var jf=brzEmbParse(d.janelaFisica||'');if(jf)return {ano:2000+jf.yy,mes:jf.mes+1};
+  var e=brzEmbParse(d.embarque||'');if(e){var idx=(2000+e.yy)*12+e.mes-1;return {ano:Math.floor(idx/12),mes:idx%12+1};}
   return null;
 }
 function brzSafraKeyDeal(d){
-  if(d && d.safraKey) return d.safraKey;
-  var f=brzFisicoDeal(d); if(!f) return 'outro';
-  return brzSafraPorFisico(d.grupoProduto==='Milho'?'Milho':d.produto, f.ano, f.mes);
+  var f=brzFisicoDeal(d);
+  if(f)return brzSafraPorFisico(d.grupoProduto==='Milho'?'Milho':d.produto,f.ano,f.mes);
+  return d&&d.safraKey?String(d.safraKey):'outro';
 }
 function brzSafraLabel(k){
   k=String(k||'');

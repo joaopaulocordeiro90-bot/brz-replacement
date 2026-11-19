@@ -31,7 +31,9 @@ export function installRoadGeo(api){
  function show(){
   const all=api.getTrades().filter(d=>d?.id&&d?.origem).slice().sort((a,b)=>String(b.data||'').localeCompare(String(a.data||'')));
   const q=norm($('brzf60-search')?.value);
-  const rows=all.filter(d=>!q||norm([d.id,d.origem,d.vendedor,d.comprador,d.produto].join(' ')).includes(q)).slice(0,175);
+  const day=String($('brzf60-day')?.value||''),from=String($('brzf60-from')?.value||''),to=String($('brzf60-to')?.value||'');
+  const rows=all.filter(d=>(!day||d.data===day)&&(!from||d.data>=from)&&(!to||d.data<=to)&&
+    (!q||norm([d.id,d.origem,d.corredor,d.vendedor,d.comprador,d.produto].join(' ')).includes(q)));
   const x=$('brzf60-deal');if(!x)return;
   x.innerHTML='<option value="">Selecionar negócio ('+all.length+')</option>'+rows.map(d=>'<option value="'+esc(d.id)+'">'+esc([d.id,d.produto,d.origem].join(' · ').slice(0,130))+'</option>').join('');
   if(rows.some(d=>String(d.id)===id))x.value=id;
@@ -74,7 +76,37 @@ export function installRoadGeo(api){
    $('brzf60-apply').disabled=false;
    status('<b>'+fmt(km)+' km rodoviários</b> · '+fmt(kmRoad)+' km de rede viária'+(kmAccess?' + '+fmt(kmAccess)+' km de acesso informado':'')+
     ' · TKU indicativo R$ '+fmt(tk)+'/t.km · <b>Frete R$ '+fmt(result.freteRodoIndicativo)+'/t</b>'+
-    '<div style="font-size:11px;margin-top:5px">'+esc(a.source)+' · Ferrovias, fretes cotados e snapshots preservados. Confirme para usar em cálculo indicativo.</div>');
+    '<div style="font-size:11px;margin-top:5px">'+esc(a.source)+
+    (r.modal==='T+R'?' · Ferrovia '+esc(r.transbordo||'terminal')+' → '+esc(r.porto)+': geometria ferroviária ainda não validada; traçado não inventado.':'')+
+    ' · Fretes cotados e snapshots preservados. Confirme para usar em cálculo indicativo.</div>');
+
+   // F77: a railway line appears only if a connected path exists on the
+   // georeferenced official ANTT/Infra S.A. network. No price changes.
+   if(r.modal==='T+R'){
+     const railStart=coords(r.transbordo),railEnd=coords(r.porto,true);
+     const note=$('brzf60-status');
+     if(!railStart||!railEnd){
+       if(note)note.append(document.createTextNode(' · Ferrovia sem terminal/porto georreferenciado.'));
+     }else if(m&&layer){
+       if(note)note.append(document.createTextNode(' · Verificando traçado ferroviário oficial…'));
+       const railTimer=setTimeout(()=>controller.abort(),18000);
+       try{
+         const {displayValidatedRail}=await import('./f77_rail_network.mjs?v=20261117f77');
+         const railway=await displayValidatedRail({
+           map:m,group:layer,from:[railStart[1],railStart[0]],
+           to:[railEnd[1],railEnd[0]],signal:controller.signal
+         });
+         if(seq===requestId&&note){
+           note.append(document.createTextNode(railway.ok
+             ?' · Ferrovia oficial conectada: '+fmt(railway.km)+' km (violeta; sem comprovação de operação comercial ou bitola).'
+             :' · Ferrovia não desenhada: '+String(railway.reason||'sem traçado verificado')+'.'));
+         }
+       }catch(error){
+         if(seq===requestId&&note)note.append(document.createTextNode(' · Ferrovia indisponível: '+error.message));
+       }finally{clearTimeout(railTimer);}
+     }
+   }
+
   }catch(err){if(seq===requestId)status('Roteirização não confirmada: '+esc(err.message)+'. Nenhum cálculo foi alterado.',true);}
   finally{clearTimeout(timeout);if(activeCtrl===controller)activeCtrl=null;$('brzf60-calc').disabled=false;}
  }
@@ -111,6 +143,9 @@ export function installRoadGeo(api){
  if(screen){const div=document.createElement('section');div.id='brzf60-panel';div.innerHTML=
   '<div style="font-weight:800;margin-bottom:9px">Mapa rodoviário · TKU por negócio</div>'+
   '<div class="brzf60-controls"><input id="brzf60-search" placeholder="Buscar ID, município ou vendedor">'+
+  '<label>Dia <input id="brzf60-day" type="date" aria-label="Dia do negócio"></label>'+
+  '<label>De <input id="brzf60-from" type="date" aria-label="Data inicial"></label>'+
+  '<label>Até <input id="brzf60-to" type="date" aria-label="Data final"></label>'+
   '<select id="brzf60-deal"></select><select id="brzf60-route"></select>'+
   '<button type="button" id="brzf60-pin">Marcar fazenda</button><button type="button" id="brzf60-calc">Calcular km</button>'+
   '<button type="button" id="brzf60-apply" disabled>Aplicar km indicativos</button>'+
@@ -121,14 +156,18 @@ export function installRoadGeo(api){
    '#brzf60-panel{padding:13px 18px;margin:10px 16px;border:1px solid var(--g200,#d7e2e8);background:var(--card,#fff);border-radius:5px}'+
    '.brzf60-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}'+
    '.brzf60-controls select,.brzf60-controls input{padding:8px;border:1px solid #cbd6df;border-radius:4px;min-width:140px;max-width:100%;font:12px Arial}'+
-   '#brzf60-deal{flex:2 1 250px}#brzf60-search{flex:1 1 160px}'+
+   '#brzf60-deal{flex:2 1 250px}#brzf60-search{flex:1 1 160px}.brzf60-controls label{display:flex;align-items:center;gap:4px;font:600 11px Arial;color:var(--g700)}.brzf60-controls input[type=date]{min-width:135px}'+
    '.brzf60-controls button{padding:8px 10px;border:1px solid #087d76;background:#fff;color:#087d76;cursor:pointer;border-radius:4px;font:700 12px Arial}'+
    '.brzf60-controls button:disabled{opacity:.4;cursor:not-allowed}'+
    '#brzf60-status{font:12px/1.5 Arial;color:var(--g800,#3e5361);padding:9px 0}#brzf60-status[data-error="1"]{color:#983e29}';
   document.head.appendChild(css);
+  $('brzf60-day').value=api.getTrades().reduce((m,d)=>String(d?.data||'')>m?String(d.data):m,'');
+  $('brzf60-day').onchange=()=>show();
+  $('brzf60-from').onchange=()=>{if($('brzf60-from').value)$('brzf60-day').value='';show();};
+  $('brzf60-to').onchange=()=>{if($('brzf60-to').value)$('brzf60-day').value='';show();};
   $('brzf60-search').oninput=()=>show();
   $('brzf60-deal').onchange=e=>{choose(e.target.value);if(e.target.value)void calculate();};
-  $('brzf60-route').onchange=()=>{clear();status('Trecho alterado. Clique em calcular.');};
+  $('brzf60-route').onchange=()=>{void calculate();};
   $('brzf60-pin').onclick=markOrigin;
   $('brzf60-calc').onclick=calculate;
   $('brzf60-apply').onclick=apply;

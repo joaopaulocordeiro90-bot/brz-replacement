@@ -2,7 +2,7 @@
    No business data, password or token is stored by this bootstrap. */
 const el=id=>document.getElementById(id);
 const allowed=location.protocol==='https:'&&location.hostname==='joaopaulocordeiro90-bot.github.io'
-  &&['/brz-replacement/','/brz-replacement/index.html','/brz-replacement/pin.html'].includes(location.pathname);
+  &&['/brz-replacement/','/brz-replacement/index.html','/brz-replacement/pin.html', '/brz-replacement/homolog/f77/','/brz-replacement/homolog/f77/index.html','/brz-replacement/homolog/f77/pin.html'].includes(location.pathname);
 function status(s){el('status').textContent=s;}
 function hex(bytes){return [...bytes].map(v=>v.toString(16).padStart(2,'0')).join('');}
 async function sha256(bytes){return hex(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)));}
@@ -52,18 +52,11 @@ async function load(){
       headers:{'Content-Type':'application/octet-stream'}}));}catch(e){}
    }
   }
-  // F73: verify the minimal trusted boot path first. All other assets are
-  // checked against the SAME SHA manifest before loading the full engine.
-  // Never execute an unverified script; no private data is in public cache.
-  const immediate=new Set([
-    'assets/f42/f42_hydrate.js',
-    'assets/secure/f40_pin_login.js',
-    'assets/secure/f73_fast_market.mjs',
-    'assets/secure/f74_history_pager.mjs',
-    'assets/secure/market_excel_overlay.mjs'
-  ]);
+  // F77: minimal trusted PIN loader before login; verify ALL remaining files
+  // in full before hydrating any confidential business source.
+  const immediate=new Set(['assets/f42/f42_hydrate.js','assets/secure/f40_pin_login.js']);
   for(const path of immediate)if(!manifest.files[path])
-    throw Error('F73: recurso autenticado ausente do manifesto: '+path);
+    throw Error('F77: componente de entrada ausente do manifesto: '+path);
   let done=0;
   async function verifyBatch(items,label){
     let cursor=0;
@@ -82,14 +75,22 @@ async function load(){
   }
   const basic=entries.filter(([name])=>immediate.has(name));
   const full=entries.filter(([name])=>!immediate.has(name));
-  await verifyBatch(basic,'Verificando consulta diária segura');
-  const fullVerify=async()=>{
-    if(window.__BRZF58_PREFLIGHT?.verified===true)return;
-    await verifyBatch(full,'Verificando motor completo');
-    window.__BRZF58_PREFLIGHT=Object.freeze({verified:true,quickVerified:true,readOnly:true,
-      productionApproved:false,verifiedResources:done});
+  await verifyBatch(basic,'Verificando login seguro');
+  // F77: while the PIN is being entered, validate public static assets.
+  // No private data or authenticated RPC is read here. Re-entrant verification
+  // shares the same promise and the protected engine still waits for completion.
+  let fullPromise=null;
+  const fullVerify=()=>{
+    if(window.__BRZF58_PREFLIGHT?.verified===true)return Promise.resolve();
+    if(!fullPromise)fullPromise=verifyBatch(full,'Verificando motor completo')
+      .then(()=>{window.__BRZF58_PREFLIGHT=Object.freeze({
+        verified:true,quickVerified:true,readOnly:true,productionApproved:false,
+        verifiedResources:done
+      });})
+      .catch(err=>{fullPromise=null;throw err});
+    return fullPromise;
   };
-  window.__BRZ_F73_VERIFY_FULL_STATIC=fullVerify;
+  window.__BRZ_VERIFY_FULL_STATIC=fullVerify;
   // F42 is defined in its own script (not in F40). Install it with the
   // sealed manifest integrity before enabling the authenticated loader.
   const f42Path='assets/f42/f42_hydrate.js';
@@ -115,10 +116,13 @@ async function load(){
   window.__BRZF58_PREFLIGHT=Object.freeze({verified:false,quickVerified:true,readOnly:true,
     productionApproved:false,verifiedResources:done});
   const script=document.createElement('script');
-  script.src='./assets/secure/f40_pin_login.js?v=20261117f76';
+  script.src='./assets/secure/f40_pin_login.js?v=20261117f77';
   script.async=false;
   script.onerror=()=>{controls.forEach(x=>x.disabled=true);status('Não foi possível carregar o login protegido.');};
   document.body.appendChild(script);
+  // Start only public-code SHA verification ahead of the PIN submit.
+  // Authenticated full datasets remain gated by PIN and validated session.
+  void fullVerify().catch(err=>console.warn('[BRZ F77] static preflight:',err?.message));
  }catch(err){
   go.disabled=true;
   status('Acesso protegido bloqueado: '+(err?.message||String(err)));

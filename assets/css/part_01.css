@@ -1203,3 +1203,15 @@ body{zoom:.8;min-width:100%;max-width:none}
 #analise .brz-ui-q-arrow.up,#report .brz-ui-q-arrow.up{color:#DC2626!important}
 #analise .brz-ui-q-arrow.down,#report .brz-ui-q-arrow.down{color:#16A34A!important}
 @media print{.brz-ui-q-arrow{display:none!important}}
+
+/* BRZ F77 · contraste e calendário · independent of PT/EN labels */
+#negocios .table thead th:not(.dealsScrollTh){
+ background:var(--g100,#edf2f6)!important;
+ color:var(--g900,#173249)!important;
+ border-right:1px solid var(--g200,#cad8e0)!important;
+ border-bottom:1px solid var(--g200,#cad8e0)!important;
+}
+#negocios .table thead th.th-sort:hover{background:var(--g200,#d6e2ea)!important;color:var(--g900,#173249)!important}
+#negocios .table thead th.th-sort::after{color:var(--g700,#324e60)!important}
+#negocios .brz-f77-date{display:flex;align-items:center;gap:5px;margin:0;color:var(--g800,#26445a);font:600 11px Inter,Arial,sans-serif;white-space:nowrap}
+#negocios .brz-f77-date input{width:140px;max-width:175px;padding:6px 8px;color:var(--g900,#173249);background:var(--card,#fff);border:1px solid var(--g200,#cad8e0);border-radius:4px}

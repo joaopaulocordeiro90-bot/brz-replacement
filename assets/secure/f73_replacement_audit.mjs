@@ -213,6 +213,9 @@ export function installReplacementAudit(root,getDeals){
          onProgress:({current,total,issues})=>{
            text.textContent='Auditoria '+current+'/'+total+' · '+issues+' pendências identificadas';}
        });
+       // F77: distinguish a current completed audit from a stale result after edits.
+       result.stateVersion=Number(root.state?._version||0);
+       result.completedAt=new Date().toISOString();
        root.__BRZ_F73_REPLACEMENT_DIAGNOSTICS=result;
        csv.disabled=false;
        renderResult();
